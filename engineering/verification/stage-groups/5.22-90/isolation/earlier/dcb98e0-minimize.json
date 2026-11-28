@@ -1,0 +1,918 @@
+{
+  "actions": [
+    {
+      "axReturn": 0,
+      "id": 36,
+      "park": true,
+      "state": "confirmed",
+      "uptime": 190.06306554166667
+    },
+    {
+      "axReturn": 0,
+      "id": 34,
+      "park": true,
+      "state": "confirmed",
+      "uptime": 190.81099141666667
+    },
+    {
+      "axReturn": 0,
+      "id": 35,
+      "park": true,
+      "state": "confirmed",
+      "uptime": 191.87178320833334
+    },
+    {
+      "axReturn": 0,
+      "id": 36,
+      "park": false,
+      "state": "confirmed",
+      "uptime": 192.59520870833333
+    },
+    {
+      "axReturn": 0,
+      "id": 36,
+      "park": true,
+      "state": "confirmed",
+      "uptime": 193.627242625
+    },
+    {
+      "axReturn": 0,
+      "id": 34,
+      "park": false,
+      "state": "confirmed",
+      "uptime": 194.3860655
+    },
+    {
+      "axReturn": 0,
+      "id": 34,
+      "park": true,
+      "state": "confirmed",
+      "uptime": 195.77253220833333
+    },
+    {
+      "axReturn": 0,
+      "id": 35,
+      "park": false,
+      "state": "confirmed",
+      "uptime": 196.66086829166667
+    },
+    {
+      "axReturn": 0,
+      "id": 34,
+      "park": false,
+      "state": "confirmed",
+      "uptime": 198.33374012500002
+    },
+    {
+      "axReturn": 0,
+      "id": 36,
+      "park": false,
+      "state": "confirmed",
+      "uptime": 199.21506608333334
+    }
+  ],
+  "auxiliaryID": 39,
+  "axTrusted": true,
+  "baseline": [
+    {
+      "appKitFrame": [
+        20,
+        400,
+        140,
+        132
+      ],
+      "axFrame": [
+        20,
+        236,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        20,
+        236,
+        140,
+        132
+      ],
+      "id": 35,
+      "input": "",
+      "ownerKey": true,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        120,
+        400,
+        140,
+        132
+      ],
+      "axFrame": [
+        120,
+        236,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        120,
+        236,
+        140,
+        132
+      ],
+      "id": 36,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        280,
+        400,
+        140,
+        132
+      ],
+      "axFrame": [
+        280,
+        236,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        280,
+        236,
+        140,
+        132
+      ],
+      "id": 34,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        390,
+        400,
+        140,
+        132
+      ],
+      "axFrame": [
+        390,
+        236,
+        140,
+        132
+      ],
+      "axMin": false,
+      "cg": [
+        390,
+        236,
+        140,
+        132
+      ],
+      "id": 37,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    },
+    {
+      "appKitFrame": [
+        500,
+        400,
+        140,
+        132
+      ],
+      "axFrame": [
+        500,
+        236,
+        140,
+        132
+      ],
+      "axMin": true,
+      "cg": [],
+      "id": 38,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": true,
+      "ownerVisible": false
+    },
+    {
+      "appKitFrame": [
+        610,
+        400,
+        140,
+        124
+      ],
+      "axFrame": [
+        610,
+        244,
+        140,
+        124
+      ],
+      "axMin": false,
+      "cg": [
+        610,
+        244,
+        140,
+        124
+      ],
+      "id": 39,
+      "input": "",
+      "ownerKey": false,
+      "ownerMini": false,
+      "ownerVisible": true
+    }
+  ],
+  "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+  "displayBounds": [
+    0,
+    0,
+    1024,
+    768
+  ],
+  "dockAfterCleanup": 1,
+  "dockBaseline": 1,
+  "dockBeforeUserMinimized": 0,
+  "dockNoExtraTiles": false,
+  "dockPeak": 3,
+  "fiftyCycles": "NOT_RUN",
+  "installedHost": "NOT_RUN",
+  "maskPrepared": false,
+  "maskPresented": false,
+  "method": "minimize",
+  "nativeWrites": 0,
+  "owners": [
+    {
+      "birth": 1795230746461375,
+      "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+      "identifier": "net.example.nearpane.stage-group-a",
+      "numbers": [
+        35,
+        36
+      ],
+      "onActiveSpace": true,
+      "pid": 2712
+    },
+    {
+      "birth": 1795230746485883,
+      "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+      "identifier": "net.example.nearpane.stage-group-b",
+      "numbers": [
+        34,
+        37,
+        38,
+        39
+      ],
+      "onActiveSpace": true,
+      "pid": 2713
+    }
+  ],
+  "reason": "dockWindowTiles",
+  "requestedCorner": [
+    1023,
+    767
+  ],
+  "restoredOriginals": true,
+  "screenRecordingAllowed": true,
+  "stageManager": false,
+  "status": "FAIL",
+  "steps": [
+    {
+      "dockMiniatures": 3,
+      "elapsedSeconds": 1,
+      "facts": {
+        "allInactiveIsolated": true,
+        "bystandersUnchanged": true,
+        "exactFocusAndCGKey": true,
+        "onlyIntendedKeyReceiver": true,
+        "selectedVisibleAtOriginalLayout": true
+      },
+      "group": 0,
+      "independentSamples": 2,
+      "windows": [
+        {
+          "appKitFrame": [
+            20,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            20,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            20,
+            236,
+            140,
+            132
+          ],
+          "id": 35,
+          "input": "a",
+          "ownerKey": true,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            120,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            120,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 36,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            280,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            280,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 34,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            390,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "id": 37,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            500,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            500,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 38,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            610,
+            400,
+            140,
+            124
+          ],
+          "axFrame": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "axMin": false,
+          "cg": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "id": 39,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        }
+      ]
+    },
+    {
+      "dockMiniatures": 3,
+      "elapsedSeconds": 3,
+      "facts": {
+        "allInactiveIsolated": true,
+        "bystandersUnchanged": true,
+        "exactFocusAndCGKey": true,
+        "onlyIntendedKeyReceiver": true,
+        "selectedVisibleAtOriginalLayout": true
+      },
+      "group": 1,
+      "independentSamples": 2,
+      "windows": [
+        {
+          "appKitFrame": [
+            20,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            20,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 35,
+          "input": "a",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            120,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            120,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            120,
+            236,
+            140,
+            132
+          ],
+          "id": 36,
+          "input": "b",
+          "ownerKey": true,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            280,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            280,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 34,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            390,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "id": 37,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            500,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            500,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 38,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            610,
+            400,
+            140,
+            124
+          ],
+          "axFrame": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "axMin": false,
+          "cg": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "id": 39,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        }
+      ]
+    },
+    {
+      "dockMiniatures": 3,
+      "elapsedSeconds": 5,
+      "facts": {
+        "allInactiveIsolated": true,
+        "bystandersUnchanged": true,
+        "exactFocusAndCGKey": true,
+        "onlyIntendedKeyReceiver": true,
+        "selectedVisibleAtOriginalLayout": true
+      },
+      "group": 2,
+      "independentSamples": 2,
+      "windows": [
+        {
+          "appKitFrame": [
+            20,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            20,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 35,
+          "input": "a",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            120,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            120,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 36,
+          "input": "b",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            280,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            280,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            280,
+            236,
+            140,
+            132
+          ],
+          "id": 34,
+          "input": "c",
+          "ownerKey": true,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            390,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "id": 37,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            500,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            500,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 38,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            610,
+            400,
+            140,
+            124
+          ],
+          "axFrame": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "axMin": false,
+          "cg": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "id": 39,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        }
+      ]
+    },
+    {
+      "dockMiniatures": 3,
+      "elapsedSeconds": 8,
+      "facts": {
+        "allInactiveIsolated": true,
+        "bystandersUnchanged": true,
+        "exactFocusAndCGKey": true,
+        "onlyIntendedKeyReceiver": true,
+        "selectedVisibleAtOriginalLayout": true
+      },
+      "group": 0,
+      "independentSamples": 2,
+      "windows": [
+        {
+          "appKitFrame": [
+            20,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            20,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            20,
+            236,
+            140,
+            132
+          ],
+          "id": 35,
+          "input": "ad",
+          "ownerKey": true,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            120,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            120,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 36,
+          "input": "b",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            280,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            280,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 34,
+          "input": "c",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            390,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "axMin": false,
+          "cg": [
+            390,
+            236,
+            140,
+            132
+          ],
+          "id": 37,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        },
+        {
+          "appKitFrame": [
+            500,
+            400,
+            140,
+            132
+          ],
+          "axFrame": [
+            500,
+            236,
+            140,
+            132
+          ],
+          "axMin": true,
+          "cg": [],
+          "id": 38,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": true,
+          "ownerVisible": false
+        },
+        {
+          "appKitFrame": [
+            610,
+            400,
+            140,
+            124
+          ],
+          "axFrame": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "axMin": false,
+          "cg": [
+            610,
+            244,
+            140,
+            124
+          ],
+          "id": 39,
+          "input": "",
+          "ownerKey": false,
+          "ownerMini": false,
+          "ownerVisible": true
+        }
+      ]
+    }
+  ],
+  "systemVersion": "Version 26.7.2 (Build 25G332)",
+  "tenCycles": "NOT_RUN",
+  "userMinimizedID": 38,
+  "captureExit": 0,
+  "fixtureOwnersExited": true,
+  "recording": {
+    "status": "PASS",
+    "seconds": "12.056666666666667",
+    "bytes": 633338
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "candidateSource": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "inputArchiveSHA256": "a630316f845b90525bd158e64f4eac633a473b0ab47773453e43b3433bd841a4",
+  "preliminaryDistributionSigning": "PASS",
+  "notarization": "NOT_RUN",
+  "installed": false,
+  "publicRelease": false,
+  "distributionBinaryCount": 13,
+  "missing": 0,
+  "stagedZipSHA256": "70b2b02b47e8a59ce72b9e5ca35db80e940cb667a38f409af3c9d0c8041536f9",
+  "signingContinuity": "PASS"
+}

@@ -1,0 +1,24 @@
+{
+  "initialFixtureAndModelAdmission": [
+    "with 1 argument change → .omittedFromAX at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .disappeared at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .unreadableSidebar at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .replaced at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .inputAfterDrop at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .changedRole at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .feedInvalidated at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .workerLost at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .changedMembership at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .finalInventoryUnavailable at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "with 1 argument change → .crossOwner at OrdinaryWindowManagerTests.swift:210:6: Caught error: .stale",
+    "at OrdinaryWindowManagerTests.swift:171:6: Caught error: .stale"
+  ],
+  "interruptedObservationAfterGeometryCommit": [
+    "with 1 argument change → .unreadableSidebar at OrdinaryWindowManagerTests.swift:217:6: Caught error: OrdinaryWindowFailure(reason: \"两扇窗口的分屏位置已核对；调度组未保存。窗口身份已变化，请重新关联。\")"
+  ],
+  "correctedFullSuite": {
+    "tests": 659,
+    "suites": 105,
+    "status": "PASS"
+  }
+}

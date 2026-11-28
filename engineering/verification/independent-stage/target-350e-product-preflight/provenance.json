@@ -1,0 +1,54 @@
+{
+  "revision": "350e848cc30106c32156ddba2c222ab639ab141f",
+  "targetOutput": "/private/tmp/nearpane-independent-350e-product-20261127",
+  "targetEnvironment": {
+    "os": "27.0",
+    "build": "26A428",
+    "architecture": "arm64",
+    "sipEnabled": true
+  },
+  "files": [
+    {
+      "file": "engine.log",
+      "targetPath": "runtime/engine.log",
+      "bytes": 7435,
+      "sha256": "a3eaf276574822f236a22a4d381d16296f37de6ef72c3f5c08bf1c2d72abedc6"
+    },
+    {
+      "file": "engine-result.json",
+      "targetPath": "runtime/engine-result.json",
+      "bytes": 3633,
+      "sha256": "79972e990ed5b3b837843283b8889315951f5ed9b48241a104ed137281a36d4a"
+    },
+    {
+      "file": "fixture-cleanup.json",
+      "targetPath": "runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "product-result.json",
+      "targetPath": "runtime/product/product-result.json",
+      "bytes": 764,
+      "sha256": "088360f53c77bfc99306b9784fdb4962302e91bd534ac768ef915a3ed6624b48"
+    },
+    {
+      "file": "product-config.json",
+      "targetPath": "runtime/product/config.json",
+      "bytes": 2119,
+      "sha256": "3ad8a5e2a1d804d82c959157366865063b1da38220c70d635ebf4f5ada0f1cf9"
+    },
+    {
+      "file": "entry-summary.json",
+      "targetPath": "summary.json",
+      "bytes": 6750,
+      "sha256": "052adbeb783add1fac603ee2dbbbb445b7f0da9ff01becb2215d8ae81adf6095"
+    },
+    {
+      "file": "path-and-console-probe.txt",
+      "targetPath": "path-and-console-probe.txt",
+      "bytes": 461,
+      "sha256": "cabac3632f576c847d7829526f9a4b812ce553a021f2016b8584be1aa7a4c077"
+    }
+  ]
+}

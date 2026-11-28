@@ -1,0 +1,140 @@
+{
+  "checks" : {
+    "cleanup" : {
+      "scope" : "all enrolled foreign windows on their original desktop; no owned Space remains",
+      "status" : "PASS"
+    },
+    "crossAppGroup" : {
+      "scope" : "two foreign apps visible, same-app sibling hidden; engine calls, not R4 input",
+      "status" : "PASS"
+    },
+    "focusRestore" : {
+      "scope" : "fixture-owned focus witness after exact window restoration",
+      "status" : "PASS"
+    },
+    "foreignRoundTrip" : {
+      "scope" : "foreign window, same-app sibling and other-app bystander",
+      "status" : "PASS"
+    },
+    "initialVisibleBindings" : {
+      "scope" : "two existing NP_READBACK receipts per initial visible foreign window; retained standard AX identity, original home and frame; no Space write",
+      "status" : "PASS"
+    },
+    "initialYellowButton" : {
+      "scope" : "first yellow minimize before any ordinary HIDE\/SHOW, using the initially retained standard AX window; independent bystanders and return",
+      "status" : "PASS"
+    },
+    "launchCanary" : {
+      "scope" : "controller-owned panel only",
+      "status" : "PASS"
+    },
+    "repeatedSwitch" : {
+      "scope" : "A→B→C→A through candidate ABI with independent readback",
+      "status" : "PASS"
+    },
+    "sameAppIndependent" : {
+      "scope" : "only one of two windows from the same foreign app left the ordinary desktop",
+      "status" : "PASS"
+    },
+    "yellowButton" : {
+      "scope" : "real title-bar action after repeated switching → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately",
+      "status" : "PASS"
+    }
+  },
+  "cleanup" : true,
+  "desktopGestures" : "NOT_RUN",
+  "enrolledWindows" : [
+    {
+      "attempted" : false,
+      "birth" : 1795721440868537,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureA",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        120,
+        386,
+        250,
+        202
+      ],
+      "group" : "611E4A5D-66D2-4B56-9D0B-BC4B10E1BF59",
+      "hidden" : false,
+      "index" : 0,
+      "lifetime" : "05B2BA9F-7FA1-4724-A93A-86F70719E7A1",
+      "member" : "07B3185B-4690-4341-8886-BC71875A4441",
+      "number" : 53,
+      "parking" : 30,
+      "pid" : 9155
+    },
+    {
+      "attempted" : true,
+      "birth" : 1795721440868537,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureA",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        400,
+        386,
+        250,
+        202
+      ],
+      "group" : "10BAF9BA-2C67-4A56-B40F-B3DF2261C2EA",
+      "hidden" : true,
+      "index" : 1,
+      "lifetime" : "0E4C9DD8-4C93-4F82-AAE1-446104744AD6",
+      "member" : "F2D29AEF-27CA-4A5E-8F32-8E5498D41ADF",
+      "number" : 55,
+      "parking" : 27,
+      "pid" : 9155
+    },
+    {
+      "attempted" : true,
+      "birth" : 1795721442483368,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureB",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureB.app\/Contents\/MacOS\/FixtureB",
+      "frame" : [
+        680,
+        386,
+        250,
+        202
+      ],
+      "group" : "D0DA24A6-3CA6-411F-8E73-62F80F8C53C3",
+      "hidden" : true,
+      "index" : 0,
+      "lifetime" : "178DC90C-372F-49FA-8FE2-481DCE028D67",
+      "member" : "D0EE5821-BCB4-44E7-A447-606DD74C5ED6",
+      "number" : 62,
+      "parking" : 28,
+      "pid" : 9330
+    }
+  ],
+  "fixtureFocusCommands" : 2,
+  "foreignProcesses" : true,
+  "fullScreenSplitView" : "NOT_RUN",
+  "missionControl" : "NOT_RUN",
+  "nonce" : "d5b453f9-ba45-4d3b-8fc8-175b1cbe4084",
+  "operationReason" : "verified",
+  "operationStatus" : "PASS",
+  "ordinaryHome" : 12,
+  "originalSpaceInventory" : [
+    1,
+    4,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12
+  ],
+  "qualificationGranted" : false,
+  "R4ProductPath" : "NOT_RUN",
+  "reason" : "verified",
+  "schema" : 1,
+  "setupAXWrites" : 2,
+  "status" : "FOREIGN_ENGINE_PASS",
+  "targetEnvironment" : {
+    "exactTarget" : false,
+    "kernelBuild" : "26A434",
+    "sipEnabled" : false
+  },
+  "windowWrites" : 26,
+  "windowWritesScope" : "engine hide\/restore request attempts, including rejected or unverified requests"
+}

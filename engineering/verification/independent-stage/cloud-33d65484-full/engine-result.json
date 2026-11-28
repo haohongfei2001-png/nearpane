@@ -1,0 +1,131 @@
+{
+  "checks" : {
+    "cleanup" : {
+      "scope" : "all enrolled foreign windows on their original desktop; no owned Space remains",
+      "status" : "PASS"
+    },
+    "crossAppGroup" : {
+      "scope" : "two foreign apps visible, same-app sibling hidden; engine calls, not R4 input",
+      "status" : "PASS"
+    },
+    "focusRestore" : {
+      "status" : "NOT_RUN"
+    },
+    "foreignRoundTrip" : {
+      "scope" : "foreign window, same-app sibling and other-app bystander",
+      "status" : "PASS"
+    },
+    "launchCanary" : {
+      "scope" : "controller-owned panel only",
+      "status" : "PASS"
+    },
+    "repeatedSwitch" : {
+      "scope" : "A→B→C→A through candidate ABI with independent readback",
+      "status" : "PASS"
+    },
+    "sameAppIndependent" : {
+      "scope" : "only one of two windows from the same foreign app left the ordinary desktop",
+      "status" : "PASS"
+    },
+    "yellowButton" : {
+      "scope" : "real title-bar action → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately",
+      "status" : "FAIL"
+    }
+  },
+  "cleanup" : true,
+  "desktopGestures" : "NOT_RUN",
+  "enrolledWindows" : [
+    {
+      "attempted" : true,
+      "birth" : 1795647539122311,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureA",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        120,
+        386,
+        250,
+        202
+      ],
+      "group" : "F4737E1E-560B-45BB-BD80-91267DD47CBB",
+      "hidden" : false,
+      "index" : 0,
+      "lifetime" : "9531C45A-EB14-4920-873C-233557FD166C",
+      "member" : "0636CE63-AB51-43EF-801D-A1FDA8084867",
+      "number" : 54,
+      "parking" : 23,
+      "pid" : 37905
+    },
+    {
+      "attempted" : true,
+      "birth" : 1795647539122311,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureA",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        400,
+        386,
+        250,
+        202
+      ],
+      "group" : "B881CC3D-82C1-4931-A722-F246E6D10104",
+      "hidden" : true,
+      "index" : 1,
+      "lifetime" : "9ACE263F-D73A-43DD-8528-C64962321D9A",
+      "member" : "EA4D5718-1E0E-4A4E-9823-3656BFFDFF3B",
+      "number" : 56,
+      "parking" : 24,
+      "pid" : 37905
+    },
+    {
+      "attempted" : true,
+      "birth" : 1795647540450753,
+      "directory" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/FixtureB",
+      "executable" : "\/Users\/runner\/work\/_temp\/independent-runtime\/runtime\/kit\/FixtureB.app\/Contents\/MacOS\/FixtureB",
+      "frame" : [
+        680,
+        386,
+        250,
+        202
+      ],
+      "group" : "EFDB91E2-5AF7-4AC8-9861-05D333CAE4F4",
+      "hidden" : true,
+      "index" : 0,
+      "lifetime" : "DA37D8C0-7561-4829-BA26-BFC18C96B0D8",
+      "member" : "E9F09046-73B2-4F16-A14D-7823BD014503",
+      "number" : 57,
+      "parking" : 25,
+      "pid" : 37908
+    }
+  ],
+  "fixtureFocusCommands" : 1,
+  "foreignProcesses" : true,
+  "fullScreenSplitView" : "NOT_RUN",
+  "missionControl" : "NOT_RUN",
+  "nonce" : "f6c37c3a-3c89-419f-a102-6a3f7643d858",
+  "operationReason" : "yellowButtonFailed",
+  "operationStatus" : "FAIL",
+  "ordinaryHome" : 12,
+  "originalSpaceInventory" : [
+    1,
+    4,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    12
+  ],
+  "qualificationGranted" : false,
+  "R4ProductPath" : "NOT_RUN",
+  "reason" : "yellowButtonFailed",
+  "schema" : 1,
+  "setupAXWrites" : 2,
+  "status" : "FAIL",
+  "targetEnvironment" : {
+    "exactTarget" : false,
+    "kernelBuild" : "26A434",
+    "sipEnabled" : false
+  },
+  "windowWrites" : 23,
+  "windowWritesScope" : "engine hide\/restore request attempts, including rejected or unverified requests"
+}

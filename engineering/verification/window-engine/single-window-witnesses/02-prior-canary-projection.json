@@ -1,0 +1,9 @@
+{
+  "status": "FAIL",
+  "scope": "offlineProductionObserverProjection",
+  "checkout": "e4d11b8e9ff0bb0407d0a7483126c9a98c399bee",
+  "privateTestNonce": "9e2a9991-6e00-4efe-9d42-0e43c2f46808",
+  "actualProjectedNonce": "uuid-3",
+  "physicalWindowOperations": 0,
+  "scopeIDsRedacted": true
+}

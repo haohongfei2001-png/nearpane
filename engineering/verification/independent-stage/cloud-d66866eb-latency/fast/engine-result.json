@@ -1,0 +1,64 @@
+{
+  "checks" : {
+    "cleanup" : {
+      "scope" : "all enrolled foreign windows on their original desktop; no owned Space remains",
+      "status" : "PASS"
+    },
+    "crossAppGroup" : {
+      "status" : "NOT_RUN"
+    },
+    "focusRestore" : {
+      "status" : "NOT_RUN"
+    },
+    "foreignRoundTrip" : {
+      "status" : "NOT_RUN"
+    },
+    "initialVisibleBindings" : {
+      "status" : "NOT_RUN"
+    },
+    "initialYellowButton" : {
+      "status" : "NOT_RUN"
+    },
+    "launchCanary" : {
+      "status" : "NOT_RUN"
+    },
+    "repeatedSwitch" : {
+      "status" : "NOT_RUN"
+    },
+    "sameAppIndependent" : {
+      "status" : "NOT_RUN"
+    },
+    "yellowButton" : {
+      "status" : "NOT_RUN"
+    }
+  },
+  "cleanup" : true,
+  "desktopGestures" : "NOT_RUN",
+  "enrolledWindows" : [
+
+  ],
+  "fixtureFocusCommands" : 0,
+  "foreignProcesses" : false,
+  "fullScreenSplitView" : "NOT_RUN",
+  "missionControl" : "NOT_RUN",
+  "nonce" : "6d8b9d23-48ab-4917-b0dd-95ab1faf94f9",
+  "operationReason" : "ordinaryCurrentDesktopCountNotOne",
+  "operationStatus" : "BLOCKED",
+  "ordinaryHome" : 0,
+  "originalSpaceInventory" : [
+
+  ],
+  "qualificationGranted" : false,
+  "R4ProductPath" : "NOT_RUN",
+  "reason" : "ordinaryCurrentDesktopCountNotOne",
+  "schema" : 1,
+  "setupAXWrites" : 0,
+  "status" : "BLOCKED",
+  "targetEnvironment" : {
+    "exactTarget" : false,
+    "kernelBuild" : "26A434",
+    "sipEnabled" : false
+  },
+  "windowWrites" : 0,
+  "windowWritesScope" : "engine hide\/restore request attempts, including rejected or unverified requests"
+}

@@ -1,0 +1,7 @@
+url file:///tmp/nearpane-independent-350e-product-20261127/runtime/product/config.json
+configParent file:///tmp/nearpane-independent-350e-product-20261127/runtime/product/
+output file:///tmp/nearpane-independent-350e-product-20261127/runtime/product/
+profileParent file:///private/tmp/nearpane-independent-350e-product-20261127/runtime/product/
+configEquals true profileEquals false
+console Optional(1) loginDone Optional(1) screenLocked Optional(1)
+fixed true

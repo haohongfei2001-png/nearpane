@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "events": [
+    {
+      "stage": "checkingAdmission",
+      "utc": "2026-11-23T04:55:29.792578+00:00"
+    },
+    {
+      "stage": "ordinaryDesktopRequiredBeforeQuit",
+      "utc": "2026-11-23T04:55:30.202818+00:00"
+    }
+  ],
+  "status": "BLOCKED",
+  "scope": "guardian-survival",
+  "missionControlPresentationRequired": false,
+  "scopeOfEvidence": "sameDesktopFixtureReadOnly",
+  "stage": "ordinaryDesktopRequiredBeforeQuit",
+  "qualification": "BLOCKED",
+  "admissionReason": "physicalEvidenceOrHostBindingIncomplete",
+  "observationSHA256": "14824bf9e278009a3994c4e5cd4947b6c5c527c486a2cbc7b4d334b4d10fb126",
+  "quitRequests": 0
+}

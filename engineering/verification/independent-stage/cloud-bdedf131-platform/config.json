@@ -1,0 +1,70 @@
+{
+  "fixtures": [
+    {
+      "birth": 1795638035167656,
+      "directory": "/Users/runner/work/_temp/independent-runtime/runtime/FixtureA",
+      "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "pid": 2477,
+      "windows": [
+        {
+          "frame": [
+            120,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 53,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        },
+        {
+          "frame": [
+            400,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 1,
+          "key": false,
+          "miniaturized": false,
+          "number": 55,
+          "text": "Fixture 1 / ready",
+          "visible": true
+        }
+      ]
+    },
+    {
+      "birth": 1795638037597135,
+      "directory": "/Users/runner/work/_temp/independent-runtime/runtime/FixtureB",
+      "executable": "/Users/runner/work/_temp/independent-runtime/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "pid": 2511,
+      "windows": [
+        {
+          "frame": [
+            680,
+            180,
+            250,
+            202
+          ],
+          "fullScreen": 0,
+          "index": 0,
+          "key": false,
+          "miniaturized": false,
+          "number": 56,
+          "text": "Fixture 0 / ready",
+          "visible": true
+        }
+      ]
+    }
+  ],
+  "iterations": 3,
+  "nonce": "f0a8cdbf-c77c-4924-b122-025e126da494",
+  "output": "/Users/runner/work/_temp/independent-runtime/runtime",
+  "schema": 1,
+  "systemHelper": "/Users/runner/work/_temp/independent-runtime/runtime/kit/SplitViewHelper"
+}

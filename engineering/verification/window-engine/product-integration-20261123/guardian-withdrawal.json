@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "testedAt": "2026-11-22T17:27:57.154231+00:00",
+  "base": "a4c6b040d784e71f9909cfcf3fd483d16585a4cd",
+  "worktreeHeadAtReview": "78bdd53e357d6d984661e0edda2973164804e6a5",
+  "scope": "Withdraw the exact post-R/pre-HIDE Corner intent without a window write",
+  "status": "PASS_OFFLINE",
+  "reviewedProductionGrantCount": 0,
+  "sourceSha256": {
+    "Engine/nearpane-window-engine/include/nearpane_window_engine.h": "489809529acab5ef544e0c08af8372548909ee2003e1d5b4c3a3f246b1ddb4b3",
+    "Engine/nearpane-window-engine/src/runtime.rs": "42fa7ac9db8018b0de358319e23db6da042f7ac51bc29985b7662af165b7c812",
+    "Engine/nearpane-window-engine/src/lib.rs": "aa11a1990f3f32f2fcf375645cb977db4d019a59d9fd3671241545564567d6b0",
+    "Engine/nearpane-window-engine/src/corner/guardian/main.m": "501881d1130545cf3fd2fbfd3a0aad8f73989163ee7ce05eb1e6824b8bc5521d",
+    "Engine/nearpane-window-engine/src/corner/guardian/packaged.h": "d5c5ae85dfc411ddbedabe6d36342284be12de913f7ab0a225708d9c4d8342cf",
+    "Engine/nearpane-window-engine/src/corner/guardian/README.md": "f5fc41a93c1b67d24e705d8e14876f23ef728196bd27308f052eaa95e5ed05ce",
+    "Sources/NearpaneWindowEngine/CornerGuardianClient.swift": "d25dc3dba9e1327fd4287409d509c340cbd4189767af5fb94d3a01a8467ed209",
+    "Sources/NearpaneWindowEngine/LinkedStageEngineTransport.swift": "e17c3192632132616b76e178cd7ed335fbf6382307fe24ec36f9e3dc44a118ec",
+    "Sources/NearpaneWindowEngine/NativeStageWindowEngine.swift": "58df3934d7ae094230a593926ce47ed30e4b05c6aaf666a76348447ddb143a1e",
+    "Sources/NearpaneWindowEngine/CornerWithdrawalReceipt.swift": "5149fefe6df169424459826976a75fa629d58547261c1740367fab08614efae3",
+    "Tests/NearpaneWindowEngineTests/CornerWithdrawalTests.swift": "919425fae8914bc5caf6e45dece5be49a22bad16d1c83f859b13a9fd1cfa6e61",
+    "scripts/acceptance/window-engine/corner/packaged-ledger-test.m": "fd541465055529376db4616aa536dfd9a68cdfc951b4704bab90430bcdebf6c4"
+  },
+  "artifacts": {
+    "verified.patch": "ffcbea021d684730966a9ae8d4966c724a7004e61365e96f5b2d51b702c3f8ad",
+    "rust-tests.log": "7bd713a0db76791ac50a274ff64ba7bf9a648517ceab30d11682bc6c16ca7418",
+    "corner-protocol.log": "1d4b21d954e0d656a84b1f8a7625105373cdb968bdb3dd5def1fc3c4d8e55280",
+    "selected.xml": "99144d64df93c7bb3268917d34f8ddd3b00bcbc852ab4dc95770f28ce704e4d2",
+    "swift-tests.log": "3de2db6f8786f3a1bd9946fb5350a483e94fb28e28cb254202cfa1c6cc77f308",
+    "signed-protocol.json": "a84336b47c5551bdfafb7c812aa3430acaaa94af18ee6b77c0b594f780e91c60"
+  },
+  "tests": {
+    "rust": 106,
+    "cornerRust": 69,
+    "productionGuardianCProtocol": "PASS",
+    "signedHelperRefusal": {
+      "exit": 3,
+      "replyBytes": 0,
+      "newProfileFiles": 0
+    },
+    "swift": 50
+  },
+  "evidence": [
+    "HIDE and exclusion share one admission lock on the exclusive original qualified handle; accepted and polled UNKNOWN or CANCELLED permanently bar withdrawal.",
+    "Independent full WAL/last-entry and retained AX/CG membership checks run twice before the Guardian releases the exact original reference and durably publishes W. The shipping WAL/parser, filesystem publication and private pipe are exercised offline.",
+    "Swift checks held directory, non-aliased private receipt, full primitive/window/scope/host/child identity, both original readbacks and zero writes.",
+    "Developer ID verified for the rebuilt private helper and installed helper. Rebuilt helper rejected an untrusted caller before any profile file or protocol reply."
+  ],
+  "physical": {
+    "qualifiedCanonicalHostRToW": "NOT_RUN",
+    "AXHoldOrPosition": "NOT_RUN",
+    "physicalInputEvents": 0,
+    "installedBinarySha256BeforeAndAfter": "7d8624c337ffb359999b101230cdac59c1c8609218cb05429e46080918cf1de3"
+  },
+  "commands": [
+    "PATH=\"$PWD/build/window-engine/toolchain/portable/bin:$PATH\" cargo test --locked --manifest-path Engine/nearpane-window-engine/Cargo.toml --features corner,spaces --lib",
+    "PATH=\"$PWD/build/window-engine/toolchain/portable/bin:$PATH\" bash scripts/acceptance/window-engine/corner/run-offline.sh",
+    "PATH=\"$PWD/build/window-engine/toolchain/portable/bin:$PATH\" NEARPANE_FOUNDATION_ONLY=1 NEARPANE_RUN_ID=corner_withdrawal_a4c6b04 bash scripts/test.sh --jobs 4 --filter \"EngineABITests|CornerWithdrawalTests|CornerGuardian.*Tests|StageWindowEngineTests|StageEngine.*HandoffTests|StageGroupCoordinatorTests\" --xunit-output \"$PWD/build/window-engine/corner-withdrawal-a4c6b04/selected.xml\""
+  ]
+}

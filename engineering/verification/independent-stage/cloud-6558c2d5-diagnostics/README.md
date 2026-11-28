@@ -1,0 +1,7 @@
+# First parallel diagnostics lane
+
+The diagnostics job of [run 45693715803](https://github.com/haohongfei2001-png/nearpane/actions/runs/45693715803) compiled the actual Rust archive and all runtime tools, including the new platform-only probe. It intentionally skipped source tests and complete-product packaging; their statuses remain `NOT_RUN`. Original receipts are in [artifact 15058959655](https://github.com/haohongfei2001-png/nearpane/actions/runs/45693715803/artifacts/15058959655).
+
+The real desktop was created with a system UUID, but selection confirmation again finished before the subsequent read observed the selected desktop. Its first cleanup returned `createdDesktopEmptyReadChanged`; the final cleanup invocation independently succeeded and removed the created desktop. The initial incomplete cleanup correctly prevented fixture creation. Therefore neither production engine nor platform probe made a foreign-window attempt, and `platformForeignMechanism` is `NOT_RUN`, not a mechanism failure.
+
+This receipt motivates two narrow corrections: bound the helper's selection/empty-desktop confirmation around actual native animations, and keep the fast mechanism lane on its original numeric desktop without performing the product's Mission Control preparation. The full product lane retains native UUID preparation. The two native-rendering experiments again rejected automatic hiding and zero strip rows, with preference and fixture restoration confirmed.

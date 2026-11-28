@@ -1,0 +1,175 @@
+{
+  "build": "90",
+  "checkpoints": {
+    "empty-after": {
+      "captured": true,
+      "image": "empty-after.png",
+      "independentRoster": {
+        "cards": 0,
+        "classifiedCards": {},
+        "duplicateControls": 0,
+        "knownWrongCards": 0,
+        "missingProvenVisible": 0,
+        "pixelsRequested": 0,
+        "privateTitlesRead": false,
+        "provenVisibleStandard": 0,
+        "status": "INCONCLUSIVE",
+        "systemExcluded": {
+          "hiddenApp": 6,
+          "noPresentation": 2,
+          "otherLayer": 7,
+          "otherSpace": 8
+        },
+        "unconfirmedCards": 0,
+        "unconfirmedEvidence": {},
+        "unconfirmedNotice": false
+      },
+      "isolatedProfile": true,
+      "proof": {
+        "crop": [
+          1243,
+          182,
+          214,
+          761
+        ],
+        "desktopCount": 3,
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "expectedCards": 0,
+        "expectedIDsMatch": true,
+        "explicitGroups": 0,
+        "matchedFixtureCards": 0,
+        "number": 49492,
+        "otherWindowCards": 0,
+        "pid": 15332,
+        "placeholderLabels": [],
+        "ready": true,
+        "rosterRegions": 1,
+        "signature": "a07b87640e8845a59cdd1488dc79bc0f423fae65",
+        "spaceRows": 0,
+        "windowCards": 0
+      },
+      "sidebarImage": "empty-after-sidebar.png",
+      "status": "PASS",
+      "wallpaperIncluded": true
+    },
+    "empty-before": {
+      "captured": true,
+      "image": "empty-before.png",
+      "independentRoster": {
+        "cards": 0,
+        "classifiedCards": {},
+        "duplicateControls": 0,
+        "knownWrongCards": 0,
+        "missingProvenVisible": 0,
+        "pixelsRequested": 0,
+        "privateTitlesRead": false,
+        "provenVisibleStandard": 0,
+        "status": "INCONCLUSIVE",
+        "systemExcluded": {
+          "hiddenApp": 6,
+          "noPresentation": 2,
+          "otherLayer": 7,
+          "otherSpace": 8
+        },
+        "unconfirmedCards": 0,
+        "unconfirmedEvidence": {},
+        "unconfirmedNotice": false
+      },
+      "isolatedProfile": true,
+      "proof": {
+        "crop": [
+          1243,
+          182,
+          214,
+          761
+        ],
+        "desktopCount": 3,
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "expectedCards": 0,
+        "expectedIDsMatch": true,
+        "explicitGroups": 0,
+        "matchedFixtureCards": 0,
+        "number": 49492,
+        "otherWindowCards": 0,
+        "pid": 15332,
+        "placeholderLabels": [],
+        "ready": true,
+        "rosterRegions": 1,
+        "signature": "a07b87640e8845a59cdd1488dc79bc0f423fae65",
+        "spaceRows": 0,
+        "windowCards": 0
+      },
+      "sidebarImage": "empty-before-sidebar.png",
+      "status": "PASS",
+      "wallpaperIncluded": true
+    },
+    "two-documents": {
+      "captured": true,
+      "image": "two-documents.png",
+      "independentRoster": {
+        "cards": 2,
+        "classifiedCards": {
+          "unconfirmed": 2
+        },
+        "duplicateControls": 0,
+        "knownWrongCards": 0,
+        "missingProvenVisible": 0,
+        "pixelsRequested": 0,
+        "privateTitlesRead": false,
+        "provenVisibleStandard": 0,
+        "status": "INCONCLUSIVE",
+        "systemExcluded": {},
+        "unconfirmedCards": 2,
+        "unconfirmedEvidence": {},
+        "unconfirmedNotice": false
+      },
+      "isolatedProfile": true,
+      "proof": {
+        "crop": [
+          1243,
+          182,
+          214,
+          761
+        ],
+        "desktopCount": 3,
+        "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "expectedCards": 2,
+        "expectedIDsMatch": true,
+        "explicitGroups": 0,
+        "matchedFixtureCards": 2,
+        "number": 49492,
+        "otherWindowCards": 0,
+        "pid": 15332,
+        "placeholderLabels": [],
+        "ready": true,
+        "rosterRegions": 1,
+        "signature": "a07b87640e8845a59cdd1488dc79bc0f423fae65",
+        "spaceRows": 0,
+        "windowCards": 2
+      },
+      "sidebarImage": "two-documents-sidebar.png",
+      "status": "BLOCKED",
+      "wallpaperIncluded": true
+    }
+  },
+  "closedNumbersGoneImmediately": false,
+  "fixture": {
+    "birth": 1795174428774588,
+    "bundle": "net.example.spaces-document",
+    "numbers": [
+      49507,
+      49508
+    ],
+    "pid": 15567,
+    "visible": [
+      true,
+      true
+    ]
+  },
+  "fixtureExited": true,
+  "hostCDHash": "a07b87640e8845a59cdd1488dc79bc0f423fae65",
+  "source": "96a3e3d1e74ea490dee798385cbef207a6013609",
+  "status": "BLOCKED",
+  "warmupNumbersGoneImmediately": true,
+  "windowNumbersGone": true
+}

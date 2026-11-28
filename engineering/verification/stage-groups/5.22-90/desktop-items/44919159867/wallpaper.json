@@ -1,0 +1,43 @@
+{
+  "backgroundHit": {
+    "axHitResult": 0,
+    "blank": true,
+    "hitFrame": [
+      0,
+      0,
+      1024,
+      768
+    ],
+    "hitOwner": "com.apple.finder",
+    "hitRole": "AXGroup",
+    "layer": -2147483603,
+    "window": 13,
+    "windowFrame": [
+      0,
+      0,
+      1024,
+      768
+    ],
+    "windowOwner": "com.apple.finder"
+  },
+  "clicks": 2,
+  "heldWhileRevealed": true,
+  "installedHost": "NOT_RUN",
+  "monitorTransitions": [
+    true,
+    false
+  ],
+  "reason": "nativeRevealAndRestoreObserved",
+  "restoredSamples": 7,
+  "settingWrites": 0,
+  "status": "PASS",
+  "windowMovedAside": true,
+  "captureExit": 0,
+  "fixtureOwnersExited": true,
+  "recording": {
+    "status": "PASS",
+    "seconds": 2.01,
+    "inspectorSeconds": 1.8091985410000007,
+    "bytes": 78824
+  }
+}

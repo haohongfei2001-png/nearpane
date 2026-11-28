@@ -1,0 +1,281 @@
+import CryptoKit
+
+private struct BookedSpace:Decodable {let space:UInt64,uuid:UUID,receipt:String,digest:String}
+private struct BookedDocument:Decodable {let space:UInt64,window:Window,generation:UUID?}
+private struct BookedStageSurface:Decodable {let space:UInt64,number:UInt32,pid:pid_t,ownerBirth:UInt64,bounds:[Double]}
+private struct BookedMember:Codable,Equatable {
+    let number:UInt32,pid:pid_t,birth:UInt64,kind:String,layer:Int
+    var windowGeneration:UUID? = nil
+    var fields:Map {
+        var row:Map=["number":number,"pid":pid,"birth":birth,"kind":kind,"layer":layer]
+        if let windowGeneration {row["windowGeneration"]=windowGeneration.uuidString}
+        return row
+    }
+}
+private struct BookedPair:Decodable {
+    let topology:Topology,target:UInt64,hostPID:pid_t,hostBirth:UInt64,hostHash:String,hid:[UInt32],boot:String
+    let leases:[BookedSpace],documents:[BookedDocument],stageSurfaces:[BookedStageSurface]
+    let expectedMembers:[String:[BookedMember]]?
+}
+
+private struct OrdinaryRefusal:Error {
+    let category:String,endpoint:UInt64,number:UInt32?,pid:pid_t?
+    var fixtureEvidence:Map? = nil
+    var receipt:Map {
+        var row:Map=["issued":false,"ready":false,"error":"ordinary census: \(category) on endpoint \(endpoint)",
+                     "category":category,"endpoint":endpoint,"pixels":0]
+        if let number {row["windowNumber"]=number}
+        if let pid {row["ownerPID"]=pid}
+        if let fixtureEvidence {row["fixtureEvidence"]=fixtureEvidence}
+        return row
+    }
+}
+
+// Only the already authenticated fixture may be asked about another number it owns.
+// These facts explain a refusal. No other process receives an AX request here.
+private func refusedFixtureEvidence(_ w:Window,_ number:UInt32,_ sid:UInt64)->Map {
+    guard fixtureCodeMatches(w),let before=exactWindowOwner(number),before.0==w.pid else {
+        return ["status":"fixtureOrWindowIdentityChanged"]
+    }
+    let app=AXUIElementCreateApplication(w.pid)
+    _=AXUIElementSetMessagingTimeout(app,0.2)
+    let list=prop(app,kAXWindowsAttribute) as? [AXUIElement]
+    let windows=list.flatMap{$0.count <= 128 ? $0 : nil}
+    let matches=windows?.filter{owner($0)==w.pid && NPReadAXWindowNumber($0)==number}
+    var facts:Map=["status":"read","layer":before.1,"axListRead":windows != nil,
+                   "axMatches":matches?.count as Any? ?? NSNull(),
+                   "reverseOnlyEndpoint":(NPReadWindowSpaces(number) as? [UInt64]).map{$0==[sid]} as Any? ?? NSNull(),
+                   "forwardContainsNumber":(NPReadCatalogSpaceWindowNumbers(sid) as? [UInt32])?.contains(number) as Any? ?? NSNull()]
+    if let matches,matches.count==1 {
+        let node=matches[0]
+        facts["axRoleIsWindow"]=(prop(node,kAXRoleAttribute) as? String).map{$0==kAXWindowRole} as Any? ?? NSNull()
+        facts["axStandard"]=(prop(node,kAXSubroleAttribute) as? String).map{$0==kAXStandardWindowSubrole} as Any? ?? NSNull()
+        facts["axMain"]=prop(node,kAXMainAttribute) as? Bool as Any? ?? NSNull()
+        facts["axMinimized"]=prop(node,kAXMinimizedAttribute) as? Bool as Any? ?? NSNull()
+    }
+    guard fixtureCodeMatches(w),let after=exactWindowOwner(number),after==before else {
+        return ["status":"fixtureOrWindowIdentityChanged"]
+    }
+    return facts
+}
+
+private func fixtureCodeMatches(_ w:Window)->Bool {
+    let signed=signature(w.pid)
+    return ["net.example.spaces-document","net.example.spaces-route-witness"].contains(w.identifier) &&
+           w.executable.hasPrefix("/private/tmp/nearpane-d01.") && path(w.pid)==w.executable && birth(w.pid)==w.birth &&
+           signed?.0==w.identifier && signed?.1==w.hash
+}
+
+private func ordinaryMembers(_ rows:[Map],on sid:UInt64,pair:BookedPair,verifyFixture:(Window)->Bool,
+                             describeRefusedFixture:((Window,UInt32,UInt64)->Map)?=nil) throws -> Set<UInt32> {
+    let doc=pair.documents.first{$0.space==sid}?.window,stage=pair.stageSurfaces.filter{$0.space==sid}
+    func refuse(_ category:String,_ n:UInt32?,_ p:pid_t?)->OrdinaryRefusal {
+        OrdinaryRefusal(category:category,endpoint:sid,number:n,pid:p)
+    }
+    var seen=[UInt32:pid_t](),present=Set<UInt32>()
+    for row in rows {
+        let n=row["number"] as? UInt32,p=row["pid"] as? pid_t
+        guard let n,n>0,let p,p>1 else {throw refuse("malformedOrdinaryMember",n,p)}
+        if let prior=seen.updateValue(p,forKey:n) {
+            let duplicateStage=prior==p && stage.contains{$0.number==n && $0.pid==p}
+            throw refuse(duplicateStage ? "duplicateEnrolledStageWindowID":"duplicateOrdinaryWindowID",n,p)
+        }
+    }
+    for (n,p) in seen.sorted(by:{$0.key<$1.key}) {
+        if let w=doc,w.number==n && w.pid==p {continue}
+        if let w=doc,w.number==n {throw refuse("enrolledDocumentOwnerMismatch",n,p)}
+        if let s=stage.first(where:{$0.number==n}) {
+            guard s.pid==p else {throw refuse("enrolledStageWindowOwnerMismatch",n,p)}
+            present.insert(n)
+        } else if let w=pair.documents.first(where:{$0.window.pid==p})?.window {
+            guard verifyFixture(w) else {throw refuse("enrolledFixturePIDIdentityUnconfirmed",n,p)}
+            if w.number==n {throw refuse("enrolledDocumentOnWrongEndpoint",n,p)}
+            var refusal=refuse("unregisteredWindowOfEnrolledFixture",n,p)
+            refusal.fixtureEvidence=describeRefusedFixture?(w,n,sid)
+            throw refusal
+        } else if pair.stageSurfaces.contains(where:{$0.pid==p}) {
+            throw refuse("unregisteredWindowWithEnrolledStagePID",n,p)
+        } else {
+            throw refuse("unregisteredOrdinaryOwner",n,p)
+        }
+    }
+    if let w=doc,seen[w.number] != w.pid {throw refuse("enrolledDocumentMissing",w.number,w.pid)}
+    return present
+}
+
+// WindowServer can run under a system UID. This lookup is performed only after
+// permittedOther has already authenticated that Apple service or the installed Host.
+private func serviceBirth(_ pid:pid_t)->UInt64? {
+    var info=proc_bsdinfo()
+    let size=Int32(MemoryLayout.size(ofValue:info))
+    guard proc_pidinfo(pid,PROC_PIDTBSDINFO,0,&info,size)==size,info.pbi_pid==UInt32(pid),info.pbi_start_tvsec>0 else {return nil}
+    return info.pbi_start_tvsec*1_000_000+info.pbi_start_tvusec
+}
+
+private func matchingMembers(_ observed:[String:[BookedMember]],_ expected:[String:[BookedMember]]?) throws {
+    try need(expected==observed,"booked endpoint members changed since the two independent reads")
+}
+
+private func permittedOther(_ member:Map,_ sid:UInt64,_ host:pid_t)->Bool {
+    guard member["forward"] as? [UInt64]==[sid],member["reverse"] as? [UInt64]==[sid],
+          let pid=member["pid"] as? pid_t,pid>1,let code=member["code"] as? Map,let layer=member["layer"] as? Int else {return false}
+    if pid==host {
+        return member["installedHost"] as? Bool==true && (layer==0 || layer==3) && code["identifier"] as? String=="com.holdsnow.nearpane.alpha"
+    }
+    guard member["installedHost"] as? Bool==false && code["apple"] as? Bool==true else {return false}
+    return (layer == -1 && code["identifier"] as? String=="com.apple.dock") ||
+           (layer==24 && code["identifier"] as? String=="com.apple.WindowServer" && member["onscreen"] as? Bool==false && member["visibleQuery"] as? Bool==false)
+}
+
+private func checkReceipt(_ lease:BookedSpace,_ pair:BookedPair) throws {
+    let file=URL(fileURLWithPath:lease.receipt),dir=file.deletingLastPathComponent()
+    guard file.lastPathComponent=="created.json",dir.lastPathComponent=="provision",
+          UUID(uuidString:dir.deletingLastPathComponent().lastPathComponent) != nil,
+          dir.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent=="secondary-route-followup",
+          let real=realpath(lease.receipt,nil) else {throw Refusal("unrecognized native Space creation receipt")}
+    defer {free(real)}
+    var info=stat(),removed=stat()
+    let fd=Darwin.open(lease.receipt,O_RDONLY|O_NOFOLLOW|O_NONBLOCK)
+    guard fd >= 0 else {throw Refusal("leased creation receipt unavailable")}
+    let handle=FileHandle(fileDescriptor:fd,closeOnDealloc:true);defer {try? handle.close()}
+    try need(String(cString:real)==lease.receipt && fstat(fd,&info)==0 && info.st_mode&S_IFMT==S_IFREG &&
+             info.st_uid==getuid() && info.st_mode&0o077==0 && info.st_nlink==1 && (1...131072).contains(info.st_size) &&
+             lstat(dir.appendingPathComponent("removed.json").path,&removed) != 0 && errno==ENOENT,"unsafe or removed native lease")
+    let data=handle.readDataToEndOfFile()
+    guard SHA256.hash(data:data).map({String(format:"%02x",$0)}).joined()==lease.digest,
+          let row=try JSONSerialization.jsonObject(with:data) as? Map,let intent=row["intent"] as? Map,
+          row["target"] as? String==String(lease.space),intent["boot"] as? String==pair.boot,
+          UUID(uuidString:intent["display"] as? String ?? "")==pair.topology.display,
+          let after=row["after"] as? Map,let uuids=after["spaceUUIDs"] as? [String:String],
+          UUID(uuidString:uuids[String(lease.space)] ?? "")==lease.uuid else {throw Refusal("creation digest, boot, display or enrolled Space UUID changed")}
+}
+
+private func approvedStageSurface(_ s:BookedStageSurface,screen:CGRect,visible:Set<UInt32>,published:Set<UInt32>) throws {
+    let id="com.apple.WindowManager",exe="/System/Library/CoreServices/WindowManager.app/Contents/MacOS/WindowManager"
+    var code:SecCode?,req:SecRequirement?,raw=UnsafeRawPointer(bitPattern:UInt(s.number))
+    guard path(s.pid)==exe,birth(s.pid)==s.ownerBirth,
+          SecCodeCopyGuestWithAttributes(nil,[kSecGuestAttributePid as String:s.pid] as CFDictionary,[],&code)==errSecSuccess,let code,
+          SecRequirementCreateWithString(("anchor apple and identifier \""+id+"\"") as CFString,[],&req)==errSecSuccess,let req,
+          SecCodeCheckValidity(code,[],req)==errSecSuccess,let ids=CFArrayCreate(nil,&raw,1,nil),
+          let rows=CGWindowListCreateDescriptionFromArray(ids) as? [Map],rows.count==1,let row=rows.first,
+          row[kCGWindowNumber as String] as? UInt32==s.number,row[kCGWindowOwnerPID as String] as? pid_t==s.pid,
+          row[kCGWindowLayer as String] as? Int==0,let b=row[kCGWindowBounds as String] as? NSDictionary,let rect=CGRect(dictionaryRepresentation:b),
+          p2StageBoundsMatch(rect,on:screen,enrolled:s.bounds),NPReadWindowSpaces(s.number) as? [UInt64]==[s.space],
+          (NPReadCatalogSpaceWindowNumbers(s.space) as? [UInt32])?.contains(s.number)==true else {throw Refusal("enrolled WindowManager identity, geometry or membership changed")}
+    let app=AXUIElementCreateApplication(s.pid);_=AXUIElementSetMessagingTimeout(app,0.25)
+    guard let windows=prop(app,kAXWindowsAttribute) as? [AXUIElement],windows.count<=128,
+          windows.allSatisfy({owner($0)==s.pid && prop($0,kAXRoleAttribute) as? String==kAXWindowRole && NPReadAXWindowNumber($0)>0}),
+          p2StageHidden(metadata:row[kCGWindowIsOnscreen as String],cg:visible.contains(s.number),appKit:published.contains(s.number),
+                        ax:windows.contains(where:{NPReadAXWindowNumber($0)==s.number})),birth(s.pid)==s.ownerBirth
+    else {throw Refusal("enrolled Stage surface now participates in a public document or display")}
+}
+
+private func bookedCensus(_ r:BookedPair) throws -> Map {
+    let live=try topology(),ids=live.records.map(\.id),pairIDs=Set(r.leases.map(\.space))
+    var boot=[CChar](repeating:0,count:128),size=boot.count
+    let stage=CFPreferencesCopyAppValue("GloballyEnabled" as CFString,"com.apple.WindowManager" as CFString)
+    guard sysctlbyname("kern.bootsessionuuid",&boot,&size,nil,0)==0,String(cString:boot)==r.boot,
+          ProcessInfo.processInfo.environment["CFFIXED_USER_HOME"]==nil,let home=getpwuid(getuid())?.pointee.pw_dir,NSHomeDirectory()==String(cString:home),
+          let stage,CFGetTypeID(stage)==CFBooleanGetTypeID(),stage as? Bool==false,live==r.topology,r.hid.count==8,hardware()==r.hid,
+          NSScreen.screens.count==1,r.leases.count==2,pairIDs==Set([live.current,r.target]),
+          let i=ids.firstIndex(of:live.current),let j=ids.firstIndex(of:r.target),abs(i-j)==1,
+          r.leases.allSatisfy({a in live.records.contains{v in v.id==a.space && v.uuid==a.uuid && v.type==0}}),
+          r.documents.count<=2,r.documents.allSatisfy({pairIDs.contains($0.space)}),
+          Set(r.documents.map(\.space)).count==r.documents.count,Set(r.documents.map{$0.window.pid}).count==r.documents.count,
+          r.stageSurfaces.count<=8,Set(r.stageSurfaces.map(\.number)).count==r.stageSurfaces.count,
+          r.stageSurfaces.allSatisfy({pairIDs.contains($0.space)}) else {throw Refusal("Stage, boot, screen, physical input or adjacent ordinary lease identity changed")}
+    try signedHost(r.hostPID,r.hostBirth,r.hostHash)
+    for lease in r.leases {try checkReceipt(lease,r)}
+    guard let scope=NPContractMemberReport(Array(pairIDs) as CFArray,r.hostPID) as? Map,
+          let visible=NPContractOnscreenWindowNumbers() as? [UInt32],let published=NSWindow.windowNumbers(options:.allApplications)
+    else {throw Refusal("independent no-pixel window census unavailable")}
+    let on=Set(visible),publicIDs=Set(published.map(\.uint32Value))
+    var counts=Map(),identities=[String:[BookedMember]](),allNumbers=Set<UInt32>()
+    for lease in r.leases {
+        let sid=lease.space,registered=r.documents.first{$0.space==sid},doc=registered?.window
+        guard let row=scope[String(sid)] as? Map,row["unresolved"] as? Int==0,let ordinary=row["ordinary"] as? [Map],
+              let other=row["otherDetails"] as? [Map],other.count==row["otherMembers"] as? Int else {throw Refusal("unknown window membership on booked endpoint")}
+        let present=try ordinaryMembers(ordinary,on:sid,pair:r,verifyFixture:fixtureCodeMatches,describeRefusedFixture:refusedFixtureEvidence)
+        var members=[BookedMember]()
+        if let w=doc {
+            let generation=try ownGeneration(w),owner=exactWindowOwner(w.number)
+            try need(registered?.generation==generation && fixtureCodeMatches(w) && owner?.0==w.pid && owner?.1==0 &&
+                     NPReadWindowSpaces(w.number) as? [UInt64]==[sid] && (NPReadCatalogSpaceWindowNumbers(sid) as? [UInt32])?.contains(w.number)==true,
+                     "owned fixture generation or exact membership changed")
+            members.append(BookedMember(number:w.number,pid:w.pid,birth:w.birth,kind:"fixture",layer:0,windowGeneration:generation))
+        }
+        let surfaces=r.stageSurfaces.filter{$0.space==sid}
+        for s in surfaces where present.contains(s.number) {
+            try approvedStageSurface(s,screen:CGDisplayBounds(CGMainDisplayID()),visible:on,published:publicIDs)
+            members.append(BookedMember(number:s.number,pid:s.pid,birth:s.ownerBirth,kind:"inactiveStage",layer:0))
+        }
+        for s in surfaces where !present.contains(s.number) {
+            try need(NPReadWindowNumberPresence(s.number)==0 && !on.contains(s.number) && !publicIDs.contains(s.number),"old Stage window disappeared from scoped results only")
+        }
+        for member in other {
+            guard permittedOther(member,sid,r.hostPID),let n=member["number"] as? UInt32,n>0,
+                  let pid=member["pid"] as? pid_t,let layer=member["layer"] as? Int else {
+                throw OrdinaryRefusal(category:"unqualifiedExtraSurface",endpoint:sid,number:member["number"] as? UInt32,pid:member["pid"] as? pid_t)
+            }
+            guard let generation=serviceBirth(pid),let owner=exactWindowOwner(n),owner==(pid,layer),
+                  pid != r.hostPID || generation==r.hostBirth else {
+                throw OrdinaryRefusal(category:"permittedSurfaceIdentityChanged",endpoint:sid,number:n,pid:pid)
+            }
+            let kind=pid==r.hostPID ? "installedHost" : (layer == -1 ? "appleDock":"appleWindowServer")
+            members.append(BookedMember(number:n,pid:pid,birth:generation,kind:kind,layer:layer))
+        }
+        for member in members where !allNumbers.insert(member.number).inserted {
+            throw OrdinaryRefusal(category:"duplicateExclusiveMember",endpoint:sid,number:member.number,pid:member.pid)
+        }
+        identities[String(sid)]=members.sorted{$0.number<$1.number}
+        counts[String(sid)]=["fixture":doc == nil ? 0:1,"inactiveStage":present.sorted(),"systemOrHost":other.count,"unresolved":0] as Map
+    }
+    try signedHost(r.hostPID,r.hostBirth,r.hostHash)
+    try need((try topology())==live && hardware()==r.hid,"Space or HID changed during booked census")
+    if r.expectedMembers != nil {try matchingMembers(identities,r.expectedMembers)}
+    return ["status":"READ","counts":counts,"members":identities.mapValues{$0.map(\.fields)},
+            "current":live.current,"display":live.display.uuidString,"pixels":0,"uptime":ProcessInfo.processInfo.systemUptime]
+}
+
+func bookedOperation(_ verb:String) throws {
+    do {try runBookedOperation(verb)}
+    catch let error as OrdinaryRefusal {emit(error.receipt);exit(2)}
+}
+
+private func runBookedOperation(_ verb:String) throws {
+    let input=FileHandle.standardInput.readData(ofLength:32769)
+    try need(input.count<=32768,"oversized lease request")
+    let pair=try JSONDecoder().decode(BookedPair.self,from:input)
+    if verb=="leased-artifact-check" {
+        for lease in pair.leases {try checkReceipt(lease,pair)}
+        guard let request=try JSONSerialization.jsonObject(with:input) as? Map,let rows=request["otherDetails"] as? [Map] else {
+            throw Refusal("offline artifact rows absent")
+        }
+        var result:Map=["receiptCount":pair.leases.count,"classifiedOther":rows.map{permittedOther($0,pair.target,pair.hostPID)},"issued":false,"pixels":0]
+        if let ordinary=request["ordinary"] as? [Map] {
+            let verified=request["fixtureVerified"] as? Bool==true
+            let describe:((Window,UInt32,UInt64)->Map)?=request["testFixtureDescription"] as? Bool==true
+                ? { w,n,sid in ["status":"offlineCallback","ownerPID":w.pid,"windowNumber":n,"endpoint":sid] } : nil
+            result["stageWindowIDs"]=try ordinaryMembers(ordinary,on:pair.target,pair:pair,verifyFixture:{_ in verified},
+                describeRefusedFixture:describe).sorted()
+        }
+        if let encoded=request["observedMembers"] {
+            let observed=try JSONDecoder().decode([String:[BookedMember]].self,from:JSONSerialization.data(withJSONObject:encoded))
+            try matchingMembers(observed,pair.expectedMembers)
+            result["matchedExpectedMembers"]=true
+        }
+        emit(result)
+        return
+    }
+    if verb=="leased-setup-arrow" {try need(pair.expectedMembers != nil,"missing confirmed pre-shortcut member identities")}
+    let first=try bookedCensus(pair)
+    if verb=="leased-census" {emit(first);return}
+    guard pair.documents.count==1,let source=pair.documents.first,source.space==pair.topology.current,
+          let from=pair.topology.records.firstIndex(where:{$0.id==source.space}),
+          let to=pair.topology.records.firstIndex(where:{$0.id==pair.target}) else {throw Refusal("setup shortcut requires one enrolled foreground fixture and an empty leased neighbor")}
+    try postSetupArrow(to>from ? 124:123,topology:pair.topology,source:source.window,target:pair.target,hid:pair.hid) {
+        _=try bookedCensus(pair)
+        let focused=actualFocus()
+        try need(focused?.pid==source.window.pid && focused?.number==source.window.number,"system-wide AX source focus changed before setup")
+    }
+}

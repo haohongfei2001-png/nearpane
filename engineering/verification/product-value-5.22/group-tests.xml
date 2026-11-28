@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="45" failures="0" skipped="0" time="0.035556333">
+    <testcase classname="NearpaneUITests.TargetedCurrentCardTests" name="aFullReadIsNeverStartedForConfirmedOrContradictoryEvidence()" time="0.000133958" />
+    <testcase classname="NearpaneUITests.TargetedCurrentCardTests" name="onlyTheExactPublicCurrentOrdinaryCardUsesTheSignedTargetedRead()" time="0.000280416" />
+    <testcase classname="NearpaneUITests.TargetedCurrentCardTests" name="newerInputOrIncompleteFallbackCannotAuthorizeFocus()" time="9.9708e-05" />
+    <testcase classname="NearpaneUITests.CurrentCardFocusPreparationTests" name="failedReadinessCannotAuthorizeASecondClick()" time="0.000177666" />
+    <testcase classname="NearpaneUITests.CurrentCardFocusPreparationTests" name="workerPreferenceDoesNotFollowPIDReuseAnotherAppOrAnotherHostSession()" time="8.9833e-05" />
+    <testcase classname="NearpaneUITests.CurrentCardFocusPreparationTests" name="aPreparedWorkerIsConsumedOnceAndHasNoWindowOrPermissionToReuse()" time="0.00015075" />
+    <testcase classname="NearpaneUITests.CurrentCardFocusPreparationTests" name="expiredAndDiscardedWorkersCannotBeClaimedByLaterInput()" time="7.2417e-05" />
+    <testcase classname="NearpaneUITests.CurrentCardFocusPreparationTests" name="concurrentFreshScopeFinishingAfterBindingRequiresOnlyOneRead()" time="4.6916e-05" />
+    <testcase classname="NearpaneUITests.CurrentCardFocusPreparationTests" name="scopeThatFinishesBeforeBindingCannotAuthorizeActionAlone()" time="0.0002205" />
+    <testcase classname="NearpaneUITests.CurrentCardFocusPreparationTests" name="aChangedRosterIsNeverRecapturedAsPermissionAndNewInputStops()" time="0.00010225" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="anUnavailableGroupClickKeepsTheWorkSetAndOnlyAnExplicitMemberMayFocus()" time="0.000122791" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard()" time="0.00012225" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="theIndependentRawRosterRequiresUniqueCurrentKeysAndAKnownRole()" time="0.000107583" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="focusOnAnotherDisplayNeedsTwoInventoriesAndIndependentVisibleFocus()" time="0.0003765" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="directoryReadsWithoutAParkedWindowOrWriterAndPreservesAlreadyVerifiedRows()" time="7.7e-05" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt()" time="0.000169042" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="interruptedDirectoryReadCannotPublishPartialHistoryOrQueryAnotherWindow()" time="7.1291e-05" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="overlappingMembersRemainSelectableByIdentityUntilRemovedFromTheirGroup()" time="0.00129975" />
+    <testcase classname="NearpaneUITests.StageGroupWindowLifetimesTests" name="incompleteOrChangedWitnessNeverRebindsAReusedWindowNumber()" time="7.8292e-05" />
+    <testcase classname="NearpaneUITests.StageGroupWindowLifetimesTests" name="restoredOriginalKeepsItsGroupWithoutRevalidatingOldInput()" time="0.000171417" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch()" time="0.000257542" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="emptyOrdinaryFullscreenAndUnreadSpacesProduceNoSidebarEntries()" time="0.000176417" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="onlyConfirmedWindowsAppearOnceAndDisappearWhenTheyClose()" time="0.00022925" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="gestureSurvivesUnrelatedRefreshButNotReplacedOwnerSpaceOrTopology()" time="0.000195416" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="groupNameReadCannotCommitAcrossASidebarIntentOrOwnershipLoss()" time="0.000155625" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="lateFocusWriteNeedsFreshIntentAndTheOriginalLifetime()" time="0.000106084" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="newerChoiceSuppressesOldPostSwitchFocusAndCoalescesIntermediateIntent()" time="7.5e-05" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="externalActivationRetiresOnlyThePendingCrossSpaceFocus()" time="0.000100709" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="ordinaryCardPointerDistinguishesClickDropAndCancelledTargetsWithoutOrderingAWindow()" time="0.016663833" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation()" time="0.000100416" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="eachGestureRequiresTheOriginalAXElementEvenIfTheNumericIDIsReused()" time="8.9917e-05" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="revocationCancelsOnlyFutureGestureSteps()" time="0.00011875" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="subsequentSelectionCannotDiscardQueuedMove()" time="7.15e-05" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="namesSurviveReopenAndGroupingWithoutChangingScopeLayoutOrMembership()" time="0.008012875" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="explicitReassignmentAfterPhysicalMoveKeepsOnlyOneSlot()" time="0.000111459" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="duplicateOrMissingReadbackCannotPublishAGroupOrDeleteASlot()" time="8.0417e-05" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="reopenAndReusedNumberNeedExplicitBindingAndKeepLayout()" time="0.001108875" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="oneSelectedMemberMovesAndTheOtherScreenKeepsItsGroup()" time="0.000219708" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="unknownSystemOwnershipIsDistinctFromReadableFactoryDefault()" time="6.6375e-05" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="unsupportedCorruptOrExternallyChangedDirectoryPreservesOriginalBytes()" time="0.000744709" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="diskWriteFailureNeverPublishesGroupOrBinding()" time="0.000244958" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="scopesSurviveIndependentDesktopSelectionAndNativeMoves()" time="0.000227625" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="v1MigrationKeepsOriginalAndDoesNotGuessSpaceOrFocus()" time="0.000833583" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="confirmedDepartureRemovesOnlyTheBoundUnownedMember()" time="0.000191417" />
+    <testcase classname="NearpaneCoreTests.StageGroupStoreTests" name="relativeFramesUseDisplayLocalUsableOrigin()" time="5.3625e-05" />
+  </testsuite>
+</testsuites>

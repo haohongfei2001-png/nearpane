@@ -1,0 +1,519 @@
+{
+  "schema": 1,
+  "sourceRevision": "60cf3219901c6997db400a1d08e143ddd011d0a0",
+  "recorded": "2026-11-27",
+  "scope": "Exact target full build and target runtime. Sampled diagnostic trial: engine FAIL and product FAIL after one real input are separate results; all cleanup receipts preserved.",
+  "exportManifest": {
+    "file": "export-manifest.json",
+    "bytes": 9576,
+    "sha256": "41eb46890f76e79328eebf08772b7bb5aef8e4c989cd838a86fd97a544488cd0"
+  },
+  "completeOriginals": {
+    "scratchDirectory": "/workspace/scratch/0fdab3c9da48/target-60cf-diagnostic-originals",
+    "targetPaths": "Original target paths below. The complete unfiltered summary and product result remain on the target and in scratch, not in this git evidence directory."
+  },
+  "fixtureScopeRule": {
+    "pidSource": "runtime/config.json /fixtures/*/pid",
+    "fixturePIDs": [
+      85912,
+      85915
+    ],
+    "operation": "Only the four enumerated readiness.roster arrays are filtered to configured fixture PIDs, retaining item order. All other JSON values including windowCount=20 remain unchanged. Derived JSON serialization uses indent=2 and a final newline."
+  },
+  "originals": [
+    {
+      "path": "source-build/result.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/result.json",
+      "bytes": 1494,
+      "sha256": "4f869e57c8b77949c4e4e037816d5e4e0349a9eb9e8c6d5382988e4666f5418f"
+    },
+    {
+      "path": "source-build/release.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/release.log",
+      "bytes": 16256,
+      "sha256": "87c565dc78fb7326584612f61d3b60870f10f3c59d2521f4375fff402376b69e"
+    },
+    {
+      "path": "source-build/package.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/package.log",
+      "bytes": 150,
+      "sha256": "4228200aa0253114ece29cd11e31decbe940bfb2868c645c3922fa495785e0e6"
+    },
+    {
+      "path": "source-build/signature.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/signature.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "trial/result.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/result.json",
+      "bytes": 2200,
+      "sha256": "343a8a2de9e58ed2438d91435c92446843fea0bf782b048aecdf3a1ff7c1b817"
+    },
+    {
+      "path": "trial/context-before.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/context-before.json",
+      "bytes": 2731,
+      "sha256": "c0b6d6360afa4686a067fed266070175e02b9ce8488207861433ae7787a77eaa"
+    },
+    {
+      "path": "trial/context-after.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/context-after.json",
+      "bytes": 2732,
+      "sha256": "bb10bbf1f2174aa546b3f410dc3fc8cf0f5f22ede81e440c346b60b505ccbf30"
+    },
+    {
+      "path": "trial/runtime.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/runtime.log",
+      "bytes": 658,
+      "sha256": "36be04fc3890dab1d52c9c08f80671ea9c5cdf038ef594b41ed2cd67c872f461"
+    },
+    {
+      "path": "runtime/summary.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/summary.json",
+      "bytes": 41353,
+      "sha256": "27b0c380fc63a7382c2c80de9e34be31f77e7660ffe9fc9f3cb00fb883ee92f6"
+    },
+    {
+      "path": "runtime/engine-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine-result.json",
+      "bytes": 4595,
+      "sha256": "5ee5ca131a6e69d3d997414c369228ee1506325103dcf3f2371c5fdd3e0ae62b"
+    },
+    {
+      "path": "runtime/engine.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine.log",
+      "bytes": 43235,
+      "sha256": "45610fc89e8d18123c56b8215f2a13911105dfac0effc8ec6289dc9be3c2b695"
+    },
+    {
+      "path": "runtime/engine.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine.stderr.log",
+      "bytes": 23619,
+      "sha256": "b86d4ffcb0db0780187ecc0ca26ae239edfb338a26edff0fcc2c1cd4166b0733"
+    },
+    {
+      "path": "runtime/engine.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine.json",
+      "bytes": 92,
+      "sha256": "67580aaef7d093b880b8dfd0fed2c8570e0458bfee83ff285583378f6f2e7f89"
+    },
+    {
+      "path": "runtime/fixture-cleanup.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "runtime/config.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/config.json",
+      "bytes": 2085,
+      "sha256": "a9cc88603bfe018339cf146115b56967fe72dd557f5007a0e15aa61449e7fc88"
+    },
+    {
+      "path": "runtime/product.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "runtime/product.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product.stderr.log",
+      "bytes": 47087,
+      "sha256": "dd185b364f27e47c84f8a0d184df5cf8ee328d6ccdf7d586e56307ed4d614bc7"
+    },
+    {
+      "path": "runtime/product.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product.json",
+      "bytes": 94,
+      "sha256": "a0d5c808a383ebcac227b5305fb8d918bae0d62bb16f4c36edc3512fc9f64c1d"
+    },
+    {
+      "path": "runtime/product/config.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/config.json",
+      "bytes": 2199,
+      "sha256": "a9b8bfeb59359a0427bc6793fd562107ec957c1996544ca431bc3f9db1931a03"
+    },
+    {
+      "path": "runtime/product/host-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread-sample.json",
+      "bytes": 904,
+      "sha256": "86789feba60401b08a25e5921d31c9a4867d680ad16bc338d63902d84338ecc6"
+    },
+    {
+      "path": "runtime/product/host-main-thread-sample.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread-sample.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "runtime/product/host-main-thread-sample.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread-sample.stderr.log",
+      "bytes": 287,
+      "sha256": "396d1126f01ffcfe8c5b4cb6a28be377a1f68eb24a30fd77cd7c76198706ae91"
+    },
+    {
+      "path": "runtime/product/host-main-thread.sample.txt",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread.sample.txt",
+      "bytes": 196495,
+      "sha256": "82128ce1dcbd32a5d727e1efb7ac4cc5429d23a19beac1079684bb15f0e26909"
+    },
+    {
+      "path": "runtime/product/host-read-queue-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 94,
+      "sha256": "9e3cf962453383bf8227c0e329d7625d38be05c58633d0c7ca7751479a7acf09"
+    },
+    {
+      "path": "runtime/product/host-selection-preparation-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 1091,
+      "sha256": "29894ea79881e25229114a95867ee4ef6055a50c30f913b94d535551b0d8c9a2"
+    },
+    {
+      "path": "runtime/product/host-startup-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 507,
+      "sha256": "8b385558a4dc265bf150e6128f622096fb5dad5f5e37d2578a724c0f4caa7e27"
+    },
+    {
+      "path": "runtime/product/host-startup-main-thread-sample.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread-sample.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "runtime/product/host-startup-main-thread-sample.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread-sample.stderr.log",
+      "bytes": 294,
+      "sha256": "5072fac0049d34d9e9955e2524f410759672f375e408f150b09a7209e1bca80c"
+    },
+    {
+      "path": "runtime/product/host-startup-main-thread.sample.txt",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 193457,
+      "sha256": "07ebd4ff4df62be602af92d9f8bb0f32d3725aeaf27f220b396b41101a93a91f"
+    },
+    {
+      "path": "runtime/product/product-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/product-result.json",
+      "bytes": 33893,
+      "sha256": "67dedc3910bdd52c0f225e1863f016b1a94d59e0d290104fdeccb9220796717c"
+    },
+    {
+      "path": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.log",
+      "bytes": 4083,
+      "sha256": "93feb266bec5b9cbc447fc159dd5d572b47b59706d9a6718372545b4eba7c1a0"
+    },
+    {
+      "path": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.request.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.request.json",
+      "bytes": 737,
+      "sha256": "96c765e143171ed7a966dedacb001b865ef9c60352aa299557fd3f525fab8459"
+    },
+    {
+      "path": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.result.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.result.json",
+      "bytes": 6261,
+      "sha256": "ba49a32bb0301d3a2a515aef30bdd99e9cc9ebd3ac9e4ea9d90c0dd7b8922b6c"
+    },
+    {
+      "path": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.stderr.log",
+      "bytes": 165,
+      "sha256": "e2e7c146f076df0bd0702e49dc658bf6cad16be795c26257760e250dd1039700"
+    }
+  ],
+  "rawFiles": [
+    {
+      "file": "source-build/result.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/result.json",
+      "bytes": 1494,
+      "sha256": "4f869e57c8b77949c4e4e037816d5e4e0349a9eb9e8c6d5382988e4666f5418f"
+    },
+    {
+      "file": "source-build/release.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/release.log",
+      "bytes": 16256,
+      "sha256": "87c565dc78fb7326584612f61d3b60870f10f3c59d2521f4375fff402376b69e"
+    },
+    {
+      "file": "source-build/package.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/package.log",
+      "bytes": 150,
+      "sha256": "4228200aa0253114ece29cd11e31decbe940bfb2868c645c3922fa495785e0e6"
+    },
+    {
+      "file": "source-build/signature.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-build/signature.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "trial/result.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/result.json",
+      "bytes": 2200,
+      "sha256": "343a8a2de9e58ed2438d91435c92446843fea0bf782b048aecdf3a1ff7c1b817"
+    },
+    {
+      "file": "trial/context-before.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/context-before.json",
+      "bytes": 2731,
+      "sha256": "c0b6d6360afa4686a067fed266070175e02b9ce8488207861433ae7787a77eaa"
+    },
+    {
+      "file": "trial/context-after.json",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/context-after.json",
+      "bytes": 2732,
+      "sha256": "bb10bbf1f2174aa546b3f410dc3fc8cf0f5f22ede81e440c346b60b505ccbf30"
+    },
+    {
+      "file": "trial/runtime.log",
+      "originalPath": "/private/tmp/nearpane-60cf-target-diagnostic-trial/runtime.log",
+      "bytes": 658,
+      "sha256": "36be04fc3890dab1d52c9c08f80671ea9c5cdf038ef594b41ed2cd67c872f461"
+    },
+    {
+      "file": "runtime/engine-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine-result.json",
+      "bytes": 4595,
+      "sha256": "5ee5ca131a6e69d3d997414c369228ee1506325103dcf3f2371c5fdd3e0ae62b"
+    },
+    {
+      "file": "runtime/engine.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine.log",
+      "bytes": 43235,
+      "sha256": "45610fc89e8d18123c56b8215f2a13911105dfac0effc8ec6289dc9be3c2b695"
+    },
+    {
+      "file": "runtime/engine.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine.stderr.log",
+      "bytes": 23619,
+      "sha256": "b86d4ffcb0db0780187ecc0ca26ae239edfb338a26edff0fcc2c1cd4166b0733"
+    },
+    {
+      "file": "runtime/engine.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/engine.json",
+      "bytes": 92,
+      "sha256": "67580aaef7d093b880b8dfd0fed2c8570e0458bfee83ff285583378f6f2e7f89"
+    },
+    {
+      "file": "runtime/fixture-cleanup.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "runtime/config.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/config.json",
+      "bytes": 2085,
+      "sha256": "a9cc88603bfe018339cf146115b56967fe72dd557f5007a0e15aa61449e7fc88"
+    },
+    {
+      "file": "runtime/product.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "runtime/product.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product.stderr.log",
+      "bytes": 47087,
+      "sha256": "dd185b364f27e47c84f8a0d184df5cf8ee328d6ccdf7d586e56307ed4d614bc7"
+    },
+    {
+      "file": "runtime/product.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product.json",
+      "bytes": 94,
+      "sha256": "a0d5c808a383ebcac227b5305fb8d918bae0d62bb16f4c36edc3512fc9f64c1d"
+    },
+    {
+      "file": "runtime/product/config.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/config.json",
+      "bytes": 2199,
+      "sha256": "a9b8bfeb59359a0427bc6793fd562107ec957c1996544ca431bc3f9db1931a03"
+    },
+    {
+      "file": "runtime/product/host-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread-sample.json",
+      "bytes": 904,
+      "sha256": "86789feba60401b08a25e5921d31c9a4867d680ad16bc338d63902d84338ecc6"
+    },
+    {
+      "file": "runtime/product/host-main-thread-sample.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread-sample.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "runtime/product/host-main-thread-sample.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread-sample.stderr.log",
+      "bytes": 287,
+      "sha256": "396d1126f01ffcfe8c5b4cb6a28be377a1f68eb24a30fd77cd7c76198706ae91"
+    },
+    {
+      "file": "runtime/product/host-main-thread.sample.txt",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-main-thread.sample.txt",
+      "bytes": 196495,
+      "sha256": "82128ce1dcbd32a5d727e1efb7ac4cc5429d23a19beac1079684bb15f0e26909"
+    },
+    {
+      "file": "runtime/product/host-read-queue-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 94,
+      "sha256": "9e3cf962453383bf8227c0e329d7625d38be05c58633d0c7ca7751479a7acf09"
+    },
+    {
+      "file": "runtime/product/host-selection-preparation-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 1091,
+      "sha256": "29894ea79881e25229114a95867ee4ef6055a50c30f913b94d535551b0d8c9a2"
+    },
+    {
+      "file": "runtime/product/host-startup-main-thread-sample.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 507,
+      "sha256": "8b385558a4dc265bf150e6128f622096fb5dad5f5e37d2578a724c0f4caa7e27"
+    },
+    {
+      "file": "runtime/product/host-startup-main-thread-sample.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread-sample.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "runtime/product/host-startup-main-thread-sample.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread-sample.stderr.log",
+      "bytes": 294,
+      "sha256": "5072fac0049d34d9e9955e2524f410759672f375e408f150b09a7209e1bca80c"
+    },
+    {
+      "file": "runtime/product/host-startup-main-thread.sample.txt",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 193457,
+      "sha256": "07ebd4ff4df62be602af92d9f8bb0f32d3725aeaf27f220b396b41101a93a91f"
+    },
+    {
+      "file": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.log",
+      "bytes": 4083,
+      "sha256": "93feb266bec5b9cbc447fc159dd5d572b47b59706d9a6718372545b4eba7c1a0"
+    },
+    {
+      "file": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.request.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.request.json",
+      "bytes": 737,
+      "sha256": "96c765e143171ed7a966dedacb001b865ef9c60352aa299557fd3f525fab8459"
+    },
+    {
+      "file": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.result.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.result.json",
+      "bytes": 6261,
+      "sha256": "ba49a32bb0301d3a2a515aef30bdd99e9cc9ebd3ac9e4ea9d90c0dd7b8922b6c"
+    },
+    {
+      "file": "runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.stderr.log",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/r4-press-f3fa7da9-af60-4a24-81fc-aba698b929a6.stderr.log",
+      "bytes": 165,
+      "sha256": "e2e7c146f076df0bd0702e49dc658bf6cad16be795c26257760e250dd1039700"
+    }
+  ],
+  "derivedFiles": [
+    {
+      "file": "runtime/summary.fixture-scope.json",
+      "bytes": 31483,
+      "sha256": "4751bbb4059c16c91a715c26682b0caa651d4ace3dd8d758102e20aca2c174cb",
+      "sourcePath": "runtime/summary.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/summary.json",
+      "originalBytes": 41353,
+      "originalSHA256": "27b0c380fc63a7382c2c80de9e34be31f77e7660ffe9fc9f3cb00fb883ee92f6",
+      "changes": [
+        {
+          "jsonPointer": "/productReceipt/lastObservedReadiness/roster",
+          "originalEntries": 20,
+          "retainedEntries": 3,
+          "removedEntries": 17,
+          "removedDetailsPublished": false
+        },
+        {
+          "jsonPointer": "/productReceipt/lastReadiness/roster",
+          "originalEntries": 20,
+          "retainedEntries": 3,
+          "removedEntries": 17,
+          "removedDetailsPublished": false
+        }
+      ],
+      "semanticDifferenceOutsideListedArrays": false
+    },
+    {
+      "file": "runtime/product/product-result.fixture-scope.json",
+      "bytes": 23697,
+      "sha256": "6b28078de87f009bff94e59b74a2c7a573edd1d1d8be56ea90e569844a497e19",
+      "sourcePath": "runtime/product/product-result.json",
+      "originalPath": "/private/tmp/nearpane-independent-60cf-target-diagnostic-20261128/runtime/product/product-result.json",
+      "originalBytes": 33893,
+      "originalSHA256": "67dedc3910bdd52c0f225e1863f016b1a94d59e0d290104fdeccb9220796717c",
+      "changes": [
+        {
+          "jsonPointer": "/lastObservedReadiness/roster",
+          "originalEntries": 20,
+          "retainedEntries": 3,
+          "removedEntries": 17,
+          "removedDetailsPublished": false
+        },
+        {
+          "jsonPointer": "/lastReadiness/roster",
+          "originalEntries": 20,
+          "retainedEntries": 3,
+          "removedEntries": 17,
+          "removedDetailsPublished": false
+        }
+      ],
+      "semanticDifferenceOutsideListedArrays": false
+    }
+  ],
+  "observedEngineCounts": {
+    "requestAttempts": 25,
+    "operationReceipts": 33,
+    "verifiedOperationReceipts": 32,
+    "operationCounts": {
+      "13": 1,
+      "14": 2,
+      "2": 6,
+      "3": 12,
+      "5": 11,
+      "8": 1
+    },
+    "writeRequestReceipts": 25,
+    "verifiedWriteRequestReceipts": 24,
+    "unverifiedWriteReceipts": [
+      {
+        "detail": 217,
+        "event": "engineReceipt",
+        "flags": 128,
+        "nativeSpace": 0,
+        "operation": 14,
+        "owned": 3,
+        "phase": "yellow-button-retire",
+        "poll": 0,
+        "seconds": 1.1209206250496209,
+        "status": 2,
+        "submit": 0,
+        "uptime": 798364.9194435,
+        "verified": false
+      }
+    ],
+    "independentReadbackEvents": 66,
+    "verifiedIndependentReadbackEvents": 66,
+    "independentReadbackObservations": 132,
+    "checksByStatus": {
+      "PASS": 8,
+      "NOT_RUN": 1,
+      "FAIL": 1
+    },
+    "nativeMoveSyscallCount": null,
+    "nativeMoveSyscallCountReason": "Original logs count requests and verified states, not low-level move syscalls."
+  }
+}

@@ -1,0 +1,22 @@
+.....Undefined symbols for architecture arm64:
+  "_IsSecureEventInputEnabled", referenced from:
+      _np_stage_input_interrupted in installed-journal-offline-6ee35d.o
+ld: symbol(s) not found for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+E
+======================================================================
+ERROR: setUpClass (test_installed_journal.InstalledJournalTests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/runner/work/nearpane/nearpane/scripts/acceptance/window-engine/spaces/test_installed_journal.py", line 21, in setUpClass
+    subprocess.run(cmd, check=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/subprocess.py", line 692, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command ['xcrun', 'clang', '-fobjc-arc', '-Wall', '-Werror=return-type', PosixPath('/Users/runner/work/nearpane/nearpane/scripts/acceptance/window-engine/spaces/installed-journal-offline.m'), '-o', PosixPath('/var/folders/5n/5t77mfb93jd7q8v9s6f0dn0m0000gn/T/tmp7vxfxuwp/journal-unit'), '-framework', 'AppKit', '-framework', 'ApplicationServices', '-framework', 'CoreGraphics', '-framework', 'Security'] returned non-zero exit status 1.
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.358s
+
+FAILED (errors=1)

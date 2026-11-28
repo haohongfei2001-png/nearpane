@@ -1,0 +1,23 @@
+{
+  "api": "Carbon CopySymbolicHotKeys",
+  "capturedAt": "2026-11-20T08:18:12.504108+00:00",
+  "ctrlDigitDisabledKeycodes": [
+    18,
+    19,
+    20,
+    21,
+    23,
+    22,
+    26,
+    28,
+    25
+  ],
+  "ctrlDigitEnabledKeycodes": [],
+  "keyboardInputs": 0,
+  "kind": "setup-system-shortcut-availability",
+  "os": "27.0",
+  "osBuild": "26A428",
+  "productInputs": 0,
+  "status": "BLOCKED",
+  "totalInspected": 234
+}

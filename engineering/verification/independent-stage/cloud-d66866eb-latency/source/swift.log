@@ -1,0 +1,531 @@
+Foundation only: no domain inputs required.
+◇ Test run started.
+↳ Testing Library Version: 2084
+↳ Target Platform: arm64e-apple-macos14.0
+◇ Suite IndependentStageDockFreshnessTests started.
+◇ Suite IndependentStageMinimizeObserverTests started.
+◇ Suite IndependentStageGroupEditingTests started.
+◇ Suite DesktopGalleryTargetTests started.
+◇ Suite StageHostGroupProjectionTests started.
+◇ Suite NativeMinimizeFixtureTests started.
+◇ Suite StageWindowOwnershipTests started.
+◇ Suite StageWindowEngineWitnessTests started.
+◇ Suite StageHostObservationSchedulingTests started.
+◇ Suite SpacesWorkerLifecycleTests started.
+◇ Suite AppleStageMinimizeObserverTests started.
+◇ Suite StageGroupHistoryPictureTests started.
+◇ Suite EngineABITests started.
+◇ Suite AppleStageMembershipTests started.
+◇ Suite StageGroupWindowLifetimesTests started.
+◇ Suite DesktopPreviewContinuityTests started.
+◇ Suite NativeSidebarNavigationTests started.
+◇ Suite StageCreationFocusTests started.
+◇ Suite IndependentStageConfigurationTests started.
+◇ Suite StageHostCaptureSchedulingTests started.
+◇ Suite StageWindowFocusTests started.
+◇ Suite IndependentStageWallpaperTests started.
+◇ Suite StageWindowReturnTests started.
+◇ Suite OrdinaryDesktopMembershipTests started.
+◇ Suite SpaceInventoryTests started.
+◇ Suite StageHostWindowAccessTests started.
+◇ Suite StageWindowAttributesTests started.
+◇ Suite StageGroupCoordinatorTests started.
+◇ Suite StageWindowArrivalTests started.
+◇ Suite StageWindowEngineTests started.
+◇ Suite StageGroupStoreTests started.
+◇ Test queuedDockReadUsesActualObservationAgeWithoutExtendingFreshness() started.
+◇ Test dockFreshnessBoundsTheWholePhysicalReadAndDeliveryInterval() started.
+◇ Test aCatalogReadCannotConsumeThePendingNativeEvent() started.
+◇ Test aYellowButtonEventActsOnlyOnThePreviouslyVisibleExactWindow() started.
+◇ Test closedOrReplacedIdentityLosesItsPriorObservation() started.
+◇ Test preexistingMinimizedWindowsNeverBecomeARequest() started.
+◇ Test aMenuOpenedForAnOlderRosterCannotEditTheNewPartition() started.
+◇ Test returnedInactiveGroupJoinsCurrentGroupAcrossApplicationsAndKeepsItsExactWindows() started.
+◇ Test clearingMinimizationInHiddenSpaceDoesNotRearmTheWindow() started.
+◇ Test delayedMiniNoticeAfterRestoreCannotHideAVisibleWindow() started.
+◇ Test staleUnselectedSiblingRejectsTheWholeEditBeforeTheFirstDirectoryWrite() started.
+◇ Test coveredSiblingsAndClassifiedStageWindowsStayInTheSameDesk() started.
+◇ Test detachingOneOfTwoSameAppWindowsSelectsTheNewSingletonWithoutMovingItsSibling() started.
+◇ Test directoryReadsWithoutAParkedWindowOrWriterAndPreservesAlreadyVerifiedRows() started.
+◇ Test actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt() started.
+◇ Test inputChangedDuringTheFinalPhysicalReadCannotPublishItsResult() started.
+◇ Test aPhysicalDirectoryReadAllowsMainActorProgressBeforeReturning() started.
+◇ Test overlappingMembersRemainSelectableByIdentityUntilRemovedFromTheirGroup() started.
+◇ Test anUnavailableGroupClickKeepsTheWorkSetAndOnlyAnExplicitMemberMayFocus() started.
+◇ Test theIndependentRawRosterRequiresUniqueCurrentKeysAndAKnownRole() started.
+◇ Test aMissingOrChangedDesktopCannotAuthorizeContinuationOrRecoveryOnAnotherDesktop() started.
+➜ Test observeSignedInactiveSiblingAcrossItsOwnMinimizeAndRestore() skipped.
+◇ Test focusOnAnotherDisplayNeedsTwoInventoriesAndIndependentVisibleFocus() started.
+◇ Test interruptedDirectoryReadCannotPublishPartialHistoryOrQueryAnotherWindow() started.
+◇ Test foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard() started.
+◇ Test aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(change:) started.
+◇ Test bothWritersContendForSameFileLeaseButSiblingIsIndependent() started.
+◇ Test pendingLayoutExcludesItsExactWindowsAndStillProtectsUpdate() started.
+◇ Test unreadableOwnershipCannotAuthorizeAWindow() started.
+◇ Test hiddenRequiresSpecificConfirmedWorkerAndIndependentGeometryOrMembership() started.
+◇ Test noPreferenceOrForgedSidecarCanReplacePinnedPhysicalSignerAndEvidenceID() started.
+◇ Test geometryPermitIsBoundToItsExactCommandAndNeverGrantsReadbackOrOrdinaryWrite() started.
+◇ Test aSlowWindowNumberHintDoesNotBlockTheInputActor() started.
+◇ Test shutdownReturnsFalseForUnresolvedJournalAndTrueForNewIsolatedProfile() started.
+◇ Test aStoppedDetectorCannotPublishItsDelayedHint() started.
+◇ Test currentWorkerCannotBeMistakenForAnExitedGeneration() started.
+◇ Test aHomeWindowAndAnEmptyWALCannotSubstituteForTheExactWorkerTerminal() started.
+◇ Test windowOwnerKeepsMetadataReaderAliveAfterSidebarHides() started.
+◇ Test differentBootRetiresOnlyTheMatchingPrivateOwnerAssociation() started.
+◇ Test linkedABIRequiresLivePerWindowReadbackAndPassesOtherEvents() started.
+◇ Test boundsProcessAndWindowRegistrationsInCallerOrder() started.
+◇ Test alreadyDisplayedOrdinaryGroupCanKeepPixelsWithoutAnyWindowEngineOrNewCapture() started.
+◇ Test aNewerNoticeDiscardsTheOldReadAndNeverAdvancesItsSibling() started.
+◇ Test firstCompositorFrameAfterDepartureBecomesHistoryWithoutAnEarlierDraw() started.
+◇ Test pendingFirstFrameRejectsChangedLifetimeStreamAndRevokedOriginal() started.
+◇ Test heldPixelsOutliveTheCaptureButRejectReusedIdentityWrongSpaceAndLostPermission() started.
+◇ Test independentGeometryAndFrontOrderMustAgreeBeforeSaving() started.
+◇ Test registersOnlyCurrentUnambiguousOrdinaryWindowIdentities() started.
+◇ Test historicalWorksetContainsOnlyIndependentlyVisibleMembers() started.
+◇ Test selectedHistoricalWindowMustStillBeTheSameParkedIncarnationOnTheSameDesktop() started.
+◇ Test productionGroupPictureRendersTheTwoStoredMembersInTheirActualOverlappingSlots() started.
+◇ Test coveredDisplayRetainsBothGroupMembersWhileOnlyTheirHomeDesktopCanDrawThem() started.
+◇ Test historicalClicksUseWindowStackingAndNeverFallThroughAMissingFrontImage() started.
+◇ Test ordinaryHandleCannotDispatchFixtureWritesAndRevocationIsThreadSafe() started.
+◇ Test cornerParkPreflightObservesOnlyTheCallingProcess() started.
+◇ Test exactHistoricalSelectionAcceptsOnlyTheOriginalWindowInAnIndependentHiddenSpace() started.
+◇ Test delayedSubmissionCannotAdoptTheEpochThatReplacedItsAuthorization() started.
+◇ Test aNewNativeMinimizedStageNeedsItsExactLiveStripItemAndListedOwner() started.
+◇ Test cLayoutAndSwiftRuntimeAgree() started.
+◇ Test incompleteOrChangedWitnessNeverRebindsAReusedWindowNumber() started.
+◇ Test aSpaceNotificationRetainsOnlyPresentationUntilTheNextConfirmedRoster() started.
+◇ Test aReturningCardUsesTheIdenticalBitmapUntilItsOwnContentChanges() started.
+◇ Test cappedInventoryKeepsTheReadOnlyCardOnlyOnItsVerifiedDesktop(changedHome:) started.
+◇ Test ordinaryCardPointerDistinguishesClickDropAndCancelledTargetsWithoutOrderingAWindow() started.
+◇ Test restoredOriginalKeepsItsGroupWithoutRevalidatingOldInput() started.
+◇ Test internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch() started.
+◇ Test groupNameReadCannotCommitAcrossASidebarIntentOrOwnershipLoss() started.
+◇ Test revocationCancelsOnlyFutureGestureSteps() started.
+◇ Test eachGestureRequiresTheOriginalAXElementEvenIfTheNumericIDIsReused() started.
+◇ Test thumbnailAdmissionWaitsForEveryQueuedWindowActionThenReadsPermissionAgain() started.
+◇ Test interveningQueuedMoveCannotResurrectAnOlderStageSelection() started.
+◇ Test lateFocusWriteNeedsFreshIntentAndTheOriginalLifetime() started.
+◇ Test thumbnailDispatchWaitCanBeCancelledWithoutWaitingForTheWindowAction() started.
+◇ Test emptyOrdinaryFullscreenAndUnreadSpacesProduceNoSidebarEntries() started.
+◇ Test thumbnailDispatchWaitDoesNotRenewAnExpiredFirstFrameOrRetiredCapture() started.
+◇ Test draggingALiveMemberOutDetachesOnlyOnReleaseInTheSameWorkspace() started.
+◇ Test existingSiblingOrUnobservedReceiverPoisonsAnOtherwiseMatchingReturn() started.
+◇ Test overlappingLiveMembersDragAndSelectOnlyTheFrontWindowInOneGroupSnapshot() started.
+◇ Test newerChoiceSuppressesOldPostSwitchFocusAndCoalescesIntermediateIntent() started.
+◇ Test newWindowMayRemainUnfocusedWhileTheOriginKeepsFocus() started.
+◇ Test unreadableIntermediateFocusOrReturnToOriginCannotBeHiddenByTheFinalSample() started.
+◇ Test groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation() started.
+◇ Test subsequentSelectionCannotDiscardQueuedMove() started.
+◇ Test aNewlyFocusedOriginalAxObjectMustMatchTheCreatedObject() started.
+◇ Test externalActivationRetiresOnlyThePendingCrossSpaceFocus() started.
+◇ Test onlyConfirmedWindowsAppearOnceAndDisappearWhenTheyClose() started.
+◇ Test gestureSurvivesUnrelatedRefreshButNotReplacedOwnerSpaceOrTopology() started.
+◇ Test anAbsentProfileUnderTheSameRealDirectoryAcceptsAPathAlias() started.
+◇ Test onlyANewerGroupChoiceInTheOriginalOwnershipEpochMayTakeOver() started.
+◇ Test coldCaptureConstructionAllowsTheInputActorToProgress() started.
+◇ Test aRealProfileOutsideTheOutputDoesNotPassBecauseItsAliasIsInside() started.
+◇ Test realSystemTakeoverOverridesWallpaperEvenWhenDispatchWasAlreadyDisabled() started.
+◇ Test animatedInventoryInvalidationKeepsTheExplicitWallpaperPause() started.
+◇ Test aMissingManagedRowIsNotEvidenceThatAHiddenSpaceWasDestroyed() started.
+◇ Test systemHandoffUsesExactAXLayoutAndBidirectionalHomeMembershipWithoutFocusOrCGTransforms() started.
+◇ Test listedDesktopMustReferToItselfExactlyOnceWithoutBecomingAnOrdinaryWindow() started.
+◇ Test wallpaperWaitsForANewOrdinaryReadWithoutHandingBackHiddenGroups() started.
+◇ Test returnCanBeVerifiedOnAnotherDesktopButRequiresTheOriginalOrdinaryHome() started.
+◇ Test absentAppKitNumberNeedsBothSpaceDirectionsAndExactSurfaceOwner() started.
+◇ Test onlyAnIncompleteYellowButtonTransactionMayRemainNativelyMinimized() started.
+◇ Test eachWriteRequiresTheSameOrdinarySpaceUUIDCurrentDisplayAndExclusiveMember() started.
+◇ Test currentSpaceNeedsAnIndependentWitnessAndExactOrderedMembership() started.
+◇ Test ordinaryCandidatesPreserveDisplayAndUnfilteredRecordOrder() started.
+◇ Test hiddenCatalogueExclusionNeedsBothDirectionsOutsideEveryManagedSpace() started.
+◇ Test unplacedSurfaceNeedsTwoEmptyInclusiveReadsAndCompleteNegativeOrdering() started.
+◇ Test orderingEvidenceNeverConvertsMissingMalformedOrDuplicateNumbersToAbsence() started.
+◇ Test hiddenCatalogueExclusionCannotHideVisibleChangingOrUnmeasuredRows() started.
+◇ Test unknownDisplayMalformedCurrentAndReusedIDsRejectInventory() started.
+◇ Test membershipKeepsMultipleIDsAndEmptyOrInvalidIsUnknown() started.
+◇ Test onlyValidatedOrdinaryUUIDsCanIdentifyARecordAcrossVisits() started.
+◇ Test windowDisplayNeedsStableOwnershipAcrossSamplesAndUnambiguousTies() started.
+◇ Test stableStageStripCGDoesNotReplaceTheLogicalWindowFrame() started.
+◇ Test ordinaryHelperKeepsTheExistingAlphaParentRule() started.
+◇ Test rosterRequiresOrderingIndependentlyOfSpaceMembership() started.
+◇ Test desktopRequiresPositiveNonWindowStructureAndACompleteOrdinaryWindowList() started.
+◇ Test aStageLayoutOrFocusRequiresTheOriginalOwnerWindowLifetimeAndOrdinarySpace() started.
+◇ Test hostNeedsTheCanonicalKernelExecutableAndTheApprovedSigningDigest() started.
+◇ Test legacyWorkerRejectsStageOperationsBeforeReadingAnOwnerOrPrompting() started.
+◇ Test physicalInputRevocationDeadlineAndPrimitiveLimitEachEndTheIntent() started.
+◇ Test supersededLastReadCannotPublishLayoutAndNextSelectionCanProceed() started.
+◇ Test ordinaryHelperRecognizesOnlyTheSealedCandidatesSingleModeAndExactExecutables() started.
+◇ Test inactiveOrdinaryRecordWithoutUUIDPreservesOrderButCannotBecomeTheFocusDesktop() started.
+◇ Test switchAwayAndBackPreservesBothManuallyMovedFramesOfTheComposite() started.
+◇ Test retainedBindingStillRejectsVisibleModalFullscreenUnknownOrUnrelatedElements() started.
+◇ Test miniaturizedOriginalKeepsItsFrameWithoutAdmittingANewDialog() started.
+◇ Test reselectingTheFocusedWorksetKeepsBothFilesAndYieldsToAFocusChange() started.
+◇ Test movingParkedWindowBetweenReadbacksLeavesHideUnconfirmed() started.
+◇ Test reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch() started.
+◇ Test unknownAfterIssuedIsDurableAndNeverReplayed() started.
+◇ Test userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_:) started.
+◇ Test tallWindowsRestrictCornerSelectionOnlyWhenTheyMustRetire(tallOutgoing:) started.
+◇ Test supersededAfterFocusDoesNotHideOrRefocusUnasked() started.
+◇ Test engineActionsSeeThePrivateCommittedIntentOnDisk() started.
+◇ Test coldStartupReleasesOnlyADischargedDeadOwnerWithoutWindowWrites() started.
+◇ Test focusTakeoverAfterHideNeverRefocusesOrCommitsTheSwitch() started.
+◇ Test unavailableRetirementSurfacePreservesKeyboardAndDirectoryBeforeAnyGroupWrite() started.
+◇ Test enrolledUserMinimizedSiblingKeepsItsStateAndLayoutDuringOtherWorksetSwitches() started.
+◇ Test anUnconfirmedHideNeverPublishesTheDepartingLayout() started.
+◇ Test focusCannotTakeOwnershipOfUserGeometry() started.
+◇ Test firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow() started.
+◇ Test coldSpacesReadPlanIncludesUncertainMinimizeAndCannotClearAChangedJournal() started.
+◇ Test freshReadbackCannotExtendAnExistingOwnerToAnyNewOrReopenedWindow() started.
+◇ Test queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_:takeover:) started.
+◇ Test recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_:) started.
+◇ Test reselectingAWorksetCannotAcknowledgeAnExternallyChangedDirectory() started.
+◇ Test confirmedNewWindowGetsItsOwnGroupAndNoInheritedAuthority() started.
+◇ Test coldSpacesOwnerWithAnEmptyWindowWALStillNeedsCompletedWorkerAndPhysicalProof() started.
+◇ Test lossOfAnIndividualWindowLeaseStopsEvenWhenItsGeometryIsUnchanged() started.
+◇ Test latePhysicalChangeProtectsBystandersAndTheLastVerifiedGroup() started.
+◇ Test withdrawnActivityOrConcurrentDirectoryEditCannotCommitAnEarlierEvent() started.
+◇ Test groupSelectionUsesItsLastExactMemberAndPreservesSiblingFocusChoices() started.
+◇ Test initialWindowsAndExplicitlyDetachedMembersAreNeverReclaimed() started.
+◇ Test anyChangeInScopeFocusOriginOrTheRestOfTheRosterWithholdsTheMetadataWrite() started.
+◇ Test threeGroupsRequireConsentFocusOwnershipAndFullReadback() started.
+◇ Test selectingTheAlreadyVisibleSingletonKeepsItsCurrentFrameAndDoesNotDispatch() started.
+◇ Test unknownSystemOwnershipIsDistinctFromReadableFactoryDefault() started.
+◇ Test oneSelectedMemberMovesAndTheOtherScreenKeepsItsGroup() started.
+◇ Test changedDisplayOfFocusCannotPassTheBackendStartReadback() started.
+◇ Test isolatedSingleWindowProofNeverEnablesShippingAndMissingEvidenceNeverAdmitsAGroup() started.
+◇ Test duplicateOrMissingReadbackCannotPublishAGroupOrDeleteASlot() started.
+◇ Test withdrawalAfterLostReadDoesNotInventAUserFocusForPreviousEffects() started.
+◇ Test systemOverviewReturnsWindowsWithoutRequiringTheOldDesktopToRemainCurrent() started.
+◇ Test diskWriteFailureNeverPublishesGroupOrBinding() started.
+◇ Test explicitReassignmentAfterPhysicalMoveKeepsOnlyOneSlot() started.
+◇ Test oneUnknownRustWriteBlocksReplacementButOtherConfirmedWindowsCanReturn() started.
+◇ Test currentScopeRebindRejectsAChangedPartitionWithoutBindingAnyMember() started.
+◇ Test reopenAndReusedNumberNeedExplicitBindingAndKeepLayout() started.
+◇ Test wallpaperReturnVerifiesOwnedVisibilityWithoutRequiringOrChangingKeyboardFocus() started.
+◇ Test v1MigrationKeepsOriginalAndDoesNotGuessSpaceOrFocus() started.
+◇ Test nextOwnedGroupIsActuallyRevealedBeforeRetiringLastVisibleGroup() started.
+◇ Test fullGroupCycleUsesOnlyOneBackendAndRestoresBystandersUnchanged() started.
+◇ Test missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry(_:) started.
+◇ Test unhealthyBackendYieldsOnlyAfterRecoveryAndPositiveClose() started.
+◇ Test namesSurviveReopenAndGroupingWithoutChangingScopeLayoutOrMembership() started.
+◇ Test currentScopeRebindIsAtomicAndPreservesWhollyAbsentHistory() started.
+◇ Test lateGuardianReleaseUsesTheSameIntentWithoutRestoringTheWindowAgain(userMoved:) started.
+◇ Test unsupportedCorruptOrExternallyChangedDirectoryPreservesOriginalBytes() started.
+◇ Test uncertainStartupRetainsOriginalWorkerUntilItCanClose() started.
+◇ Test confirmedDepartureRemovesOnlyTheBoundUnownedMember() started.
+◇ Test scopesSurviveIndependentDesktopSelectionAndNativeMoves() started.
+◇ Test withdrawnHidePreservesEarlierIntentsAndTheUsersFocus(_:) started.
+◇ Test obstructionAfterLastHideCannotCommitActivityAndRecoveryKeepsTheReviewedBackend(focusChanged:) started.
+◇ Test productSelectsOnlySpacesAndNeverFallsBackToCorner() started.
+◇ Test independentSpacesUsesRealMembershipAndRestoresEveryOriginalWindow() started.
+◇ Test yellowMinimizeRetiresOnlyTheObservedWindowAndReturnsThroughTheSameGroupEngine() started.
+◇ Test confirmedTakeoverReleasesOnlyAfterTheOriginalRosterReturns(_:) started.
+◇ Test coordinatedPreflightRemovesOnlyTheDuplicateReadBeforeWorkerHealth(_:) started.
+◇ Test lostPrepareReplyAndUnknownSubmittedHideCannotBeWithdrawn() started.
+◇ Test changedDurableTransactionCannotBeClearedByAnOtherwiseValidWithdrawal() started.
+◇ Test ownWindowAndCandidateProvenanceDoNotCreateReleaseQualification() started.
+◇ Test explicitSpacesSelectionCanStartFromDesktopOrAnUnmanagedWindow(_:) started.
+◇ Test failedRetirementReturnsOnlyTheMeasuredWindow(_:) started.
+◇ Test spacesRegistersTheInitiallyVisibleCurrentGroupBeforeAnyRetirement() started.
+◇ Test newInputDuringCoordinatedHealthStopsBeforeAnyWindowWrite() started.
+◇ Test externalFocusIsReadOnlyAndPermissionLossDoesNotDisqualifyTheBackend() started.
+◇ Test newerCardDuringReadOnlyHealthYieldsOnlyAnUnchangedRoster(_:) started.
+◇ Test withdrawalRetainsExistingOwnershipAndTheEarlierConfirmedShow() started.
+◇ Test spacesCoordinatorHandsItsCompletePreflightToTheSameSession() started.
+◇ Test guardianConfirmationFailureBlocksReplacementAndNeverRepeatsTheRustHide() started.
+◇ Test aNewerGroupCanReuseOnlyIndependentlySettledWork(_:) started.
+◇ Test incompleteWorkerReadAfterConfirmedRestoresKeepsDurableOwnerAcrossRestart() started.
+◇ Test lostHideTransportMayWithdrawOnlyBeforeRustTakesTheTicket(_:) started.
+◇ Test aBystanderChangeDuringHandoffRetainsTheSealedLease() started.
+◇ Test aQueuedClickCannotDischargeAnUnknownHide() started.
+◇ Test returningMixedGroupRepairsCompositorStackingBeforeConfirmingSelectedFocus() started.
+◇ Test changedLifetimeOrExternalGeometryNeverUsedForRestoration() started.
+◇ Test coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) started.
+◇ Test takeoverDuringOldWorkerShutdownVetoesAlreadyRequestedReplacement() started.
+◇ Test relativeFramesUseDisplayLocalUsableOrigin() started.
+◇ Test case passing 1 argument change → "newInputDuringRead" to aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(change:) started.
+◇ Test case passing 1 argument change → "none" to aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(change:) started.
+◇ Test case passing 1 argument change → "unselectedFrame" to aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(change:) started.
+◇ Test case passing 1 argument changedHome → false to cappedInventoryKeepsTheReadOnlyCardOnlyOnItsVerifiedDesktop(changedHome:) started.
+◇ Test case passing 1 argument changedHome → true to cappedInventoryKeepsTheReadOnlyCardOnlyOnItsVerifiedDesktop(changedHome:) started.
+◇ Test case passing 1 argument boundary → 1 to userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_:) started.
+◇ Test case passing 1 argument tallOutgoing → false to tallWindowsRestrictCornerSelectionOnlyWhenTheyMustRetire(tallOutgoing:) started.
+◇ Test case passing 1 argument tallOutgoing → true to tallWindowsRestrictCornerSelectionOnlyWhenTheyMustRetire(tallOutgoing:) started.
+◇ Test case passing 1 argument boundary → 3 to userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_:) started.
+◇ Test case passing 1 argument interruption → .none to recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_:) started.
+◇ Test case passing 1 argument interruption → .originalBecameUnmanaged to recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_:) started.
+◇ Test case passing 1 argument interruption → .lostFocusReply to recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_:) started.
+◇ Test case passing 1 argument interruption → .takeoverAfterFocus to recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_:) started.
+◇ Test case passing 2 arguments shows → 1, takeover → false to queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_:takeover:) started.
+◇ Test case passing 2 arguments shows → 1, takeover → true to queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_:takeover:) started.
+◇ Test case passing 2 arguments shows → 2, takeover → false to queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_:takeover:) started.
+◇ Test case passing 2 arguments shows → 2, takeover → true to queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_:takeover:) started.
+✔ Test aYellowButtonEventActsOnlyOnThePreviouslyVisibleExactWindow() passed after 0.035 seconds.
+✔ Test aCatalogReadCannotConsumeThePendingNativeEvent() passed after 0.035 seconds.
+✔ Test closedOrReplacedIdentityLosesItsPriorObservation() passed after 0.035 seconds.
+◇ Test case passing 1 argument mode → .denied to missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry(_:) started.
+◇ Test case passing 1 argument mode → .lostReply to missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry(_:) started.
+✔ Test preexistingMinimizedWindowsNeverBecomeARequest() passed after 0.035 seconds.
+◇ Test case passing 1 argument userMoved → false to lateGuardianReleaseUsesTheSameIntentWithoutRestoringTheWindowAgain(userMoved:) started.
+◇ Test case passing 1 argument userMoved → true to lateGuardianReleaseUsesTheSameIntentWithoutRestoringTheWindowAgain(userMoved:) started.
+◇ Test case passing 1 argument hasEarlierFocus → false to withdrawnHidePreservesEarlierIntentsAndTheUsersFocus(_:) started.
+◇ Test case passing 1 argument hasEarlierFocus → true to withdrawnHidePreservesEarlierIntentsAndTheUsersFocus(_:) started.
+◇ Test case passing 1 argument focusChanged → false to obstructionAfterLastHideCannotCommitActivityAndRecoveryKeepsTheReviewedBackend(focusChanged:) started.
+◇ Test case passing 1 argument focusChanged → true to obstructionAfterLastHideCannotCommitActivityAndRecoveryKeepsTheReviewedBackend(focusChanged:) started.
+◇ Test case passing 1 argument stable → true to confirmedTakeoverReleasesOnlyAfterTheOriginalRosterReturns(_:) started.
+◇ Test case passing 1 argument stable → false to confirmedTakeoverReleasesOnlyAfterTheOriginalRosterReturns(_:) started.
+✔ Test clearingMinimizationInHiddenSpaceDoesNotRearmTheWindow() passed after 0.036 seconds.
+✔ Test delayedMiniNoticeAfterRestoreCannotHideAVisibleWindow() passed after 0.037 seconds.
+◇ Test case passing 1 argument coordinated → false to coordinatedPreflightRemovesOnlyTheDuplicateReadBeforeWorkerHealth(_:) started.
+◇ Test case passing 1 argument coordinated → true to coordinatedPreflightRemovesOnlyTheDuplicateReadBeforeWorkerHealth(_:) started.
+◇ Test case passing 1 argument unmanaged → false to explicitSpacesSelectionCanStartFromDesktopOrAnUnmanagedWindow(_:) started.
+◇ Test case passing 1 argument unmanaged → true to explicitSpacesSelectionCanStartFromDesktopOrAnUnmanagedWindow(_:) started.
+◇ Test case passing 1 argument interruption → .none to failedRetirementReturnsOnlyTheMeasuredWindow(_:) started.
+◇ Test case passing 1 argument interruption → .bystanderMoved to failedRetirementReturnsOnlyTheMeasuredWindow(_:) started.
+◇ Test case passing 1 argument interruption → .newSelection to failedRetirementReturnsOnlyTheMeasuredWindow(_:) started.
+◇ Test case passing 1 argument interruption → .finalReplyLost to failedRetirementReturnsOnlyTheMeasuredWindow(_:) started.
+◇ Test case passing 1 argument userMovedWindow → false to newerCardDuringReadOnlyHealthYieldsOnlyAnUnchangedRoster(_:) started.
+◇ Test case passing 1 argument userMovedWindow → true to newerCardDuringReadOnlyHealthYieldsOnlyAnUnchangedRoster(_:) started.
+◇ Test case passing 1 argument afterHide → false to aNewerGroupCanReuseOnlyIndependentlySettledWork(_:) started.
+◇ Test case passing 1 argument afterHide → true to aNewerGroupCanReuseOnlyIndependentlySettledWork(_:) started.
+◇ Test case passing 1 argument admitted → false to lostHideTransportMayWithdrawOnlyBeforeRustTakesTheTicket(_:) started.
+◇ Test case passing 1 argument admitted → true to lostHideTransportMayWithdrawOnlyBeforeRustTakesTheTicket(_:) started.
+◇ Test case passing 1 argument change → "bystanderDuringHealth" to coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) started.
+◇ Test case passing 1 argument change → "focusDuringHealth" to coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) started.
+◇ Test case passing 1 argument change → "scope" to coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) started.
+◇ Test case passing 1 argument change → "generation" to coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) started.
+◇ Test case passing 1 argument change → "nativeID" to coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) started.
+◇ Test case passing 1 argument change → "targetState" to coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) started.
+✔ Suite NativeMinimizeFixtureTests passed after 0.040 seconds.
+✔ Test boundsProcessAndWindowRegistrationsInCallerOrder() passed after 0.037 seconds.
+✔ Test linkedABIRequiresLivePerWindowReadbackAndPassesOtherEvents() passed after 0.037 seconds.
+✔ Test aNewerNoticeDiscardsTheOldReadAndNeverAdvancesItsSibling() passed after 0.037 seconds.
+✔ Test currentWorkerCannotBeMistakenForAnExitedGeneration() passed after 0.038 seconds.
+✔ Test registersOnlyCurrentUnambiguousOrdinaryWindowIdentities() passed after 0.037 seconds.
+✔ Test aHomeWindowAndAnEmptyWALCannotSubstituteForTheExactWorkerTerminal() passed after 0.038 seconds.
+✔ Test aNewNativeMinimizedStageNeedsItsExactLiveStripItemAndListedOwner() passed after 0.037 seconds.
+✔ Test differentBootRetiresOnlyTheMatchingPrivateOwnerAssociation() passed after 0.038 seconds.
+✔ Test cLayoutAndSwiftRuntimeAgree() passed after 0.037 seconds.
+✔ Test existingSiblingOrUnobservedReceiverPoisonsAnOtherwiseMatchingReturn() passed after 0.035 seconds.
+✔ Test newWindowMayRemainUnfocusedWhileTheOriginKeepsFocus() passed after 0.035 seconds.
+✔ Test unreadableIntermediateFocusOrReturnToOriginCannotBeHiddenByTheFinalSample() passed after 0.035 seconds.
+✔ Test aNewlyFocusedOriginalAxObjectMustMatchTheCreatedObject() passed after 0.034 seconds.
+✔ Test aMissingManagedRowIsNotEvidenceThatAHiddenSpaceWasDestroyed() passed after 0.034 seconds.
+✔ Test systemHandoffUsesExactAXLayoutAndBidirectionalHomeMembershipWithoutFocusOrCGTransforms() passed after 0.034 seconds.
+✔ Test listedDesktopMustReferToItselfExactlyOnceWithoutBecomingAnOrdinaryWindow() passed after 0.034 seconds.
+✔ Test returnCanBeVerifiedOnAnotherDesktopButRequiresTheOriginalOrdinaryHome() passed after 0.034 seconds.
+✔ Test absentAppKitNumberNeedsBothSpaceDirectionsAndExactSurfaceOwner() passed after 0.034 seconds.
+✔ Test onlyAnIncompleteYellowButtonTransactionMayRemainNativelyMinimized() passed after 0.034 seconds.
+✔ Test eachWriteRequiresTheSameOrdinarySpaceUUIDCurrentDisplayAndExclusiveMember() passed after 0.034 seconds.
+✔ Test currentSpaceNeedsAnIndependentWitnessAndExactOrderedMembership() passed after 0.034 seconds.
+✔ Test ordinaryCandidatesPreserveDisplayAndUnfilteredRecordOrder() passed after 0.034 seconds.
+✔ Test hiddenCatalogueExclusionNeedsBothDirectionsOutsideEveryManagedSpace() passed after 0.034 seconds.
+✔ Test unplacedSurfaceNeedsTwoEmptyInclusiveReadsAndCompleteNegativeOrdering() passed after 0.034 seconds.
+✔ Test orderingEvidenceNeverConvertsMissingMalformedOrDuplicateNumbersToAbsence() passed after 0.034 seconds.
+✔ Test hiddenCatalogueExclusionCannotHideVisibleChangingOrUnmeasuredRows() passed after 0.034 seconds.
+✔ Test unknownDisplayMalformedCurrentAndReusedIDsRejectInventory() passed after 0.034 seconds.
+✔ Test membershipKeepsMultipleIDsAndEmptyOrInvalidIsUnknown() passed after 0.034 seconds.
+✔ Test onlyValidatedOrdinaryUUIDsCanIdentifyARecordAcrossVisits() passed after 0.034 seconds.
+✔ Test windowDisplayNeedsStableOwnershipAcrossSamplesAndUnambiguousTies() passed after 0.034 seconds.
+✔ Test stableStageStripCGDoesNotReplaceTheLogicalWindowFrame() passed after 0.034 seconds.
+✔ Test rosterRequiresOrderingIndependentlyOfSpaceMembership() passed after 0.034 seconds.
+✔ Test desktopRequiresPositiveNonWindowStructureAndACompleteOrdinaryWindowList() passed after 0.035 seconds.
+✔ Test retainedBindingStillRejectsVisibleModalFullscreenUnknownOrUnrelatedElements() passed after 0.034 seconds.
+✔ Test miniaturizedOriginalKeepsItsFrameWithoutAdmittingANewDialog() passed after 0.033 seconds.
+✔ Test shutdownReturnsFalseForUnresolvedJournalAndTrueForNewIsolatedProfile() passed after 0.039 seconds.
+✔ Suite IndependentStageMinimizeObserverTests passed after 0.042 seconds.
+✔ Suite SpacesWorkerLifecycleTests passed after 0.042 seconds.
+✔ Suite AppleStageMembershipTests passed after 0.042 seconds.
+✔ Suite AppleStageMinimizeObserverTests passed after 0.042 seconds.
+✔ Suite StageCreationFocusTests passed after 0.042 seconds.
+✔ Suite StageWindowReturnTests passed after 0.042 seconds.
+✔ Suite StageWindowFocusTests passed after 0.042 seconds.
+✔ Suite OrdinaryDesktopMembershipTests passed after 0.042 seconds.
+✔ Suite StageWindowAttributesTests passed after 0.042 seconds.
+✔ Suite SpaceInventoryTests passed after 0.042 seconds.
+✔ Test delayedSubmissionCannotAdoptTheEpochThatReplacedItsAuthorization() passed after 0.055 seconds.
+✔ Test cornerParkPreflightObservesOnlyTheCallingProcess() passed after 0.058 seconds.
+✔ Test ordinaryHandleCannotDispatchFixtureWritesAndRevocationIsThreadSafe() passed after 0.068 seconds.
+✔ Suite EngineABITests passed after 0.072 seconds.
+✔ Test switchAwayAndBackPreservesBothManuallyMovedFramesOfTheComposite() passed after 0.183 seconds.
+✔ Test engineActionsSeeThePrivateCommittedIntentOnDisk() passed after 0.322 seconds.
+✔ Test firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow() passed after 0.438 seconds.
+✔ Test groupSelectionUsesItsLastExactMemberAndPreservesSiblingFocusChoices() passed after 0.738 seconds.
+✔ Test selectingTheAlreadyVisibleSingletonKeepsItsCurrentFrameAndDoesNotDispatch() passed after 0.768 seconds.
+✔ Test systemOverviewReturnsWindowsWithoutRequiringTheOldDesktopToRemainCurrent() passed after 1.198 seconds.
+✔ Test wallpaperReturnVerifiesOwnedVisibilityWithoutRequiringOrChangingKeyboardFocus() passed after 1.220 seconds.
+✔ Test nextOwnedGroupIsActuallyRevealedBeforeRetiringLastVisibleGroup() passed after 1.250 seconds.
+✔ Test fullGroupCycleUsesOnlyOneBackendAndRestoresBystandersUnchanged() passed after 1.330 seconds.
+✔ Test independentSpacesUsesRealMembershipAndRestoresEveryOriginalWindow() passed after 1.481 seconds.
+✔ Test yellowMinimizeRetiresOnlyTheObservedWindowAndReturnsThroughTheSameGroupEngine() passed after 1.598 seconds.
+✔ Test coordinatedPreflightRemovesOnlyTheDuplicateReadBeforeWorkerHealth(_:) with 2 test cases passed after 1.686 seconds.
+✔ Test explicitSpacesSelectionCanStartFromDesktopOrAnUnmanagedWindow(_:) with 2 test cases passed after 1.734 seconds.
+✔ Test spacesRegistersTheInitiallyVisibleCurrentGroupBeforeAnyRetirement() passed after 1.773 seconds.
+✔ Test spacesCoordinatorHandsItsCompletePreflightToTheSameSession() passed after 1.866 seconds.
+✔ Test returningMixedGroupRepairsCompositorStackingBeforeConfirmingSelectedFocus() passed after 1.985 seconds.
+✔ Test directoryReadsWithoutAParkedWindowOrWriterAndPreservesAlreadyVerifiedRows() passed after 2.033 seconds.
+✔ Test interruptedDirectoryReadCannotPublishPartialHistoryOrQueryAnotherWindow() passed after 2.040 seconds.
+✔ Test inputChangedDuringTheFinalPhysicalReadCannotPublishItsResult() passed after 2.213 seconds.
+✔ Test aPhysicalDirectoryReadAllowsMainActorProgressBeforeReturning() passed after 3.372 seconds.
+✔ Test groupNameReadCannotCommitAcrossASidebarIntentOrOwnershipLoss() passed after 3.396 seconds.
+✔ Test onlyANewerGroupChoiceInTheOriginalOwnershipEpochMayTakeOver() passed after 3.456 seconds.
+✔ Test supersededLastReadCannotPublishLayoutAndNextSelectionCanProceed() passed after 3.577 seconds.
+✔ Test reselectingTheFocusedWorksetKeepsBothFilesAndYieldsToAFocusChange() passed after 3.583 seconds.
+✔ Test reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch() passed after 3.780 seconds.
+✔ Test movingParkedWindowBetweenReadbacksLeavesHideUnconfirmed() passed after 3.781 seconds.
+✔ Test tallWindowsRestrictCornerSelectionOnlyWhenTheyMustRetire(tallOutgoing:) with 2 test cases passed after 3.783 seconds.
+✔ Test supersededAfterFocusDoesNotHideOrRefocusUnasked() passed after 3.784 seconds.
+✔ Test focusTakeoverAfterHideNeverRefocusesOrCommitsTheSwitch() passed after 3.796 seconds.
+✔ Test unavailableRetirementSurfacePreservesKeyboardAndDirectoryBeforeAnyGroupWrite() passed after 3.796 seconds.
+✔ Test anUnconfirmedHideNeverPublishesTheDepartingLayout() passed after 3.851 seconds.
+✔ Test focusCannotTakeOwnershipOfUserGeometry() passed after 3.852 seconds.
+✔ Test reselectingAWorksetCannotAcknowledgeAnExternallyChangedDirectory() passed after 3.884 seconds.
+✔ Test lossOfAnIndividualWindowLeaseStopsEvenWhenItsGeometryIsUnchanged() passed after 3.894 seconds.
+✔ Test changedDisplayOfFocusCannotPassTheBackendStartReadback() passed after 3.898 seconds.
+✔ Test dockFreshnessBoundsTheWholePhysicalReadAndDeliveryInterval() passed after 3.909 seconds.
+✔ Test queuedDockReadUsesActualObservationAgeWithoutExtendingFreshness() passed after 3.909 seconds.
+✔ Suite IndependentStageDockFreshnessTests passed after 3.910 seconds.
+✔ Test withdrawnHidePreservesEarlierIntentsAndTheUsersFocus(_:) with 2 test cases passed after 3.959 seconds.
+✔ Test changedDurableTransactionCannotBeClearedByAnOtherwiseValidWithdrawal() passed after 4.040 seconds.
+✔ Test newInputDuringCoordinatedHealthStopsBeforeAnyWindowWrite() passed after 4.046 seconds.
+✔ Test externalFocusIsReadOnlyAndPermissionLossDoesNotDisqualifyTheBackend() passed after 4.054 seconds.
+✔ Test newerCardDuringReadOnlyHealthYieldsOnlyAnUnchangedRoster(_:) with 2 test cases passed after 4.072 seconds.
+✔ Test withdrawalRetainsExistingOwnershipAndTheEarlierConfirmedShow() passed after 4.080 seconds.
+✔ Test aNewerGroupCanReuseOnlyIndependentlySettledWork(_:) with 2 test cases passed after 4.185 seconds.
+✔ Test lostHideTransportMayWithdrawOnlyBeforeRustTakesTheTicket(_:) with 2 test cases passed after 4.189 seconds.
+✔ Test aBystanderChangeDuringHandoffRetainsTheSealedLease() passed after 4.190 seconds.
+✔ Test aQueuedClickCannotDischargeAnUnknownHide() passed after 4.190 seconds.
+✔ Test takeoverDuringOldWorkerShutdownVetoesAlreadyRequestedReplacement() passed after 4.191 seconds.
+✔ Test coordinatedPreflightCannotWriteAfterItsBaselineChanges(_:) with 6 test cases passed after 4.191 seconds.
+✔ Test aMenuOpenedForAnOlderRosterCannotEditTheNewPartition() passed after 4.206 seconds.
+✔ Test returnedInactiveGroupJoinsCurrentGroupAcrossApplicationsAndKeepsItsExactWindows() passed after 4.206 seconds.
+✔ Test staleUnselectedSiblingRejectsTheWholeEditBeforeTheFirstDirectoryWrite() passed after 4.205 seconds.
+✔ Test detachingOneOfTwoSameAppWindowsSelectsTheNewSingletonWithoutMovingItsSibling() passed after 4.205 seconds.
+✔ Test anUnavailableGroupClickKeepsTheWorkSetAndOnlyAnExplicitMemberMayFocus() passed after 4.205 seconds.
+✔ Test aMissingOrChangedDesktopCannotAuthorizeContinuationOrRecoveryOnAnotherDesktop() passed after 4.205 seconds.
+✔ Test focusOnAnotherDisplayNeedsTwoInventoriesAndIndependentVisibleFocus() passed after 4.205 seconds.
+✔ Test coveredSiblingsAndClassifiedStageWindowsStayInTheSameDesk() passed after 4.206 seconds.
+✔ Test bothWritersContendForSameFileLeaseButSiblingIsIndependent() passed after 4.205 seconds.
+✔ Test pendingLayoutExcludesItsExactWindowsAndStillProtectsUpdate() passed after 4.205 seconds.
+✔ Test theIndependentRawRosterRequiresUniqueCurrentKeysAndAKnownRole() passed after 4.205 seconds.
+✔ Test hiddenRequiresSpecificConfirmedWorkerAndIndependentGeometryOrMembership() passed after 4.205 seconds.
+✔ Test unreadableOwnershipCannotAuthorizeAWindow() passed after 4.206 seconds.
+✔ Suite IndependentStageGroupEditingTests passed after 4.208 seconds.
+✔ Test geometryPermitIsBoundToItsExactCommandAndNeverGrantsReadbackOrOrdinaryWrite() passed after 4.206 seconds.
+✔ Test firstCompositorFrameAfterDepartureBecomesHistoryWithoutAnEarlierDraw() passed after 4.205 seconds.
+✔ Test noPreferenceOrForgedSidecarCanReplacePinnedPhysicalSignerAndEvidenceID() passed after 4.206 seconds.
+✔ Test pendingFirstFrameRejectsChangedLifetimeStreamAndRevokedOriginal() passed after 4.205 seconds.
+✔ Test historicalWorksetContainsOnlyIndependentlyVisibleMembers() passed after 4.205 seconds.
+✔ Test heldPixelsOutliveTheCaptureButRejectReusedIdentityWrongSpaceAndLostPermission() passed after 4.205 seconds.
+✔ Test independentGeometryAndFrontOrderMustAgreeBeforeSaving() passed after 4.205 seconds.
+✔ Test selectedHistoricalWindowMustStillBeTheSameParkedIncarnationOnTheSameDesktop() passed after 4.205 seconds.
+✔ Test alreadyDisplayedOrdinaryGroupCanKeepPixelsWithoutAnyWindowEngineOrNewCapture() passed after 4.206 seconds.
+✔ Test historicalClicksUseWindowStackingAndNeverFallThroughAMissingFrontImage() passed after 4.205 seconds.
+✔ Test coveredDisplayRetainsBothGroupMembersWhileOnlyTheirHomeDesktopCanDrawThem() passed after 4.205 seconds.
+✔ Test exactHistoricalSelectionAcceptsOnlyTheOriginalWindowInAnIndependentHiddenSpace() passed after 4.205 seconds.
+✔ Suite DesktopGalleryTargetTests passed after 4.209 seconds.
+✔ Suite StageWindowOwnershipTests passed after 4.209 seconds.
+✔ Test productionGroupPictureRendersTheTwoStoredMembersInTheirActualOverlappingSlots() passed after 4.205 seconds.
+✔ Test overlappingMembersRemainSelectableByIdentityUntilRemovedFromTheirGroup() passed after 4.208 seconds.
+✔ Suite StageGroupHistoryPictureTests passed after 4.210 seconds.
+✔ Test ordinaryCardPointerDistinguishesClickDropAndCancelledTargetsWithoutOrderingAWindow() passed after 4.205 seconds.
+✔ Test incompleteOrChangedWitnessNeverRebindsAReusedWindowNumber() passed after 4.206 seconds.
+✔ Test restoredOriginalKeepsItsGroupWithoutRevalidatingOldInput() passed after 4.205 seconds.
+✔ Test internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch() passed after 4.205 seconds.
+✔ Test revocationCancelsOnlyFutureGestureSteps() passed after 4.205 seconds.
+✔ Test lateFocusWriteNeedsFreshIntentAndTheOriginalLifetime() passed after 4.205 seconds.
+✔ Test aReturningCardUsesTheIdenticalBitmapUntilItsOwnContentChanges() passed after 4.206 seconds.
+✔ Test interveningQueuedMoveCannotResurrectAnOlderStageSelection() passed after 4.206 seconds.
+✔ Test draggingALiveMemberOutDetachesOnlyOnReleaseInTheSameWorkspace() passed after 4.205 seconds.
+✔ Test emptyOrdinaryFullscreenAndUnreadSpacesProduceNoSidebarEntries() passed after 4.206 seconds.
+✔ Suite StageGroupWindowLifetimesTests passed after 4.211 seconds.
+✔ Test overlappingLiveMembersDragAndSelectOnlyTheFrontWindowInOneGroupSnapshot() passed after 4.205 seconds.
+✔ Test externalActivationRetiresOnlyThePendingCrossSpaceFocus() passed after 4.204 seconds.
+✔ Test newerChoiceSuppressesOldPostSwitchFocusAndCoalescesIntermediateIntent() passed after 4.205 seconds.
+✔ Test anAbsentProfileUnderTheSameRealDirectoryAcceptsAPathAlias() passed after 4.204 seconds.
+✔ Test groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation() passed after 4.205 seconds.
+✔ Test subsequentSelectionCannotDiscardQueuedMove() passed after 4.205 seconds.
+✔ Test gestureSurvivesUnrelatedRefreshButNotReplacedOwnerSpaceOrTopology() passed after 4.205 seconds.
+✔ Test aRealProfileOutsideTheOutputDoesNotPassBecauseItsAliasIsInside() passed after 4.205 seconds.
+✔ Test animatedInventoryInvalidationKeepsTheExplicitWallpaperPause() passed after 4.204 seconds.
+✔ Test wallpaperWaitsForANewOrdinaryReadWithoutHandingBackHiddenGroups() passed after 4.204 seconds.
+✔ Test realSystemTakeoverOverridesWallpaperEvenWhenDispatchWasAlreadyDisabled() passed after 4.205 seconds.
+✔ Test onlyConfirmedWindowsAppearOnceAndDisappearWhenTheyClose() passed after 4.205 seconds.
+✔ Suite IndependentStageConfigurationTests passed after 4.211 seconds.
+✔ Suite IndependentStageWallpaperTests passed after 4.212 seconds.
+✔ Test ordinaryHelperKeepsTheExistingAlphaParentRule() passed after 4.206 seconds.
+✔ Test hostNeedsTheCanonicalKernelExecutableAndTheApprovedSigningDigest() passed after 4.206 seconds.
+✔ Test ordinaryHelperRecognizesOnlyTheSealedCandidatesSingleModeAndExactExecutables() passed after 4.206 seconds.
+✔ Test aStageLayoutOrFocusRequiresTheOriginalOwnerWindowLifetimeAndOrdinarySpace() passed after 4.206 seconds.
+✔ Test legacyWorkerRejectsStageOperationsBeforeReadingAnOwnerOrPrompting() passed after 4.206 seconds.
+✔ Test physicalInputRevocationDeadlineAndPrimitiveLimitEachEndTheIntent() passed after 4.206 seconds.
+✔ Test inactiveOrdinaryRecordWithoutUUIDPreservesOrderButCannotBecomeTheFocusDesktop() passed after 4.209 seconds.
+✔ Test unknownAfterIssuedIsDurableAndNeverReplayed() passed after 4.209 seconds.
+✔ Suite StageHostWindowAccessTests passed after 4.217 seconds.
+✔ Test coldStartupReleasesOnlyADischargedDeadOwnerWithoutWindowWrites() passed after 4.209 seconds.
+✔ Test enrolledUserMinimizedSiblingKeepsItsStateAndLayoutDuringOtherWorksetSwitches() passed after 4.210 seconds.
+✔ Test userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_:) with 2 test cases passed after 4.212 seconds.
+✔ Test coldSpacesReadPlanIncludesUncertainMinimizeAndCannotClearAChangedJournal() passed after 4.212 seconds.
+✔ Test recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_:) with 4 test cases passed after 4.213 seconds.
+✔ Test queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_:takeover:) with 4 test cases passed after 4.237 seconds.
+✔ Test withdrawnActivityOrConcurrentDirectoryEditCannotCommitAnEarlierEvent() passed after 4.237 seconds.
+✔ Test coldSpacesOwnerWithAnEmptyWindowWALStillNeedsCompletedWorkerAndPhysicalProof() passed after 4.237 seconds.
+✔ Test confirmedNewWindowGetsItsOwnGroupAndNoInheritedAuthority() passed after 4.237 seconds.
+✔ Test latePhysicalChangeProtectsBystandersAndTheLastVerifiedGroup() passed after 4.238 seconds.
+✔ Test initialWindowsAndExplicitlyDetachedMembersAreNeverReclaimed() passed after 4.238 seconds.
+✔ Test anyChangeInScopeFocusOriginOrTheRestOfTheRosterWithholdsTheMetadataWrite() passed after 4.238 seconds.
+✔ Test threeGroupsRequireConsentFocusOwnershipAndFullReadback() passed after 4.306 seconds.
+✔ Test unknownSystemOwnershipIsDistinctFromReadableFactoryDefault() passed after 4.305 seconds.
+✔ Test oneSelectedMemberMovesAndTheOtherScreenKeepsItsGroup() passed after 4.305 seconds.
+✔ Test duplicateOrMissingReadbackCannotPublishAGroupOrDeleteASlot() passed after 4.303 seconds.
+✔ Test isolatedSingleWindowProofNeverEnablesShippingAndMissingEvidenceNeverAdmitsAGroup() passed after 4.305 seconds.
+✔ Test diskWriteFailureNeverPublishesGroupOrBinding() passed after 4.303 seconds.
+✔ Test withdrawalAfterLostReadDoesNotInventAUserFocusForPreviousEffects() passed after 4.304 seconds.
+✔ Suite StageGroupCoordinatorTests passed after 4.316 seconds.
+✔ Test explicitReassignmentAfterPhysicalMoveKeepsOnlyOneSlot() passed after 4.304 seconds.
+✔ Test v1MigrationKeepsOriginalAndDoesNotGuessSpaceOrFocus() passed after 4.304 seconds.
+✔ Test reopenAndReusedNumberNeedExplicitBindingAndKeepLayout() passed after 4.304 seconds.
+✔ Test currentScopeRebindRejectsAChangedPartitionWithoutBindingAnyMember() passed after 4.304 seconds.
+✔ Test missingWorkerOrGuardianAcknowledgementRetainsTheMayHaveIssuedEntry(_:) with 2 test cases passed after 4.304 seconds.
+✔ Test unhealthyBackendYieldsOnlyAfterRecoveryAndPositiveClose() passed after 4.306 seconds.
+✔ Test namesSurviveReopenAndGroupingWithoutChangingScopeLayoutOrMembership() passed after 4.306 seconds.
+✔ Test currentScopeRebindIsAtomicAndPreservesWhollyAbsentHistory() passed after 4.306 seconds.
+✔ Test unsupportedCorruptOrExternallyChangedDirectoryPreservesOriginalBytes() passed after 4.306 seconds.
+✔ Test lateGuardianReleaseUsesTheSameIntentWithoutRestoringTheWindowAgain(userMoved:) with 2 test cases passed after 4.311 seconds.
+✔ Test uncertainStartupRetainsOriginalWorkerUntilItCanClose() passed after 4.312 seconds.
+✔ Test confirmedDepartureRemovesOnlyTheBoundUnownedMember() passed after 4.312 seconds.
+✔ Test scopesSurviveIndependentDesktopSelectionAndNativeMoves() passed after 4.312 seconds.
+✔ Test productSelectsOnlySpacesAndNeverFallsBackToCorner() passed after 4.312 seconds.
+✔ Test obstructionAfterLastHideCannotCommitActivityAndRecoveryKeepsTheReviewedBackend(focusChanged:) with 2 test cases passed after 4.313 seconds.
+✔ Test confirmedTakeoverReleasesOnlyAfterTheOriginalRosterReturns(_:) with 2 test cases passed after 4.314 seconds.
+✔ Test lostPrepareReplyAndUnknownSubmittedHideCannotBeWithdrawn() passed after 4.314 seconds.
+✔ Test ownWindowAndCandidateProvenanceDoNotCreateReleaseQualification() passed after 4.314 seconds.
+✔ Test failedRetirementReturnsOnlyTheMeasuredWindow(_:) with 4 test cases passed after 4.315 seconds.
+✔ Test guardianConfirmationFailureBlocksReplacementAndNeverRepeatsTheRustHide() passed after 4.315 seconds.
+✔ Test incompleteWorkerReadAfterConfirmedRestoresKeepsDurableOwnerAcrossRestart() passed after 4.316 seconds.
+✔ Test relativeFramesUseDisplayLocalUsableOrigin() passed after 4.315 seconds.
+✔ Test actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt() passed after 4.329 seconds.
+✔ Test changedLifetimeOrExternalGeometryNeverUsedForRestoration() passed after 4.316 seconds.
+✔ Suite StageGroupStoreTests passed after 4.331 seconds.
+✔ Test coldCaptureConstructionAllowsTheInputActorToProgress() passed after 4.325 seconds.
+✔ Suite StageHostCaptureSchedulingTests passed after 4.332 seconds.
+✔ Test aSlowWindowNumberHintDoesNotBlockTheInputActor() passed after 4.329 seconds.
+✔ Test oneUnknownRustWriteBlocksReplacementButOtherConfirmedWindowsCanReturn() passed after 4.321 seconds.
+✔ Test foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard() passed after 4.331 seconds.
+✔ Test windowOwnerKeepsMetadataReaderAliveAfterSidebarHides() passed after 4.330 seconds.
+✔ Suite StageWindowEngineWitnessTests passed after 4.334 seconds.
+✔ Suite StageWindowEngineTests passed after 4.333 seconds.
+✔ Test thumbnailDispatchWaitCanBeCancelledWithoutWaitingForTheWindowAction() passed after 4.341 seconds.
+✔ Test thumbnailDispatchWaitDoesNotRenewAnExpiredFirstFrameOrRetiredCapture() passed after 4.347 seconds.
+✔ Test eachGestureRequiresTheOriginalAXElementEvenIfTheNumericIDIsReused() passed after 4.348 seconds.
+✔ Test aStoppedDetectorCannotPublishItsDelayedHint() passed after 4.352 seconds.
+✔ Suite StageHostObservationSchedulingTests passed after 4.355 seconds.
+✔ Test freshReadbackCannotExtendAnExistingOwnerToAnyNewOrReopenedWindow() passed after 4.345 seconds.
+✔ Suite StageWindowArrivalTests passed after 4.355 seconds.
+✔ Test aSpaceNotificationRetainsOnlyPresentationUntilTheNextConfirmedRoster() passed after 4.351 seconds.
+✔ Test aCurrentClickRebindsEveryLiveGroupOnlyAfterTwoUnchangedPhysicalReads(change:) with 3 test cases passed after 4.361 seconds.
+✔ Suite StageHostGroupProjectionTests passed after 4.363 seconds.
+✔ Test cappedInventoryKeepsTheReadOnlyCardOnlyOnItsVerifiedDesktop(changedHome:) with 2 test cases passed after 4.359 seconds.
+✔ Suite DesktopPreviewContinuityTests passed after 4.364 seconds.
+✔ Test thumbnailAdmissionWaitsForEveryQueuedWindowActionThenReadsPermissionAgain() passed after 4.484 seconds.
+✔ Suite NativeSidebarNavigationTests passed after 4.489 seconds.
+✔ Test run with 209 tests in 31 suites passed after 4.490 seconds.

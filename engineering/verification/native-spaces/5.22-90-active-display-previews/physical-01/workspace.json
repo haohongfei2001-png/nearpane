@@ -1,0 +1,54 @@
+{
+  "status": "BLOCKED",
+  "preflightOnly": false,
+  "ordinaryDesktopsRequested": 2,
+  "preview": {
+    "status": "NOT_RUN"
+  },
+  "splitView": {
+    "status": "NOT_RUN"
+  },
+  "media": {
+    "status": "NOT_RUN"
+  },
+  "stageSetup": {
+    "status": "NOT_RUN"
+  },
+  "stageRestore": {
+    "status": "NOT_RUN"
+  },
+  "workspaceCleanup": {
+    "status": "BLOCKED",
+    "topologyRestored": true,
+    "focusRestored": false,
+    "originalCurrent": 6,
+    "cleanupCurrent": 6,
+    "originalOrderRestored": true,
+    "preservedLatestOrder": true,
+    "retainedUserSelectedSpace": false,
+    "created": 1,
+    "removed": 1,
+    "outstanding": [],
+    "errors": []
+  },
+  "stageBaseline": [
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 259457.8630765417
+    },
+    {
+      "ax": true,
+      "existingSettingsInstance": false,
+      "screen": true,
+      "state": true,
+      "uid": 501,
+      "uptime": 259458.09886891668
+    }
+  ],
+  "leasedSpace": 5081,
+  "reason": "select: no independently hit-tested system desktop tile point"
+}

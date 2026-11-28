@@ -1,0 +1,13 @@
+{
+  "acceptedReceiptEpoch" : 2,
+  "closed" : true,
+  "expected" : "stale request rejected before admission",
+  "initialEpoch" : 1,
+  "intentMatched" : true,
+  "observation" : "same intent accepted on refreshed epoch",
+  "owned" : 0,
+  "physicalWrites" : 0,
+  "resultStatus" : 3,
+  "revokedEpoch" : 2,
+  "subject" : "609469a public Swift actor and C ABI with the unqualified ordinary handle"
+}

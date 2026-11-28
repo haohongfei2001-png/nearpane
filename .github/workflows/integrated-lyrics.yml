@@ -1,0 +1,126 @@
+name: Nearpane unified workbench
+on:
+  push:
+    branches: [main, pro/r4-integrated-lyrics-20261128]
+    paths-ignore: ['**/*.md', 'docs/verification/**', 'website/**', '.github/workflows/publish-nearpane-website.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: integrated-lyrics-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+jobs:
+  host:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Identify the native toolchain
+        id: toolchain
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, subprocess
+          tools = subprocess.check_output(['xcrun', 'swift', '--version']) + subprocess.check_output(['xcode-select', '-p'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('fingerprint=' + hashlib.sha256(tools).hexdigest()[:16] + '\n')
+          PY
+      - name: Restore verified dependency and native build caches
+        id: native-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-
+      - name: Test Host, module lifecycle and existing integration
+        id: host-tests
+        env:
+          NEARPANE_ROSTER_SAMPLE_DIR: ${{ github.workspace }}/build/unified-workbench-evidence/current-render-samples
+        run: |
+          mkdir -p "$NEARPANE_ROSTER_SAMPLE_DIR"
+          set -o pipefail
+          bash scripts/test.sh --no-parallel 2>&1 | tee build/unified-workbench-evidence/swift-tests.log
+      - name: Preserve test diagnostics before packaging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: Nearpane-workbench-test-diagnostics
+          path: |
+            build/unified-workbench-evidence/swift-tests.log
+            build/unified-workbench-evidence/current-render-samples
+          if-no-files-found: warn
+      - name: Compile and package integrated Nearpane
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          bash scripts/build-app.sh debug 2>&1 | tee build/unified-workbench-evidence/build.log
+          python3 -B scripts/verify-packages.py build/debug/Nearpane.app 2>&1 | tee build/unified-workbench-evidence/package-verification.log
+      - name: Exercise and capture the native main window and sidebar
+        if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
+        run: python3 -B scripts/acceptance/unified-workbench/run.py build/debug/Nearpane.app
+      - name: Preserve native diagnostics immediately after UI acceptance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() && hashFiles('build/unified-workbench-evidence/runner-receipt.json') != '' }}
+        with:
+          name: Nearpane-workbench-native-diagnostics
+          path: |
+            build/unified-workbench-evidence/native
+            build/unified-workbench-evidence/native-workbench.log
+            build/unified-workbench-evidence/runner-receipt.json
+          if-no-files-found: warn
+      - name: Archive Host candidate
+        if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
+        run: ditto -c -k --keepParent build/debug/Nearpane.app Nearpane-unified-workbench-candidate.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() && hashFiles('Nearpane-unified-workbench-candidate.zip') != '' }}
+        with:
+          name: Nearpane-unified-workbench-candidate
+          path: Nearpane-unified-workbench-candidate.zip
+          if-no-files-found: error
+      - name: Probe real Apple Music pause, resume and exit when available
+        if: ${{ !cancelled() && hashFiles('build/unified-workbench-evidence/runner-receipt.json') != '' }}
+        run: python3 -B scripts/acceptance/unified-workbench/native_player.py
+      - name: Preserve real-player diagnostics
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() && hashFiles('build/unified-workbench-evidence/real-player/runner-player-receipt.json') != '' }}
+        with:
+          name: Nearpane-workbench-real-player-diagnostics
+          path: build/unified-workbench-evidence/real-player
+          if-no-files-found: error
+      - name: Preserve incremental compilation even when an acceptance check fails
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        if: ${{ !cancelled() && steps.native-cache.outputs.cache-hit != 'true' }}
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - name: Compare existing Spaces tests with the original PR 16 baseline
+        if: ${{ !cancelled() && steps.host-tests.outcome == 'failure' }}
+        run: |
+          python3 -B - <<'PY'
+          import pathlib, re, subprocess
+          log = pathlib.Path('build/unified-workbench-evidence/swift-tests.log').read_text(errors='replace')
+          if re.search(r'Suite (SpaceInventoryTests|DesktopRosterPresentationTests) failed', log):
+              subprocess.run(['python3', '-B', 'scripts/acceptance/unified-workbench/baseline.py'], check=True)
+          else:
+              print('No failure in the two baseline-comparison suites; retain the recorded unmodified-baseline evidence. The current test failure still fails this job.')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Nearpane-unified-workbench-evidence
+          path: build/unified-workbench-evidence
+          if-no-files-found: warn

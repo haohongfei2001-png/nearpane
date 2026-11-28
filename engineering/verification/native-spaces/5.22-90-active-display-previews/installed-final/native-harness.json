@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "checkout": "5a972a8",
+  "command": "python3 -B -m unittest discover -s scripts/acceptance/native-spaces -p 'test_*.py'",
+  "ran": 184,
+  "passed": 178,
+  "failed": 0,
+  "skipped": 6
+}

@@ -1,0 +1,100 @@
+name: StageGroup window engine
+on:
+  workflow_dispatch:
+    inputs:
+      hosted_preflight:
+        description: 'Also collect two read-only desktop identity observations on a disposable hosted Mac'
+        type: boolean
+        required: false
+        default: false
+  push:
+    branches: [codex/r4-native-candidate-20261120]
+    paths:
+      - '.github/workflows/window-engine.yml'
+      - 'Engine/nearpane-window-engine/**'
+      - 'scripts/acceptance/window-engine/**'
+      - 'scripts/acceptance/native-spaces/private-installed-trials.py'
+      - 'scripts/acceptance/native-spaces/test_private_installed_trials.py'
+      - 'scripts/build-window-engine.sh'
+      - 'scripts/build-paths.sh'
+      - 'scripts/test.sh'
+      - 'Package.swift'
+      - 'Sources/NearpaneWindowEngine/**'
+      - 'Sources/NearpaneOrdinaryWindowController/**'
+      - 'Sources/**/Stage*.swift'
+      - 'Sources/**/Apple*Stage*.swift'
+      - 'Sources/NearpaneUI/DesktopSurface.swift'
+      - 'Sources/NearpaneHost/NearpaneApp.swift'
+      - 'Sources/NearpaneHost/InstalledSpacesFixtureCycle.swift'
+      - 'Sources/NearpaneUI/DesktopWindowSelection.swift'
+      - 'Sources/NearpaneUI/CandidateWorkRect.swift'
+      - 'Sources/NearpaneUI/OrdinaryWindowManager*.swift'
+      - 'Sources/NearpaneUI/DisplayPanels.swift'
+      - 'Tests/NearpaneWindowEngineTests/**'
+      - 'Tests/**/Stage*Tests.swift'
+      - 'Tests/**/Apple*Stage*Tests.swift'
+permissions:
+  contents: read
+concurrency:
+  group: window-engine-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+jobs:
+  source:
+    name: Rust, Swift and production C ABI
+    runs-on: xcode-27
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Run the engine and its language bindings
+        run: python3 -B scripts/acceptance/window-engine/ci/source-tests.py "$RUNNER_TEMP/window-engine-source"
+      - name: Exercise one Corner fixture on the disposable WindowServer
+        if: github.event_name == 'push' && contains(github.event.head_commit.message, '[corner-single]')
+        run: |
+          bash scripts/acceptance/window-engine/corner/run-hosted.sh "$RUNNER_TEMP/window-engine-corner" --single-window
+          cat "$RUNNER_TEMP/window-engine-corner/result.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve the independent Corner receipt
+        if: always() && github.event_name == 'push' && contains(github.event.head_commit.message, '[corner-single]')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: window-engine-corner-single
+          path: ${{ runner.temp }}/window-engine-corner/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Preserve each build and test result
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: window-engine-source
+          path: ${{ runner.temp }}/window-engine-source/
+          if-no-files-found: error
+          retention-days: 14
+
+  hosted-scope:
+    name: Read-only hosted desktop preflight
+    needs: source
+    # The Draft branch can request one observation on the same source-test push, before this workflow exists on main.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.hosted_preflight) ||
+      (github.event_name == 'push' && endsWith(github.event.head_commit.message, '[window-engine-hosted-scope]'))
+    runs-on: xcode-27
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Observe the runner's current ordinary desktop
+        env:
+          NP_HOSTED_SCOPE_ONLY: '1'
+        run: |
+          set -o pipefail
+          python3 -B scripts/acceptance/window-engine/ci/hosted_scope.py "$RUNNER_TEMP/window-engine-hosted-scope" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Preserve the independent environment observation
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: window-engine-hosted-scope
+          path: ${{ runner.temp }}/window-engine-hosted-scope/
+          if-no-files-found: error
+          retention-days: 14

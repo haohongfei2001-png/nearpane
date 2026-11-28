@@ -1,0 +1,79 @@
+{
+  "product": "Nearpane 5.22 development branch",
+  "applicationSourceRevision": "d7ce52d7d7cb9798d78f8c293f3b2ea7b098b2c8",
+  "verificationRevision": "e19808bcdcdb4dccd9e82d01bd967faf4d77f39c",
+  "runURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44919772760",
+  "scope": "production settings adapter and click observer in a disposable signed-window fixture; independent desktop pixels",
+  "hosted": {
+    "26": {
+      "systemBuild": "25G332",
+      "desktopFiles": "PASS",
+      "returnVia": "physicalClickOnEnrolledDockIcon",
+      "otherNativeOptions": "PASS",
+      "desktopRestored": true,
+      "testFileRemoved": true,
+      "recording": {
+        "status": "PASS",
+        "seconds": 20.645,
+        "inspectorSeconds": 20.844994999999983,
+        "bytes": 1034934
+      },
+      "receipt": "44919772760/macos-26/desktop-items.json",
+      "evidenceSHA256": {
+        "desktop-items.json": "5f5b9b2a62a0543c0482eb88b4ac808ac3c63568809c1d7a6d8d7366b18405ae",
+        "desktop-items.mp4": "9fed351515d7bee3ed551e8602de317abed0ae1ea3f923f902f85eed4488c111",
+        "desktop-items-baselineVisible.png": "67b4c84d8986087b7d3e1af9012d2c74a5053d41a600dfe01b88aaadc30e91a4",
+        "desktop-items-ordinaryWindowClickHidden.png": "653b7bfd964036a45966d33115e7d8f768566cb3de2f5b1d3de578832bbbcd61",
+        "desktop-items-blankWallpaperRevealed.png": "239b39f612c2bc517262fef7e5a6c78d93afacca4d38917ade7f101150b579d2",
+        "desktop-items-returnedToApplicationHidden.png": "653b7bfd964036a45966d33115e7d8f768566cb3de2f5b1d3de578832bbbcd61",
+        "wallpaper.json": "711c8d2db40447cb75562303faf940f69e5dea545769fb66f1c54f0b16f85d9e"
+      }
+    },
+    "27": {
+      "systemBuild": "26A434",
+      "desktopFiles": "PASS",
+      "returnVia": "physicalClickOnEnrolledDockIcon",
+      "otherNativeOptions": "PASS",
+      "desktopRestored": true,
+      "testFileRemoved": true,
+      "recording": {
+        "status": "UNKNOWN",
+        "seconds": 23.191666666666666,
+        "inspectorSeconds": 23.17705216600001,
+        "bytes": 1025684
+      },
+      "receipt": "44919772760/macos-27/desktop-items.json",
+      "evidenceSHA256": {
+        "desktop-items.json": "cd786a1d4d32aa4fff1df06df35ff29244c4323b85b855ba1948e3c7573cdb9f",
+        "desktop-items.mp4": "e0c7a02fd97eec6438c291c716ded45e766e88f624e91fa2820f0b76ea431cf4",
+        "desktop-items-baselineVisible.png": "75d1b4db54769efc3e5b52d7bf3d84cdd659a4e02fdb2fbae3a674a4989e376e",
+        "desktop-items-ordinaryWindowClickHidden.png": "ed9231a62343f235c36b0c9da2e3fe155fb9d380377245bcd3f4e31e61857536",
+        "desktop-items-blankWallpaperRevealed.png": "1692faed9970a6e31ceecc234dde6efa006cbaff6bcf6cd6688c4640436de63d",
+        "desktop-items-returnedToApplicationHidden.png": "ed9231a62343f235c36b0c9da2e3fe155fb9d380377245bcd3f4e31e61857536"
+      }
+    }
+  },
+  "physicalMac": {
+    "macOS": "27.0",
+    "build": "26A428",
+    "SIP": "enabled",
+    "swift": {
+      "passed": 745,
+      "skipped": 3,
+      "failed": 0,
+      "errors": 0,
+      "receipt": "swift-regression.xml"
+    },
+    "developmentBuild": "development-build.json",
+    "installedHost": "NOT_RUN",
+    "dailyInstallationReplaced": false
+  },
+  "ci": {
+    "workflow": "Nearpane native 5.22 protocol",
+    "conclusion": "success",
+    "jobs": {
+      "Desktop files on macOS 27": "success",
+      "protocol": "success"
+    }
+  }
+}

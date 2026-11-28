@@ -1,0 +1,37 @@
+{
+  "status": "FAIL",
+  "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "expectedNumbers": [
+    53268,
+    53269
+  ],
+  "confirmedFirstMarkerWithUnchangedSibling": true,
+  "secondPIDTargetedMarkerIssued": {
+    "axFocusedWindow": 53269,
+    "issued": true,
+    "targetedOnly": true
+  },
+  "confirmedSecondMarkerWithUnchangedSibling": false,
+  "lastOwnedFixtureRead": {
+    "pid": 24330,
+    "birth": 1795199795695881,
+    "numbers": [
+      53268,
+      53269
+    ],
+    "key": 53269,
+    "main": 53269,
+    "visible": [
+      true,
+      true
+    ],
+    "sha256": [
+      "a812ece5c61c22b1e97fea8e16243a130129ba09bdf22724013ae19a96d0b6d9",
+      "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    ]
+  },
+  "bothDocumentDigestsAfterSecondMatchedFirstRound": true,
+  "secondDocumentEmpty": true,
+  "reasonForNoSecondText": "UNKNOWN",
+  "originalScopedFixturesEnded": true
+}

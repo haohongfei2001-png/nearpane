@@ -1,0 +1,116 @@
+[
+  {
+    "local": "src/corner/LICENSE-MIT",
+    "upstream": "LICENSE",
+    "blob": "afcd9230ee12e85e3ffd84bfefd79261e08db939",
+    "modifications": "Unmodified complete MIT notice."
+  },
+  {
+    "local": "src/corner/geometry.rs",
+    "upstream": "src/engine/geometry.rs",
+    "blob": "b57315e9fdb150608f24fd75f5243615c91fc6f7",
+    "modifications": "Use SDK-compatible rectangle layout and remove product serialization. Keep the pinned coordinate arithmetic and tests."
+  },
+  {
+    "local": "src/corner/park.rs",
+    "upstream": "src/engine/corner/park.rs",
+    "blob": "20c842738c7657738287918a67859562a9eceb98",
+    "modifications": "Port four-corner choice, requests, clamp, visible frame checks, and regression cases to local geometry without serde."
+  },
+  {
+    "local": "src/corner/park.rs",
+    "upstream": "src/engine/displays.rs",
+    "blob": "488de66f6aef1402e3ed0938df5df68c2db562f4",
+    "modifications": "Use projected display-area comparison in the placement tests."
+  },
+  {
+    "local": "src/corner/sliver.rs",
+    "upstream": "src/engine/corner/sliver.rs",
+    "blob": "ac7f4ab1ac1982a0ebd5c4b125c2915fa015cd2e",
+    "modifications": "Port zone filtering, front-to-back hit testing, resize margins, Dock geometry and per-button PressGate. Use the local geometry module."
+  },
+  {
+    "local": "src/corner/sliver.rs",
+    "upstream": "src/engine/overview.rs",
+    "blob": "e5cc63b6f92c627f5f35001192b3f67e091b73f6",
+    "modifications": "Use the pinned Dock layer constant."
+  },
+  {
+    "local": "src/corner/patch.rs",
+    "upstream": "src/engine/corner/corner_patch.rs",
+    "blob": "3da8c0d53a8809c99a153ecd00bbc50c221ce111",
+    "modifications": "Extract clipped shadow bounds, rectangle stability and relative ordering. Share checked single and multiple member plans with the AppKit sheet and its independent observer."
+  },
+  {
+    "local": "src/corner/patch_sheet.m",
+    "upstream": "src/ui/corner_patch.rs",
+    "blob": "ca8cfc370677549227fa57d3dc8c96675a581edb",
+    "modifications": "Adapt the per-display nonactivating click-through sheet, wallpaper crop and ordering to AppKit. Restack a visible sheet in place when the topmost parked member changes. Verify its new order and live wallpaper. Withdraw stale publications. A confirmed obstruction or changed verified picture revokes the input generation."
+  },
+  {
+    "local": "src/corner/patch_material.inc",
+    "upstream": "src/platform/capture.rs",
+    "blob": "07d9acb5dfef2cbb1a5a29e5c99510085134aa3a",
+    "modifications": "Adapt the positive display-window filter, native pixel scale, clear background and crop. Admit only the Apple-signed wallpaper surface of the current ordinary desktop, check every alpha and hold only the scoped corner image in executor memory."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/platform/controller/corner/patch.rs",
+    "blob": "bfc1164d02f31e89fcfe25b69ab7038daeec7177",
+    "modifications": "Bind per-display patches to the worker's retained members. Require a fresh AppKit and WindowServer layer observation of the same member and footprint as well as a healthy input shield before returning hidden."
+  },
+  {
+    "local": "src/corner/tap.rs",
+    "upstream": "src/platform/corner/sliver_tap.rs",
+    "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
+    "modifications": "Use a session-owned tap with immutable observations. Preserve a bystander's entire gesture when its window number or the only available target PID contradicts the leased window identified by the resize band. Yield on a confirmed stationary member outside its expected zone. Protect corroborated existing recipients during recovery."
+  },
+  {
+    "local": "src/corner/tap.rs",
+    "upstream": "src/platform/tap_switch.rs",
+    "blob": "f78f57fd77470c678a5806f22ae9126320c91bfa",
+    "modifications": "Retain a swallowed gesture through its release when the shield stands down. Hand immutable observations to the event run loop through a bounded channel and require its acknowledgement before allowing a position change."
+  },
+  {
+    "local": "src/corner/macos.m",
+    "upstream": "src/platform/corner/sliver_tap.rs",
+    "blob": "014bbe0804fe25929acb5dc652154a175de9b548",
+    "modifications": "Translate session-head event tap creation and its bounded CFRunLoop to the Apple SDK types. Read button, recipient window and owner fields without retaining events. Refuse position writes while a button is held and check the four Host grants immediately before a park."
+  },
+  {
+    "local": "src/corner/macos.m",
+    "upstream": "src/platform/windows.rs",
+    "blob": "c993e2811b9e66e547f13ce69c6a3e7012d79f23",
+    "modifications": "Read front-to-back numeric CoreGraphics bounds, layers, alpha, IDs and owner PIDs only."
+  },
+  {
+    "local": "src/corner/macos.m",
+    "upstream": "src/platform/ax.rs",
+    "blob": "da387aa406dd1c204007e55866f77fd258645f54",
+    "modifications": "Reacquire exact AX objects, read normal-window dimensions and bound a single AX position write. Add live birth, retained-object and bilateral Space checks."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/platform/corner/engine.rs",
+    "blob": "4e7f06383d10c160597cd87d918beca9833bcef2",
+    "modifications": "Use position-only parking with independent AX, owner and WindowServer readback. Refuse speculative writes, reserve live ownership before a side effect."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/engine/corner/park_reconcile.rs",
+    "blob": "c928a1e3ee205c78abb364bd9fa5506c756b2cad",
+    "modifications": "Confirm the same landed position in successive independent samples. No unattended corrective reposition."
+  },
+  {
+    "local": "src/corner/worker.rs",
+    "upstream": "src/engine/recovery.rs",
+    "blob": "66603f3931ba0a43f5ba30e0b8e5e943aabf8eb2",
+    "modifications": "Allow exact journal-authorized visible frame restoration only with the still-held AX object and the owned parked witness."
+  },
+  {
+    "local": "src/corner/guardian/main.m",
+    "upstream": "src/platform/guardian.rs",
+    "blob": "f7445e5b134aef7a3f06d81cdabdfac8e793eba9",
+    "modifications": "Source of the separate crash guardian mechanism. Nearpane independently binds a retained AX object, an authenticated parent-exit notification and the exact live Host journal. The fixture has one guarded restoration and no periodic sweep."
+  }
+]

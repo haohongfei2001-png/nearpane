@@ -1,0 +1,22 @@
+{
+  "clicks": 2,
+  "heldWhileRevealed": true,
+  "installedHost": "NOT_RUN",
+  "monitorTransitions": [
+    true,
+    false
+  ],
+  "reason": "nativeRevealAndRestoreObserved",
+  "restoredSamples": 6,
+  "settingWrites": 0,
+  "status": "PASS",
+  "windowMovedAside": true,
+  "captureExit": 0,
+  "fixtureOwnersExited": true,
+  "recording": {
+    "status": "PASS",
+    "seconds": 2.0933333333333333,
+    "inspectorSeconds": 1.8946763330000067,
+    "bytes": 78968
+  }
+}

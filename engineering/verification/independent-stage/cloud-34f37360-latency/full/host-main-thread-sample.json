@@ -1,0 +1,21 @@
+{
+  "actualPressUptime": 1438.3518916666667,
+  "diagnosticOnly": true,
+  "durationSeconds": 3,
+  "exit": 0,
+  "intervalMilliseconds": 10,
+  "nonce": "c530f643-d382-495c-99e4-e9ab0f5ebd4d",
+  "pid": 49329,
+  "pressReceiptUptime": 1438.371568125,
+  "reapedMonotonic": 1447.44110525,
+  "receiptFile": "r4-press-3e403c47-8640-45c5-8122-c876c4bf3687.result.json",
+  "receiptObservedMonotonic": 1438.461311666,
+  "requestFile": "r4-press-3e403c47-8640-45c5-8122-c876c4bf3687.request.json",
+  "requestObservedMonotonic": 1436.302085625,
+  "sampleFile": "host-main-thread.sample.txt",
+  "sampleLaunchMonotonic": 1438.461452833,
+  "startedAfterHostSeconds": 5.142976083000121,
+  "status": "COMPLETE",
+  "trigger": "firstConfirmedExternalAXPress",
+  "triggerObservedMonotonic": 1438.461452833
+}

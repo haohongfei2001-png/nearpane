@@ -1,0 +1,55 @@
+{
+  "revision": "dd665ed2b9fe46731d518e811e8f98c948d59227",
+  "run": 45736296714,
+  "fastJob": 139630249885,
+  "sourceJob": 139630249673,
+  "artifacts": [
+    {
+      "id": 15079645699,
+      "bytes": 24129479,
+      "sha256": "a99495bac3afbdb03eac22323889d5ac2d46f036122dbb7d6718fc93672a304e"
+    },
+    {
+      "id": 15078379801,
+      "bytes": 20875,
+      "sha256": "3c8ef76252e5d633c12b1bd52bae02be78c1658e1fa44b2421025a410c199c1b"
+    }
+  ],
+  "files": [
+    {
+      "file": "source-summary.json",
+      "artifact": 15078379801,
+      "artifactPath": "source/summary.json",
+      "bytes": 1253,
+      "sha256": "3fd2f9d70bb4a9687e3527a618a6f94aefe24a480b0267f62d6eaa1f29cce44e"
+    },
+    {
+      "file": "engine-result.json",
+      "artifact": 15079645699,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "328e2db41231bd541fe9803855203d11ab116da24104d86b7da8de2fbde83266"
+    },
+    {
+      "file": "product-result.json",
+      "artifact": 15079645699,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 9465,
+      "sha256": "85636f40efd7a26dc905d23df3a995fa2ec94858bbcce3a62864f40243a2b177"
+    },
+    {
+      "file": "product.stderr.log",
+      "artifact": 15079645699,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 5480,
+      "sha256": "e62d7ea2f2bebead21b4d5bb1153152fe81ee0dfdd69f69121533ff52ec3142d"
+    },
+    {
+      "file": "r4-press-result.json",
+      "artifact": 15079645699,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-c71b0d3a-c1e9-4df8-a9fa-bbf828945ed3.result.json",
+      "bytes": 632,
+      "sha256": "59a6cf18558b2593c5931bb1ec5c68b30aa4f6730b7d10b0cd744efa7f408308"
+    }
+  ]
+}

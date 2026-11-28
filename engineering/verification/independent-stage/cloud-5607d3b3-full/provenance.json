@@ -1,0 +1,55 @@
+{
+  "R4ProductPath": "NOT_RUN",
+  "artifact": 15063654234,
+  "artifactDigest": "sha256:4b5e19c508db5ba6ab3b9c1e12cfd265b5bac904db396703eb6b0567bea543d0",
+  "candidate": {
+    "artifactPath": "Nearpane-independent-candidate.zip",
+    "bytes": 24956310,
+    "sha256": "55bee0acc03160712f7f1035d21a16f794891282a151f006f13b289de7ad9949"
+  },
+  "controlledSetupAXWrites": 3,
+  "engineHideRestoreRequestAttempts": 9,
+  "environment": {
+    "exactTarget": false,
+    "kernelBuild": "26A434",
+    "sipEnabled": false
+  },
+  "job": 139516932129,
+  "normalEngine": "UNKNOWN",
+  "originalFiles": {
+    "candidate.json": {
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "2a5144ed14898d67a58592d64926e1235cb62e64104bf7a5aacf13418dc53e7b"
+    },
+    "ci-workspace-cleanup.log": {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup.log",
+      "bytes": 352,
+      "sha256": "82a3f76b31ec12e30f3d62bd0b8c6a46f49cdff63cb9457a16b2ef524ecf3e48"
+    },
+    "engine-result.json": {
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 3652,
+      "sha256": "b8b24f5a818c4c5f3c261914befbcf17f0b0636b1f681b492e07b4466133d4b4"
+    },
+    "engine.log": {
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 15256,
+      "sha256": "eb64d5a8dbe79728e588d07d105a609a6d3090a9a95f603b20a04823649ac684"
+    },
+    "fixture-cleanup.json": {
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    "source-summary.json": {
+      "artifactPath": "independent-source/source/summary.json",
+      "bytes": 1253,
+      "sha256": "7235546e0a810037781128c75341daa3eca013d95922a66f10529ca264968f6c"
+    }
+  },
+  "qualificationGranted": false,
+  "revision": "5607d3b3cddc6711514b16ce3fc7f431b03cd7db",
+  "schema": 1,
+  "workflowRun": 45702787052
+}

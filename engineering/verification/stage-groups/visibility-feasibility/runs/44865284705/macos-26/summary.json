@@ -1,0 +1,61 @@
+{
+  "cleanup": {
+    "dockRestored": true,
+    "fixtureCount": 2,
+    "fixtureLaunchersExit": [
+      0,
+      0
+    ],
+    "temporaryDirectoryRemoved": true
+  },
+  "dockDuring": true,
+  "dockOriginal": null,
+  "image": "20261117.0516.1",
+  "methods": {
+    "A.sameAppSecond": {
+      "reason": "single gate",
+      "status": "NOT_RUN"
+    },
+    "A.single": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "A.userDock": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "B.app-main": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "B.appkit-load": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "B.cold-main": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "B.independent": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "B.ownerControl": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "B.transaction": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    },
+    "C.virtual": {
+      "reason": "initial exact fixture focus or visibility unavailable",
+      "status": "BLOCKED"
+    }
+  },
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t26.7.2\nBuildVersion:\t\t25G332",
+  "revision": "83b09d6c2fa28b79447cc414391a70f56222fbaf",
+  "scope": "disposable registered fixture owners and separate inspector",
+  "sip": "System Integrity Protection status: disabled.",
+  "stageManagerPreference": "absent"
+}

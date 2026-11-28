@@ -1,0 +1,12 @@
+{
+  "name": "Sparkle",
+  "version": "2.10.1",
+  "source": "https://github.com/sparkle-project/Sparkle",
+  "revision": "ab7d71291238df6e0492143b120c9b696a35f603",
+  "url": "https://github.com/sparkle-project/Sparkle/releases/download/2.10.1/Sparkle-for-Swift-Package-Manager.zip",
+  "sha256": "4c2e48a3e50ebcc2c88a58a4c7264a1a99c3c31857ce754357afb9cdb323022a",
+  "frameworkSHA256": "98935f330f94a80826b9a7cfc00a55b480a6d47bf93d82a18da6eff2cba12c20",
+  "licenseSHA256": "389a4e4e9a32f059775b13a06e25a591445ba229d2838d26dd3e7c0c45127cfe",
+  "license": "MIT; accompanying bundled acknowledgements",
+  "sourceManifest": "https://github.com/sparkle-project/Sparkle/blob/ab7d71291238df6e0492143b120c9b696a35f603/Package.swift"
+}

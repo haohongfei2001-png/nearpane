@@ -1,0 +1,121 @@
+{
+  "os": "27.0 (26A428)",
+  "localDate": "2026-11-21",
+  "originalSpace": 6,
+  "beforeRecoveryReads": [
+    5095,
+    5095,
+    5095
+  ],
+  "ordinaryLeases": [
+    5094,
+    5095
+  ],
+  "stageEnabled": true,
+  "observedHostModalWindows": 0,
+  "observedHostSheets": 0,
+  "secureInput": false,
+  "activeDisplayAnimating": [
+    false,
+    false,
+    false
+  ],
+  "systemGlobalHotKeyOperatingMode": [
+    0,
+    0,
+    0
+  ],
+  "leftArrowEnabled": true,
+  "numberedDesktopShortcutsEnabled": 0,
+  "switchOnAppActivation": false,
+  "GUIActionsByDiagnostic": 0,
+  "originatingSplit": {
+    "leftSystemMenuAXResult": 0,
+    "nativeHalfCreated": 5096,
+    "secondSelectionIssued": false,
+    "originalFixtureClosedDuringPicker": true
+  },
+  "systemLog": [
+    {
+      "localTime": "23:55:14.733",
+      "event": "WindowManager entered Mission Control"
+    },
+    {
+      "localTime": "23:55:15.091",
+      "event": "WindowManager left Mission Control"
+    },
+    {
+      "localTime": "23:55:18.198",
+      "event": "Dock fullscreen flag reported 0 to 0"
+    },
+    {
+      "localTime": "23:55:18.204",
+      "event": "Dock could not find a desktop window for a Space"
+    },
+    {
+      "localTime": "23:55:18.305",
+      "event": "WindowManager reported freeform layout while remote transition coordination was requested"
+    },
+    {
+      "localTime": "23:55:26.498",
+      "event": "WindowServer removed the temporary fullscreen Space"
+    },
+    {
+      "localTime": "23:55:26.500",
+      "event": "WindowManager reported no display for a Space; the tiling interval assertion was released"
+    },
+    {
+      "throughLocalTime": "00:12:41",
+      "event": "RunningBoard admitted later Mission Control launches. No subsequent WindowManager toggle or mode transition was logged in this observation interval."
+    }
+  ],
+  "originalSystemNavigation": "BLOCKED: each of two distinct arrow event encodings left 24 samples on 5095; system overview list remained unavailable.",
+  "cause": "UNKNOWN. The observed sequence localizes the change to the half-tiled picker teardown. Persisting assertion, secure input, display animation and a disabled arrow binding were not observed.",
+  "recovery": "Subsequent real run entered system fullscreen 5101, issued the owned normal exit once, and returned the two AX ordinary documents to 5095. A separate normal-close receipt confirmed both window IDs absent and the fixture generation gone. Returning to original Space 6 and removing the two inactive leases remain separate device results.",
+  "stableSystemPresentation": {
+    "carbonUIMode": 0,
+    "presentationOptions": 0,
+    "processSwitchingDisabled": false,
+    "mainDisplayCaptured": false
+  },
+  "systemControlDiscovery": {
+    "identifierKeys": [
+      "mc",
+      "mc.display",
+      "mc.spaces.list"
+    ],
+    "localizedWindowTitlesUsed": false,
+    "preSplitSelectionsAcknowledged": 4,
+    "sameDockAndWindowManagerGenerations": true,
+    "lastSuccessfulDockRoots": 1,
+    "lastSuccessfulWindowManagerContainers": 1,
+    "lastSuccessfulWindowManagerDisplayHits": 3,
+    "laterReturnToSixAttemptsWithEmptyInitialList": 4,
+    "readsPerAttempt": 24,
+    "observedDockRoots": 0,
+    "observedWindowManagerContainers": 0,
+    "observedWindowManagerDisplayHits": 0,
+    "applicationInputsIssuedAfterMissingList": 0
+  },
+  "afterConfirmedNormalFixtureClose": {
+    "StageSurfaceWindowIDs": [
+      117,
+      19015
+    ],
+    "windowOwner": "Apple-signed WindowManager",
+    "windowBounds": [
+      1352,
+      446,
+      103,
+      97
+    ],
+    "onPhysicalDisplay": false,
+    "inPublicCurrentWindowList": false,
+    "listedAsWindowManagerDocument": false,
+    "membership": [
+      5095
+    ],
+    "front": "Apple-signed Finder with a focused object; no document text or image inspected",
+    "diagnosticInputEvents": 0
+  }
+}

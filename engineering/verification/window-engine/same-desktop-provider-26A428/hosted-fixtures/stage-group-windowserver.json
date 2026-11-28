@@ -1,0 +1,204 @@
+{
+  "status": "PASS",
+  "profileRemoved": true,
+  "installedHost": "NOT_RUN",
+  "groupVisibilitySwitch": "NOT_RUN",
+  "physicalMultiDisplay": "NOT_RUN",
+  "nativeWrites": 0,
+  "sourceRevision": "d81329d5b829630f10bae4f4bb8edf39d9824171",
+  "scope": "two registered ordinary fixture apps and two independent directory readers",
+  "record": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "505F8F75-B363-477E-9E03-D93559136EC0",
+      "C62A45F2-AC1F-4B05-A64A-0C748855AD21"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 11334,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "oldBindingsIneligible": false,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "reopen": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "505F8F75-B363-477E-9E03-D93559136EC0",
+      "C62A45F2-AC1F-4B05-A64A-0C748855AD21"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 11335,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "oldBindingsIneligible": true,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "interactiveDelivery": {
+    "captureRegion": [
+      20,
+      236,
+      400,
+      132
+    ],
+    "cornerParking": "NOT_RUN",
+    "geometry": [
+      {
+        "frame": [
+          20,
+          236,
+          140,
+          132
+        ],
+        "id": 96,
+        "owner": 11323
+      },
+      {
+        "frame": [
+          120,
+          236,
+          140,
+          132
+        ],
+        "id": 97,
+        "owner": 11323
+      },
+      {
+        "frame": [
+          280,
+          236,
+          140,
+          132
+        ],
+        "id": 95,
+        "owner": 11325
+      }
+    ],
+    "host": "NOT_RUN",
+    "nonce": "A6E090CA-FFFA-4E8D-B2E3-7A749F838864",
+    "owners": [
+      {
+        "birth": 1795403070813113,
+        "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+        "identifier": "net.example.nearpane.stage-group-a",
+        "numbers": [
+          96,
+          97
+        ],
+        "onActiveSpace": true,
+        "pid": 11323
+      },
+      {
+        "birth": 1795403070950608,
+        "display": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+        "identifier": "net.example.nearpane.stage-group-b",
+        "numbers": [
+          95
+        ],
+        "onActiveSpace": true,
+        "pid": 11325
+      }
+    ],
+    "productionQualified": false,
+    "reason": "targetConsumedGestureAndWroteUniqueDocument",
+    "receivers": [
+      {
+        "documentExists": true,
+        "events": [
+          "down",
+          "drag",
+          "up",
+          "keyDown",
+          "keyUp"
+        ],
+        "exactMarker": true,
+        "owner": 11323,
+        "window": 96,
+        "writeError": false
+      },
+      {
+        "documentExists": false,
+        "events": [],
+        "exactMarker": false,
+        "owner": 11323,
+        "window": 97,
+        "writeError": false
+      },
+      {
+        "documentExists": false,
+        "events": [],
+        "exactMarker": false,
+        "owner": 11325,
+        "window": 95,
+        "writeError": false
+      }
+    ],
+    "recordingExitedSuccessfully": true,
+    "sameFocusGeometryAndGenerations": true,
+    "scope": "isolatedHostedWindowServer",
+    "screenCapturePreflight": true,
+    "sourcePID": 11336,
+    "spacesMigration": "NOT_RUN",
+    "status": "PASS",
+    "submitted": 5,
+    "systemBuild": "Version 26.7.2 (Build 25G332)",
+    "target": 96
+  },
+  "deliveryMedia": {
+    "screen": "PASS",
+    "video": "PASS",
+    "pixels": [
+      400,
+      132
+    ],
+    "seconds": 3.0866666666666664
+  },
+  "singleWindowVisibility": {
+    "status": "NOT_RUN",
+    "reason": "archivedAXMinimizedOutsideProduct"
+  },
+  "fixtureProcessesExited": true
+}

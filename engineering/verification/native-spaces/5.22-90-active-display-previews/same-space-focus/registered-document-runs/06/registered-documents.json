@@ -1,0 +1,52 @@
+{
+  "attempts": [],
+  "cleanup": {
+    "launchIssued": false,
+    "ownedSessionRemoved": true,
+    "status": "PASS"
+  },
+  "firstDocumentCapture": {
+    "reason": "firstIndependentlyVerifiedInputUnavailable",
+    "status": "NOT_RUN"
+  },
+  "fixturePreparation": {
+    "issued": false,
+    "productAction": false,
+    "status": "NOT_RUN"
+  },
+  "fixtureSigning": {
+    "CDHash": "9dbf1d21d08c4f95f351392194b29c00e2d532be",
+    "Identifier": "net.example.spaces-document",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "focusRestoreRequested": false,
+  "launch": "foreground Launch Services open -n -W -a",
+  "observerSigning": {
+    "CDHash": "30de7a14750bbb82b04d41df5b1acc621d13932e",
+    "Identifier": "net.example.nearpane.p2-observer",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "operationStatus": "NOT_RUN",
+  "passes": 0,
+  "reason": "emptyOrdinaryLeaseUnconfirmed:leased desktop has an ordinary application window",
+  "registration": null,
+  "scope": {
+    "allowedFront": 76772,
+    "allowedFrontBirth": 1795205594673050,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "hostBirth": 1795205594673050,
+    "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "hostPID": 76772,
+    "leaseHardwareCounters": [
+      5759,
+      70,
+      0,
+      3049,
+      136752
+    ],
+    "space": 5095,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+  },
+  "status": "BLOCKED",
+  "superseded": false
+}

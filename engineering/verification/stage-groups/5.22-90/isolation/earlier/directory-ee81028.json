@@ -1,0 +1,35 @@
+{
+  "fixtureProcessesExited": true,
+  "groupVisibilitySwitch": "NOT_RUN",
+  "installedHost": "NOT_RUN",
+  "nativeWrites": 0,
+  "physicalMultiDisplay": "NOT_RUN",
+  "profileRemoved": true,
+  "reason": "Fixture check reopen failed: invalidGroup\n",
+  "record": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "7B9892D5-4D51-4204-B86B-D4C9B701D7BA",
+      "E6E0B5B6-63FD-4555-9F9B-22D5BA56F6F7"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 7365,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "oldBindingsIneligible": false,
+    "onScreenWindows": 3,
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false
+  },
+  "scope": "two registered ordinary fixture apps and two independent directory readers",
+  "sourceRevision": "ee8102868dc2a07b324d77fe7209e317cd8550ba",
+  "status": "FAIL",
+  "run": 44858403538
+}

@@ -1,0 +1,14 @@
+{
+  "status": "BLOCKED",
+  "newDesktops": 0,
+  "preview": {
+    "status": "NOT_RUN"
+  },
+  "stageRestore": {
+    "status": "NOT_NEEDED"
+  },
+  "media": {
+    "status": "NOT_RUN"
+  },
+  "reason": "[Errno 2] No such file or directory: '/private/tmp/nearpane-preview-run.colour.2_w1lchy/Dependencies/update-runtime.json'"
+}

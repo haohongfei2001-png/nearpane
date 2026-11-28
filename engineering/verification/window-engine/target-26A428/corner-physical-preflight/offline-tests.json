@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "qualification": "UNQUALIFIED",
+  "scope": "offlineSignatureBuildAndGuardRegressions",
+  "sourceSHA256": {
+    "scripts/acceptance/window-engine/corner/single/controller.m": "9297a8c5012c9ef313d1c85217e389794735fdc2fb8f7e4e0c401d82fab2b5ce",
+    "scripts/acceptance/window-engine/corner/single/lease.h": "cf368171ab8141bb8f4678ac22fad92f066893fdd889f622ed83bd1244bb2713",
+    "scripts/acceptance/window-engine/corner/single/owner.m": "56d9f321d3d72be8f4ffdb1723b10c503cb64e0a7aaedb685968a284fd1badef",
+    "scripts/acceptance/window-engine/corner/single/test_lease.py": "f0e027cc22a469c894bb8a2d7c0286d03a78fa592c10fde7c26c4c8df1f7a30f",
+    "scripts/acceptance/window-engine/corner/offline.rs": "9e74019717d988621fc1014ea384b070ffcf7bb06fd90349a84609ff7990a0d3",
+    "scripts/acceptance/window-engine/corner/physical-lease.py": "256aec73a3023b8c8fb6ba46c1eba5535934cd5075aff9a4d5b102e66847f8bc"
+  },
+  "compiledDeveloperIDFixtures": {
+    "Lease Controller": {
+      "identifier": "com.holdsnow.nearpane.engine-fixture",
+      "cdhash": "d7574a80792c6dd40002a989b06a1baa1ba9aa0c",
+      "sha256": "5871bac3d8dd80436ea2e4d5dc71f3effcedf1b42bffd003b7c9db864106a035"
+    },
+    "Lease Window": {
+      "identifier": "com.holdsnow.nearpane.engine-fixture.a",
+      "cdhash": "a9d45d0287d4c3f51b9ae939dca4455a79e667d3",
+      "sha256": "c4860baf43dae0d04cbc0cd915346716d7da87109e7f05f1e9aedb5301f93b3e"
+    }
+  },
+  "directCornerRustTests": 66,
+  "productionAbiRustTests": 70,
+  "nativeOfflineSuites": 4,
+  "receiptTests": 4,
+  "offlineLogs": {
+    "corner": "../corner-prewrite-health-offline.log",
+    "abi": "../corner-health-abi-tests.log",
+    "receipts": "receipt-tests.log"
+  },
+  "actualGeometry": "NOT_RUN",
+  "visualAndClickDelivery": "NOT_MEASURED",
+  "previousPrivatePreparationsRemoved": 2
+}

@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "scope": "passivePhysicalWatchBeforeNaturalReturn",
+  "observations": [
+    {
+      "postedEvents": 0,
+      "qualification": false,
+      "samplesOnChange": [
+        {
+          "id": 5184,
+          "time": 1795326934.4958649,
+          "type": 4
+        }
+      ],
+      "scope": "passiveOrdinaryOpportunity",
+      "spaceWrites": 0,
+      "status": "BLOCKED"
+    },
+    {
+      "events": 0,
+      "identities": [
+        {
+          "id": 5184,
+          "time": 1795327228.197365,
+          "type": 4
+        }
+      ],
+      "scope": "eventDrivenOrdinaryScope",
+      "status": "BLOCKED",
+      "writes": 0
+    }
+  ],
+  "laterFormalHostReceipt": "11-formal-panel-host.json"
+}

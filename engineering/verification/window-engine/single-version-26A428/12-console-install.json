@@ -1,0 +1,310 @@
+{
+  "schema": 1,
+  "scope": "singleVersionCurrentConsoleInstall",
+  "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+  "privateUpgradeSHA256": "2d761e031b4f95fa1c0a74ddbded88971f2fda580691ced4cc7e850b9b447654",
+  "upgrade": {
+    "schema": 1,
+    "scope": "singleVersionCanonicalUpgrade",
+    "status": "PASS",
+    "events": [
+      {
+        "stage": "sourceAndIdentityVerified",
+        "utc": "2026-11-22T10:37:56.036834+00:00"
+      },
+      {
+        "stage": "staged",
+        "utc": "2026-11-22T10:37:57.467460+00:00"
+      },
+      {
+        "stage": "normalQuitRequested",
+        "utc": "2026-11-22T10:37:58.138571+00:00"
+      },
+      {
+        "stage": "oldGenerationExited",
+        "utc": "2026-11-22T10:37:58.890452+00:00"
+      },
+      {
+        "stage": "installed",
+        "utc": "2026-11-22T10:38:00.832921+00:00"
+      },
+      {
+        "stage": "sealedBundleSelfCheckPassed",
+        "utc": "2026-11-22T10:38:02.225305+00:00"
+      },
+      {
+        "stage": "regularHostLaunched",
+        "utc": "2026-11-22T10:38:02.601721+00:00"
+      },
+      {
+        "stage": "running",
+        "utc": "2026-11-22T10:38:03.216076+00:00"
+      }
+    ],
+    "beforeRoster": {
+      "complete": true,
+      "pids": [
+        22283
+      ],
+      "session": {
+        "qualified": true,
+        "securitySessionID": 100022
+      }
+    },
+    "old": {
+      "source": "9509bd04dbf0178f452a06b690d51896432b05f3",
+      "cdhash": "6315b36637d63050d954c1d484a0399726f22395",
+      "version": "5.22",
+      "build": "90",
+      "tree": "7e72131d8a7aba2eb2ffed24f705711bb4c1a66d154d8d5c1d4f7ce4f32a81fc",
+      "root": [
+        16777233,
+        304206540
+      ],
+      "host": [
+        16777233,
+        304206545
+      ]
+    },
+    "new": {
+      "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+      "version": "5.22",
+      "build": "90",
+      "tree": "0b09013a2163789c882f7c4a3a8e7c372e81c8abc58e596e4b73eb03faf636a1",
+      "root": [
+        16777233,
+        304261631
+      ],
+      "host": [
+        16777233,
+        304262076
+      ]
+    },
+    "previousProcess": [
+      22283,
+      1795327663,
+      114217
+    ],
+    "stage": "running",
+    "archive": {
+      "status": "NOT_RUN",
+      "reason": "noPendingOrdinaryJournal"
+    },
+    "beforeQuitRecovery": {
+      "status": "PASS",
+      "reason": "clear",
+      "profileIndexSHA256": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+      "generations": 2,
+      "records": [
+        {
+          "kind": "previousInstall",
+          "journalSHA256": "36cdd997435cd28a57743efaee8d1eddbdf4092bc7dad0e442551aeac69a88d9",
+          "restoration": "PASS",
+          "cleanup": "PASS",
+          "currentInstall": false,
+          "blocksExchange": false
+        }
+      ],
+      "openSharedLeaseDescriptors": 0,
+      "quitPermitted": true
+    },
+    "emptyRoster": {
+      "complete": true,
+      "pids": [],
+      "session": {
+        "qualified": true,
+        "securitySessionID": 100022
+      }
+    },
+    "oldProcessRetired": true,
+    "installed": {
+      "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+      "version": "5.22",
+      "build": "90",
+      "tree": "0b09013a2163789c882f7c4a3a8e7c372e81c8abc58e596e4b73eb03faf636a1",
+      "root": [
+        16777233,
+        304262735
+      ],
+      "host": [
+        16777233,
+        304262740
+      ]
+    },
+    "retiredOriginalTree": "7e72131d8a7aba2eb2ffed24f705711bb4c1a66d154d8d5c1d4f7ce4f32a81fc",
+    "canonicalPath": "/Applications/Nearpane.app",
+    "currentProcess": [
+      32364,
+      1795343882,
+      268848
+    ],
+    "runningRoster": {
+      "complete": true,
+      "pids": [
+        32364
+      ],
+      "session": {
+        "qualified": true,
+        "securitySessionID": 100022
+      }
+    },
+    "registration": {
+      "before": 1,
+      "retired": 0,
+      "registeredAfter": [
+        "/Applications/Nearpane.app"
+      ]
+    },
+    "configAfter": {
+      "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+      "configuration": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af"
+    },
+    "configBefore": {
+      "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+      "configuration": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af"
+    }
+  },
+  "configurationMatched": true,
+  "backup": {
+    "status": "PASS",
+    "scope": "privatePreQuitBackup",
+    "items": {
+      "Nearpane.app": {
+        "present": true,
+        "sourceBefore": "7e72131d8a7aba2eb2ffed24f705711bb4c1a66d154d8d5c1d4f7ce4f32a81fc",
+        "copy": "7e72131d8a7aba2eb2ffed24f705711bb4c1a66d154d8d5c1d4f7ce4f32a81fc",
+        "sourceAfter": "7e72131d8a7aba2eb2ffed24f705711bb4c1a66d154d8d5c1d4f7ce4f32a81fc",
+        "verified": true
+      },
+      "profile-generations": {
+        "present": true,
+        "sourceBefore": "e0530ef0592cac9d2fbee4d81b202aaff3f4ab2e7e32704b5113102452a415bf",
+        "copy": "e0530ef0592cac9d2fbee4d81b202aaff3f4ab2e7e32704b5113102452a415bf",
+        "sourceAfter": "e0530ef0592cac9d2fbee4d81b202aaff3f4ab2e7e32704b5113102452a415bf",
+        "verified": true
+      },
+      "support": {
+        "present": true,
+        "sourceBefore": "950cd90126b1f285bf1192b671d979987b93a166ef7cc432d8b38266771e03a7",
+        "copy": "950cd90126b1f285bf1192b671d979987b93a166ef7cc432d8b38266771e03a7",
+        "sourceAfter": "950cd90126b1f285bf1192b671d979987b93a166ef7cc432d8b38266771e03a7",
+        "verified": true
+      },
+      "install-recovery": {
+        "present": true,
+        "sourceBefore": "a5b34c868300369176fc782552385b990ed358ccec3f8d76d64dc05f04a00041",
+        "copy": "a5b34c868300369176fc782552385b990ed358ccec3f8d76d64dc05f04a00041",
+        "sourceAfter": "a5b34c868300369176fc782552385b990ed358ccec3f8d76d64dc05f04a00041",
+        "verified": true
+      },
+      "spaces-recovery": {
+        "present": true,
+        "sourceBefore": "6c2ee6c6e34f79b21d1801dba2cabf037800da3d868cdd546526b3f0d8635b87",
+        "copy": "6c2ee6c6e34f79b21d1801dba2cabf037800da3d868cdd546526b3f0d8635b87",
+        "sourceAfter": "6c2ee6c6e34f79b21d1801dba2cabf037800da3d868cdd546526b3f0d8635b87",
+        "verified": true
+      },
+      "preferences.plist": {
+        "present": true,
+        "sourceBefore": "0ff6abb0b32861eef682ebe98a357ba0371d1d482ed0b0f670e06436b98465d8",
+        "copy": "0ff6abb0b32861eef682ebe98a357ba0371d1d482ed0b0f670e06436b98465d8",
+        "sourceAfter": "0ff6abb0b32861eef682ebe98a357ba0371d1d482ed0b0f670e06436b98465d8",
+        "verified": true
+      }
+    },
+    "installed": {
+      "Identifier": "com.holdsnow.nearpane.alpha",
+      "CDHash": "6315b36637d63050d954c1d484a0399726f22395",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "version": "5.22",
+      "build": "90",
+      "source": "9509bd04dbf0178f452a06b690d51896432b05f3",
+      "engineABI": 1,
+      "hostSHA256": "25a7a9c599564b69aac5f1667c5dc97b657e303b2f0ecf3c726fd8c289e43153"
+    },
+    "dailyConfigurationBefore": {
+      "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+      "configuration": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af"
+    },
+    "dailyConfigurationAfter": {
+      "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+      "configuration": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af"
+    },
+    "equalSigningIdentity": true,
+    "copySignatureVerified": true,
+    "windowActions": 0,
+    "quitRequests": 0,
+    "schema": 1,
+    "recordedUTC": "2026-11-22T10:34:40.149075+00:00"
+  },
+  "permissions": {
+    "schema": 1,
+    "scope": "installedHostOwnReadOnlyPermissions",
+    "recordedUTC": "2026-11-22T10:38:03.363320+00:00",
+    "observerSource": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "installed": {
+      "Identifier": "com.holdsnow.nearpane.alpha",
+      "CDHash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "version": "5.22",
+      "build": "90",
+      "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "engineABI": 1,
+      "hostSHA256": "488c61c412064a9894801ba6b888fb116f18aa9b005ff4b274f00bae442ef2b8"
+    },
+    "macOS": "27.0",
+    "osBuild": "26A428",
+    "sip": "System Integrity Protection status: enabled.",
+    "targetHostCount": 1,
+    "permissionPrompts": 0,
+    "windowActions": 0,
+    "hostLaunched": false,
+    "status": "PASS",
+    "permissions": {
+      "screenCapture": true,
+      "accessibility": true,
+      "postEvent": true,
+      "listenEvent": true
+    },
+    "subject": {
+      "birth": 1795343882268848,
+      "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+      "nonce": "BD93E8A6-E7E3-42A0-BBCA-316DA269A9E8",
+      "pid": 32364
+    },
+    "hostLog": {
+      "timestamp": "2026-11-22 18:38:04.023378+0800",
+      "processID": 32364,
+      "subsystem": "com.holdsnow.nearpane.alpha",
+      "category": "PermissionCheck",
+      "eventMessage": "Permission check BD93E8A6-E7E3-42A0-BBCA-316DA269A9E8 screen=true accessibility=true postEvent=true listenEvent=true"
+    },
+    "reason": "signedLiveHostAnswered"
+  },
+  "guardian": {
+    "architectures": [
+      "arm64"
+    ],
+    "designatedRequirement": "identifier \"com.holdsnow.nearpane.alpha.corner-guardian\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+    "distributionSignatureFields": false,
+    "minimumOS": "14.0",
+    "sha256": "7d8624c337ffb359999b101230cdac59c1c8609218cb05429e46080918cf1de3",
+    "signingTeam": "ZB9D4T66QB"
+  },
+  "identity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "signedZIP": {
+    "status": "PASS",
+    "ZIP": "Nearpane-5.22-90-bec6cb2.zip",
+    "size": 31848321,
+    "sha256": "873bcf7c6043421fb974580f72c3091bd28dba85f063cdbad672d436b7d3f50d",
+    "tree": "0b09013a2163789c882f7c4a3a8e7c372e81c8abc58e596e4b73eb03faf636a1",
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "strictDeveloperIDVerified": true
+  }
+}

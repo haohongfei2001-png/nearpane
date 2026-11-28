@@ -1,0 +1,29 @@
+{
+  "source": "02422473f8cb897baa60db82604a7400c9e9ea00",
+  "hostCDHash": "80f7cf70d681c4767df8c630d8bd17880ec153cd",
+  "distributionAssessment": "FAIL",
+  "notarizationSubmitted": false,
+  "checks": {
+    "gatekeeper": {
+      "exit": 3,
+      "reason": [
+        "Unnotarized Developer ID"
+      ],
+      "logSHA256": "97326224551a496642500ce30f4b747d2006d47abd60fd58993652ded2a57390"
+    },
+    "staple": {
+      "exit": 65,
+      "reason": [
+        "does not have a ticket"
+      ],
+      "logSHA256": "c2cc5c71d10038e62f5b73725fa18235aead60841617f5b0597732fd0ec31e7f"
+    },
+    "distribution": {
+      "exit": 70,
+      "reason": [
+        "Notary Ticket Missing"
+      ],
+      "logSHA256": "9c340f95afbd6f259d8a20e4fe032d8cccf77b57df85a238bce16cf4706d9f61"
+    }
+  }
+}

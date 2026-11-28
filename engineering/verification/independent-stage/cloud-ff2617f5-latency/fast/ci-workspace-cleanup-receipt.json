@@ -1,0 +1,25 @@
+{
+  "cleanup": true,
+  "created": {
+    "id": 12,
+    "type": 0,
+    "uuid": "1119685F-5D78-5C2C-45B7-9151FD2EC954"
+  },
+  "current": 1,
+  "currentHasSystemUUID": false,
+  "directWindowOperations": 0,
+  "lastRecordedStep": "issued:closeMissionControl",
+  "originalCurrent": 1,
+  "phase": "cleaned",
+  "physicalGestureClaimed": false,
+  "process": {
+    "exit": 0,
+    "log": "ci-workspace-cleanup.log",
+    "status": "PASS",
+    "stderr": "ci-workspace-cleanup.stderr.log"
+  },
+  "qualificationGranted": false,
+  "schema": 1,
+  "status": "READY",
+  "systemInputs": 11
+}

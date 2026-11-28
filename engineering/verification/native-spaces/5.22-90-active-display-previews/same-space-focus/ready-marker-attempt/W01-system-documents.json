@@ -1,0 +1,113 @@
+{
+  "attempts": [
+    {
+      "application": "com.apple.TextEdit",
+      "axError": 0,
+      "axIssued": true,
+      "control": "current-desktop-window:16413:53112",
+      "controlRead": {
+        "actionsAXError": 0,
+        "button": true,
+        "enabled": true,
+        "enabledAXError": 0,
+        "matches": 1,
+        "panel": 53103,
+        "regions": 1,
+        "state": "ready"
+      },
+      "exitCode": 0,
+      "focusWitness": "systemAX",
+      "inputAcknowledged": true,
+      "pressDisposition": "ISSUED",
+      "reason": "TextEdit AXWindows recheck read: additionalWindowsReported",
+      "scenario": "W01",
+      "stage": "marker",
+      "status": "UNKNOWN",
+      "target": 53112,
+      "trial": 1
+    }
+  ],
+  "axWindowReads": {
+    "invalid": 0,
+    "noReply": 0,
+    "observations": 17,
+    "outcomes": {
+      "additionalWindowsReported": 2,
+      "twoAXWindows": 15
+    },
+    "recorded": 9,
+    "unreported": 0
+  },
+  "cleanup": {
+    "birth": 1795198740814965,
+    "closeError": "TextEdit AXWindows initial read: additionalWindowsReported",
+    "elapsedSeconds": 4.0044,
+    "kernelChecks": 36,
+    "observationDeadlineSeconds": 4,
+    "observations": [
+      {
+        "afterSeconds": 0.0041,
+        "observedBirth": 1795198740814965,
+        "state": "ALIVE"
+      }
+    ],
+    "pid": 16413,
+    "reason": "enrolled TextEdit generation still alive at last kernel read",
+    "status": "FAIL",
+    "terminated": false
+  },
+  "controlReadiness": [
+    {
+      "control": "current-desktop-window:16413:53112",
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "documentBirth": 1795198740814965,
+      "hostBirth": 1795198733500018,
+      "hostHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+      "hostPID": 16190,
+      "numbers": [
+        53112,
+        53111
+      ],
+      "observationDeadlineSeconds": 5,
+      "observations": [
+        {
+          "actionsAXError": 0,
+          "afterSeconds": 0.1579,
+          "button": true,
+          "enabled": true,
+          "enabledAXError": 0,
+          "matches": 1,
+          "panel": 53103,
+          "regions": 1,
+          "state": "ready"
+        },
+        {
+          "actionsAXError": 0,
+          "afterSeconds": 0.4493,
+          "button": true,
+          "enabled": true,
+          "enabledAXError": 0,
+          "matches": 1,
+          "panel": 53103,
+          "regions": 1,
+          "state": "ready"
+        }
+      ],
+      "panel": 53103,
+      "space": 5095,
+      "status": "READY",
+      "trial": 1
+    }
+  ],
+  "issued": 1,
+  "operationStage": "marker",
+  "operationStatus": "UNKNOWN",
+  "passes": 0,
+  "pressCounts": {
+    "ISSUED": 1,
+    "REFUSED": 0,
+    "UNKNOWN": 0
+  },
+  "reason": "TextEdit AXWindows recheck read: additionalWindowsReported",
+  "status": "FAIL"
+}

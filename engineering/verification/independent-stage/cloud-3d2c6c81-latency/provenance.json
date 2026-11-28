@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "revision": "3d2c6c81a81c2e0ccf2be114a6bc07ac4321e8df",
+  "workflowRun": 45886758872,
+  "recorded": "2026-11-27",
+  "purpose": "Historical baseline before subsequent latency fixes; not a new test run",
+  "files": [
+    {
+      "file": "fast/runtime-summary.json",
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 22010,
+      "sha256": "f0c69be2629551b92f0b886ae335071c437cd32d9af6ec04410943edc02bdea6"
+    },
+    {
+      "file": "fast/engine-result.json",
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "c7d034edd1f0204af3001c860362f92c006e743bc3b10aec9a0b94adcf78135a"
+    },
+    {
+      "file": "fast/product-result.json",
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 14400,
+      "sha256": "a7aea1a87cfe02f95d6da2a3a06761a7eab5f6539d0e34aa4e2f7f9ed0d41f08"
+    },
+    {
+      "file": "fast/product.stderr.log",
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 6076,
+      "sha256": "aa206e5b5393faaed89ac07a63796da932bac4212e4b3f2a9efbee48d0681491"
+    },
+    {
+      "file": "fast/host-main-thread.sample.txt",
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 383142,
+      "sha256": "e802b5c5b9af2b51c9d04a70d6ac4d50284107eb392207fd3d3bbc5fe0752860"
+    },
+    {
+      "file": "fast/fixture-cleanup.json",
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "fast/ci-workspace-cleanup-receipt.json",
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "a71500c17d1bb5e9d3c45bd1ad39b6d0d31bf684cd40e149a8f0e2cea042db89"
+    },
+    {
+      "file": "fast/r4-press-result.json",
+      "artifactPath": "independent-runtime/runtime/product/r4-press-2048b401-97ba-4c21-aa6d-3e20fcfa907d.result.json",
+      "bytes": 3622,
+      "sha256": "3d57bd4eda2ef357d75c2e6387f86090f6a6ca698690c9a739d91a1515f783ad"
+    },
+    {
+      "file": "full/runtime-summary.json",
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 22991,
+      "sha256": "0193ec7c316448213f5149f72f38b8cdd03133a0f2ee687ea361d70557afc8d3"
+    },
+    {
+      "file": "full/engine-result.json",
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "46686c60b66610896ac1a83bc459b32e01ff654db37af85add2fe9d91465aa32"
+    },
+    {
+      "file": "full/product-result.json",
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 15351,
+      "sha256": "3953e2f8a4e36a5742b4a9b307b3df8f0e637e80965bc1232e7f8095d8c1afa8"
+    },
+    {
+      "file": "full/product.stderr.log",
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 11528,
+      "sha256": "a54d3a12d684b9bf200348443b5a37dad764b496d0b0686e7f7cf9228ba79876"
+    },
+    {
+      "file": "full/host-main-thread.sample.txt",
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 266606,
+      "sha256": "9dd0f2d64649cc1c3031cf39583f70a72eedddb7e46f5926d47a17340e930fb5"
+    },
+    {
+      "file": "full/fixture-cleanup.json",
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "full/ci-workspace-cleanup-receipt.json",
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "7fe35f55f43487dc19b9cfdb6cc2b11635fe5bfa5d280152c169e316794477c8"
+    },
+    {
+      "file": "full/r4-press-result.json",
+      "artifactPath": "independent-runtime/runtime/product/r4-press-89e550f2-0b34-4d24-8842-cf5882f85071.result.json",
+      "bytes": 3902,
+      "sha256": "2f52a773a74ea09d0cc75e2967793b203ab218fdb96425c8a9f0716f7c04687f"
+    },
+    {
+      "file": "full/source-summary.json",
+      "artifactPath": "independent-source/source/summary.json",
+      "bytes": 1253,
+      "sha256": "496420bcac7f4d98edf000c425340e8881aabbe10b23719d3c44822a98c63858"
+    },
+    {
+      "file": "full/candidate.json",
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "b8e907c3057fac77e79a1a4e6c1adb38c26c4795fbaf84888d2a96d97eb493a4"
+    }
+  ]
+}

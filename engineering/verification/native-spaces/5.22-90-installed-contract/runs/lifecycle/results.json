@@ -1,0 +1,286 @@
+{
+  "F01": "NOT_RUN",
+  "M01": "BLOCKED",
+  "M01Reason": "This run has one physical display. Independent/shared, rotation and reconnect require an additional physical display.",
+  "R02": "PARTIAL",
+  "R02SessionTransitions": "Lock/unlock and sleep/wake not exercised on the occupied interactive login session",
+  "checkpoints": {
+    "documentRelaunch": {
+      "fixture": {
+        "frames": [
+          [
+            465,
+            295,
+            540,
+            333
+          ],
+          [
+            465,
+            295,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          false,
+          false
+        ],
+        "key": 0,
+        "lastCommand": "",
+        "numbers": [
+          44709,
+          44711
+        ],
+        "pid": 52641,
+        "session": "87ea10c0-28f3-4b80-a9ed-0f22b85c9bbc",
+        "zoomed": [
+          false,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 0,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "gallerySessions": 0,
+        "pid": 52328,
+        "surfaceHidden": 0,
+        "visibilityRevision": 233580197031458,
+        "visibleDisplays": 0,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 4,
+        "frontmostFixture": false,
+        "memberships": [
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 4845,
+            "type": 4,
+            "uuid": "9A3EFEB7-A96F-42CE-81FD-4AE3A3112759"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4829,
+            "type": 0,
+            "uuid": "A0275E6E-DB9D-64C9-7A80-B69045B4B600"
+          }
+        ]
+      }
+    },
+    "ordinary": {
+      "fixture": {
+        "frames": [
+          [
+            405,
+            315,
+            540,
+            333
+          ],
+          [
+            585,
+            379,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          false,
+          false
+        ],
+        "key": 44635,
+        "lastCommand": "4738f788-adb2-4738-adbe-f1142981d5bf",
+        "numbers": [
+          44635,
+          44637
+        ],
+        "pid": 52501,
+        "session": "3c639dac-2bc9-4c89-b8e3-4f49cdd69e5a",
+        "zoomed": [
+          false,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 0,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "gallerySessions": 1,
+        "pid": 52328,
+        "surfaceHidden": 0,
+        "visibilityRevision": 233580197031458,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 4,
+        "frontmostFixture": true,
+        "memberships": [
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4829,
+            "type": 0,
+            "uuid": "A0275E6E-DB9D-64C9-7A80-B69045B4B600"
+          }
+        ]
+      }
+    },
+    "standardZoom": {
+      "fixture": {
+        "frames": [
+          [
+            0,
+            0,
+            1470,
+            923
+          ],
+          [
+            585,
+            379,
+            540,
+            333
+          ]
+        ],
+        "fullscreen": [
+          false,
+          false
+        ],
+        "key": 0,
+        "lastCommand": "b566dd15-7680-40fd-953b-4a4843d1cb20",
+        "numbers": [
+          44635,
+          44637
+        ],
+        "pid": 52501,
+        "session": "3c639dac-2bc9-4c89-b8e3-4f49cdd69e5a",
+        "zoomed": [
+          true,
+          false
+        ]
+      },
+      "hostMetrics": {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 0,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "gallerySessions": 0,
+        "pid": 52328,
+        "surfaceHidden": 0,
+        "visibilityRevision": 233580197031458,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      "system": {
+        "current": 2000,
+        "frontmostFixture": false,
+        "memberships": [
+          [
+            4
+          ],
+          [
+            4
+          ]
+        ],
+        "scopes": [
+          {
+            "id": 4,
+            "type": 0,
+            "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+          },
+          {
+            "id": 2000,
+            "type": 4,
+            "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+          },
+          {
+            "id": 6,
+            "type": 0,
+            "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+          },
+          {
+            "id": 5,
+            "type": 0,
+            "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+          },
+          {
+            "id": 4829,
+            "type": 0,
+            "uuid": "A0275E6E-DB9D-64C9-7A80-B69045B4B600"
+          }
+        ]
+      }
+    }
+  },
+  "documentRelaunch": {
+    "differentProcess": true,
+    "independentMembership": true,
+    "staleWindowNumbersGoneFromFixture": true
+  },
+  "installedRelaunch": {
+    "configurationPreserved": true,
+    "newPID": true,
+    "sameGeneration": true
+  },
+  "issue": "Command '[PosixPath('/private/tmp/nearpane-lifecycle.DBTffLmQ/lifecycle-read'), 'read', '52501', '44635', '44637']' returned non-zero exit status 2.",
+  "ownedWindowAppExited": true,
+  "splitView": "NOT_RUN",
+  "zoomInOrdinarySpace": false
+}

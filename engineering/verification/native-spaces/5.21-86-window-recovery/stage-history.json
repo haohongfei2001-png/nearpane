@@ -1,0 +1,49 @@
+{
+  "sameOwnedWindow": true,
+  "pass": true,
+  "unassistedSourceReturn": true,
+  "originalFrontPreserved": true,
+  "ownedProcessesExited": true,
+  "original": {
+    "cgPoints": [
+      300,
+      210
+    ],
+    "ownerPoints": [
+      300,
+      210
+    ],
+    "previous": false,
+    "live": true,
+    "image": "original-rendered-view.png",
+    "sha256": "a5f29515129889ae5841e8e088f10a7f215d156e8dc86f405de7b70c5b23eb58"
+  },
+  "afterNotes": {
+    "cgPoints": [
+      92,
+      104
+    ],
+    "ownerPoints": [
+      300,
+      210
+    ],
+    "previous": true,
+    "live": false,
+    "image": "afterNotes-rendered-view.png",
+    "sha256": "852fef711b696e22fb6b4eca6ae6a0c2954ead4f9c05deb58bc295846362066f"
+  },
+  "afterBoard": {
+    "cgPoints": [
+      300,
+      210
+    ],
+    "ownerPoints": [
+      300,
+      210
+    ],
+    "previous": false,
+    "live": true,
+    "image": "afterBoard-rendered-view.png",
+    "sha256": "5bd4ac0e5d5be7ae892dc7dbe99f14dbc315968f808544cd7b6f7d884596ed51"
+  }
+}

@@ -1,0 +1,5732 @@
+{
+  "attempts": [
+    {
+      "hostButton": {
+        "clickUptime": 291101.672839,
+        "downToCallbackMs": 61.562458344269544,
+        "operation": "f4baa517-1e69-4c5e-ae9e-725e9757550a",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "f4baa517-1e69-4c5e-ae9e-725e9757550a",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291101.672839
+          },
+          {
+            "action": "none",
+            "operation": "f4baa517-1e69-4c5e-ae9e-725e9757550a",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291101.811381
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "811e29a4-50c5-4138-938c-f35b6d8c62c6",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291101.3203171667,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291101.32030183333,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291101.31997033337
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291101.61127654166,
+        291101.8088236667
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 186.42325000837445,
+          "upper": 214.22858338337392
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-01.json",
+        "firstTargetDisplayUptime": 291101.8227031875,
+        "firstTargetPresentationMachTicks": 6986443744783,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 146.78433333756402,
+          "upper": 166.26575001282617
+        }
+      },
+      "sibling": 54547,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54549,
+      "timing": {
+        "downToFocusLowerMs": 155.92133335303515,
+        "downToFocusUpperMs": 190.47691667219624,
+        "secondPositiveAfterUpMs": 149.58429167745635,
+        "upToFocusLowerMs": 116.28241668222472,
+        "upToFocusUpperMs": 142.5140833016485
+      },
+      "trial": 1
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291104.88948,
+        "downToCallbackMs": 48.77995833521709,
+        "operation": "2a9a3979-c1e6-4f02-9ed1-bcda0d73ca9a",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "2a9a3979-c1e6-4f02-9ed1-bcda0d73ca9a",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291104.88948
+          },
+          {
+            "action": "none",
+            "operation": "2a9a3979-c1e6-4f02-9ed1-bcda0d73ca9a",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291105.064809
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "d59e9b39-c869-474c-8820-a2c3c7b4015f",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291104.5617434583,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291104.56173583335,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291104.5612979167
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291104.8407000417,
+        291105.0596171667
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 207.95804174849764,
+          "upper": 234.81245833681896
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-02.json",
+        "firstTargetDisplayUptime": 291105.0727044583,
+        "firstTargetPresentationMachTicks": 6986521744835,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 168.58616675017402,
+          "upper": 188.0723750218749
+        }
+      },
+      "sibling": 54549,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54547,
+      "timing": {
+        "downToFocusLowerMs": 178.572750010062,
+        "downToFocusUpperMs": 212.2877916553989,
+        "secondPositiveAfterUpMs": 172.17704170616344,
+        "upToFocusLowerMs": 139.2008750117384,
+        "upToFocusUpperMs": 165.54770834045485
+      },
+      "trial": 2
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291107.491996,
+        "downToCallbackMs": 52.2952500032261,
+        "operation": "fd7a39b8-6590-4312-8abb-d9d1c30f6965",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "fd7a39b8-6590-4312-8abb-d9d1c30f6965",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291107.491996
+          },
+          {
+            "action": "none",
+            "operation": "fd7a39b8-6590-4312-8abb-d9d1c30f6965",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291107.605072
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "28baf1a7-387b-4a39-a3fa-9030066769b4",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291107.14659983333,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291107.1465920417,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291107.14613500005
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291107.43970075,
+        291107.60357029166
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 158.59554178314283,
+          "upper": 187.04833334777504
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-03.json",
+        "firstTargetDisplayUptime": 291107.6227063751,
+        "firstTargetPresentationMachTicks": 6986582944882,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 116.55158345820382,
+          "upper": 137.27454165928066
+        }
+      },
+      "sibling": 54547,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54549,
+      "timing": {
+        "downToFocusLowerMs": 118.470250046812,
+        "downToFocusUpperMs": 141.87920838594437,
+        "secondPositiveAfterUpMs": 114.09574997378513,
+        "upToFocusLowerMs": 76.42629172187299,
+        "upToFocusUpperMs": 92.10541669744998
+      },
+      "trial": 3
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291110.172815,
+        "downToCallbackMs": 55.58070831466466,
+        "operation": "03d98a75-cb68-41df-93e0-53ca7ae67db0",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "03d98a75-cb68-41df-93e0-53ca7ae67db0",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291110.172815
+          },
+          {
+            "action": "none",
+            "operation": "03d98a75-cb68-41df-93e0-53ca7ae67db0",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291110.276597
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "8bcf4cc0-694f-48cc-bbc1-118ef751bea5",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291109.77922566666,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291109.7792180417,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291109.77875704167
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291110.1172342917,
+        291110.2712675417
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 147.2914166515693,
+          "upper": 174.98700000578538
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-04.json",
+        "firstTargetDisplayUptime": 291110.28937552084,
+        "firstTargetPresentationMachTicks": 6986646944930,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 102.06983331590891,
+          "upper": 121.59562500892207
+        }
+      },
+      "sibling": 54549,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54547,
+      "timing": {
+        "downToFocusLowerMs": 116.21549999108538,
+        "downToFocusUpperMs": 143.86987499892712,
+        "secondPositiveAfterUpMs": 100.64187500393018,
+        "upToFocusLowerMs": 70.99391665542498,
+        "upToFocusUpperMs": 90.47850000206381
+      },
+      "trial": 4
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291112.860774,
+        "downToCallbackMs": 67.63112498447299,
+        "operation": "98be3687-2871-486c-8c6d-e3e89f45fdd2",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "98be3687-2871-486c-8c6d-e3e89f45fdd2",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291112.860774
+          },
+          {
+            "action": "none",
+            "operation": "98be3687-2871-486c-8c6d-e3e89f45fdd2",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291112.971371
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "0d7837c1-371a-41d3-aa1a-69331c9a1fd6",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291112.4802219167,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291112.48021508334,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291112.4798269583
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291112.793142875,
+        291112.97685508337
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 172.11354174651206,
+          "upper": 199.94866667548195
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-05.json",
+        "firstTargetDisplayUptime": 291112.98937754176,
+        "firstTargetPresentationMachTicks": 6986711744979,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 129.00433340109885,
+          "upper": 149.39991669962183
+        }
+      },
+      "sibling": 54547,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54549,
+      "timing": {
+        "downToFocusLowerMs": 148.69087503757328,
+        "downToFocusUpperMs": 172.4463333375752,
+        "secondPositiveAfterUpMs": 133.16345837665722,
+        "upToFocusLowerMs": 105.58166669216007,
+        "upToFocusUpperMs": 121.89758336171508
+      },
+      "trial": 5
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291115.589519,
+        "downToCallbackMs": 53.8031249307096,
+        "operation": "0ade041e-bb23-4055-b99b-eace181fa4c2",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "0ade041e-bb23-4055-b99b-eace181fa4c2",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291115.589519
+          },
+          {
+            "action": "none",
+            "operation": "0ade041e-bb23-4055-b99b-eace181fa4c2",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291115.722303
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "4f4a44ef-3c5a-4436-8aa8-d9e1794414cc",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291115.2454411667,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291115.24543370836,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291115.2449924167
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291115.53571587504,
+        291115.71981033334
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 178.9164999499917,
+          "upper": 206.17816667072475
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-06.json",
+        "firstTargetDisplayUptime": 291115.7393789167,
+        "firstTargetPresentationMachTicks": 6986777745027,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 141.50420832447708,
+          "upper": 160.6977500487119
+        }
+      },
+      "sibling": 54549,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54547,
+      "timing": {
+        "downToFocusLowerMs": 146.5441666659899,
+        "downToFocusUpperMs": 175.1236249692738,
+        "secondPositiveAfterUpMs": 138.61404167255387,
+        "upToFocusLowerMs": 109.13187504047528,
+        "upToFocusUpperMs": 129.64320834726095
+      },
+      "trial": 6
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291118.175752,
+        "downToCallbackMs": 64.11054165801033,
+        "operation": "90d252a8-1b15-46bc-a44b-ae08e33864ae",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "90d252a8-1b15-46bc-a44b-ae08e33864ae",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291118.175752
+          },
+          {
+            "action": "none",
+            "operation": "90d252a8-1b15-46bc-a44b-ae08e33864ae",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291118.303141
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "900c9003-dd90-49e6-8360-a9eaa5864ca6",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291117.802905875,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291117.8028992917,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291117.802523625
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291118.11164145835,
+        291118.30286295834
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 186.45466672023758,
+          "upper": 213.9913333230652
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-07.json",
+        "firstTargetDisplayUptime": 291118.32271443756,
+        "firstTargetPresentationMachTicks": 6986839745071,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 143.28879170352593,
+          "upper": 162.88700001314282
+        }
+      },
+      "sibling": 54547,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54549,
+      "timing": {
+        "downToFocusLowerMs": 158.44158333493397,
+        "downToFocusUpperMs": 184.7655000165105,
+        "secondPositiveAfterUpMs": 140.11716668028384,
+        "upToFocusLowerMs": 115.27570831822231,
+        "upToFocusUpperMs": 133.66116670658812
+      },
+      "trial": 7
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291120.756197,
+        "downToCallbackMs": 49.97420829022303,
+        "operation": "b01e1069-1735-4058-8c63-3a5b248c07ee",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "b01e1069-1735-4058-8c63-3a5b248c07ee",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291120.756197
+          },
+          {
+            "action": "none",
+            "operation": "b01e1069-1735-4058-8c63-3a5b248c07ee",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291120.892689
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "53d239cb-0e04-4c59-a7ae-c26525343222",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291120.4394116667,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291120.43940333335,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291120.439042375
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291120.7062227917,
+        291120.88781491667
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 175.7411666912958,
+          "upper": 202.83412496792153
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-08.json",
+        "firstTargetDisplayUptime": 291120.90604950004,
+        "firstTargetPresentationMachTicks": 6986901745113,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 137.32304167933762,
+          "upper": 157.0094582857564
+        }
+      },
+      "sibling": 54549,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54547,
+      "timing": {
+        "downToFocusLowerMs": 143.79145833663642,
+        "downToFocusUpperMs": 171.1734583368525,
+        "secondPositiveAfterUpMs": 135.76745829777792,
+        "upToFocusLowerMs": 105.37333332467824,
+        "upToFocusUpperMs": 125.34879165468737
+      },
+      "trial": 8
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291123.509232,
+        "downToCallbackMs": 66.43087498378009,
+        "operation": "db0adfd1-361d-4540-afb5-80749947fc33",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "db0adfd1-361d-4540-afb5-80749947fc33",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291123.509232
+          },
+          {
+            "action": "none",
+            "operation": "db0adfd1-361d-4540-afb5-80749947fc33",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291123.637025
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "61057f7b-92c0-415b-b2c0-10fa05099925",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291123.11280966667,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291123.1128023334,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291123.1123985833
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291123.442801125,
+        291123.635537625
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 187.86241667112336,
+          "upper": 217.3225000151433
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-09.json",
+        "firstTargetDisplayUptime": 291123.6560517709,
+        "firstTargetPresentationMachTicks": 6986967745159,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 144.4038749905303,
+          "upper": 165.15541664557531
+        }
+      },
+      "sibling": 54547,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54549,
+      "timing": {
+        "downToFocusLowerMs": 148.44062499469146,
+        "downToFocusUpperMs": 172.22991667222232,
+        "secondPositiveAfterUpMs": 140.56941663147882,
+        "upToFocusLowerMs": 104.98208331409842,
+        "upToFocusUpperMs": 120.06283330265433
+      },
+      "trial": 9
+    },
+    {
+      "hostButton": {
+        "clickUptime": 291126.177232,
+        "downToCallbackMs": 68.22708330582827,
+        "operation": "2f9c7699-05f7-4d2e-8748-71c72a03fff1",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "2f9c7699-05f7-4d2e-8748-71c72a03fff1",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 291126.177232
+          },
+          {
+            "action": "none",
+            "operation": "2f9c7699-05f7-4d2e-8748-71c72a03fff1",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 291126.286849
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "88526c19-74cb-4a55-b0ea-5a733b1119ab",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 291125.8127941667,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 291125.812786875,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 291125.8123997084
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        291126.1090049167,
+        291126.2859215417
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 172.9120415984653,
+          "upper": 200.30383334960788
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-10.json",
+        "firstTargetDisplayUptime": 291126.3060528542,
+        "firstTargetPresentationMachTicks": 6987031345201,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 127.8718332760036,
+          "upper": 147.8075416525826
+        }
+      },
+      "sibling": 54549,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54547,
+      "timing": {
+        "downToFocusLowerMs": 141.45937497960404,
+        "downToFocusUpperMs": 167.3225416452624,
+        "secondPositiveAfterUpMs": 124.42033330444247,
+        "upToFocusLowerMs": 96.41916665714234,
+        "upToFocusUpperMs": 114.82624994823709
+      },
+      "trial": 10
+    }
+  ],
+  "cleanup": {
+    "launcherExit": 0,
+    "ownedSessionRemoved": true,
+    "readback": {
+      "frontIsFixture": false,
+      "generationGone": true,
+      "hid": [
+        5760,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5760,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "status": "EXITED",
+      "windowsGone": true
+    },
+    "signal": "close",
+    "status": "PASS"
+  },
+  "drags": {
+    "left": {
+      "after": [
+        {
+          "ax": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cg": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291136.98175433336,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "leaseState": "BOUND",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "verifiedOriginalPanelID": 54540,
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        },
+        {
+          "ax": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cg": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291137.21875170834,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "leaseState": "BOUND",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "verifiedOriginalPanelID": 54540,
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        }
+      ],
+      "before": {
+        "ax": [
+          [
+            615,
+            33,
+            615,
+            923
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            122
+          ],
+          [
+            1246,
+            318,
+            208,
+            122
+          ]
+        ],
+        "cg": [
+          [
+            615,
+            33,
+            615,
+            923
+          ],
+          [
+            0,
+            33,
+            615,
+            923
+          ]
+        ],
+        "clock": 291134.718251875,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "members": [
+          54547,
+          54549
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54540,
+        "publishedManagementReasons": [],
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "destination": 54549,
+      "events": [
+        {
+          "afterPost": 291134.90926962503,
+          "beforePost": 291134.90202004166,
+          "eventTimestampNS": 291134902020291,
+          "expectedAppKitPanelPoint": [
+            120,
+            710
+          ],
+          "point": [
+            1350,
+            246
+          ],
+          "previousPoint": [
+            1350,
+            246
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "type": 1
+        },
+        {
+          "afterPost": 291135.0544395833,
+          "beforePost": 291135.05442945834,
+          "eventTimestampNS": 291135054429625,
+          "expectedAppKitPanelPoint": [
+            114,
+            695
+          ],
+          "point": [
+            1344,
+            261
+          ],
+          "previousPoint": [
+            1350,
+            246
+          ],
+          "quartzDelta": [
+            -6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.082393125,
+          "beforePost": 291135.082379375,
+          "eventTimestampNS": 291135082379666,
+          "expectedAppKitPanelPoint": [
+            108,
+            680
+          ],
+          "point": [
+            1338,
+            276
+          ],
+          "previousPoint": [
+            1344,
+            261
+          ],
+          "quartzDelta": [
+            -6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.10683120834,
+          "beforePost": 291135.1068180417,
+          "eventTimestampNS": 291135106818291,
+          "expectedAppKitPanelPoint": [
+            103,
+            666
+          ],
+          "point": [
+            1333,
+            290
+          ],
+          "previousPoint": [
+            1338,
+            276
+          ],
+          "quartzDelta": [
+            -5,
+            14
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.1366417084,
+          "beforePost": 291135.13661020837,
+          "eventTimestampNS": 291135136610291,
+          "expectedAppKitPanelPoint": [
+            97,
+            651
+          ],
+          "point": [
+            1327,
+            305
+          ],
+          "previousPoint": [
+            1333,
+            290
+          ],
+          "quartzDelta": [
+            -6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.1606964167,
+          "beforePost": 291135.160670875,
+          "eventTimestampNS": 291135160671083,
+          "expectedAppKitPanelPoint": [
+            91,
+            636
+          ],
+          "point": [
+            1321,
+            320
+          ],
+          "previousPoint": [
+            1327,
+            305
+          ],
+          "quartzDelta": [
+            -6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.183516875,
+          "beforePost": 291135.1834970417,
+          "eventTimestampNS": 291135183497333,
+          "expectedAppKitPanelPoint": [
+            85,
+            621
+          ],
+          "point": [
+            1315,
+            335
+          ],
+          "previousPoint": [
+            1321,
+            320
+          ],
+          "quartzDelta": [
+            -6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.2068024167,
+          "beforePost": 291135.20678225,
+          "eventTimestampNS": 291135206782791,
+          "expectedAppKitPanelPoint": [
+            80,
+            607
+          ],
+          "point": [
+            1310,
+            349
+          ],
+          "previousPoint": [
+            1315,
+            335
+          ],
+          "quartzDelta": [
+            -5,
+            14
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.22934825,
+          "beforePost": 291135.229324625,
+          "eventTimestampNS": 291135229325041,
+          "expectedAppKitPanelPoint": [
+            74,
+            592
+          ],
+          "point": [
+            1304,
+            364
+          ],
+          "previousPoint": [
+            1310,
+            349
+          ],
+          "quartzDelta": [
+            -6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.2499782917,
+          "beforePost": 291135.24996183335,
+          "eventTimestampNS": 291135249961916,
+          "expectedAppKitPanelPoint": [
+            68,
+            577
+          ],
+          "point": [
+            1298,
+            379
+          ],
+          "previousPoint": [
+            1304,
+            364
+          ],
+          "quartzDelta": [
+            -6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291135.34356395836,
+          "beforePost": 291135.34354745835,
+          "eventTimestampNS": 291135343547958,
+          "expectedAppKitPanelPoint": [
+            68,
+            577
+          ],
+          "point": [
+            1298,
+            379
+          ],
+          "previousPoint": [
+            1298,
+            379
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "type": 2
+        }
+      ],
+      "expected": [
+        [
+          0,
+          33,
+          615,
+          923
+        ],
+        [
+          615,
+          33,
+          615,
+          923
+        ]
+      ],
+      "hostPhases": [
+        {
+          "phase": "cardDown",
+          "readAt": 291134.917558583
+        },
+        {
+          "phase": "cardDrop",
+          "readAt": 291135.356396458
+        },
+        {
+          "phase": "pairResolving",
+          "readAt": 291135.477855416
+        },
+        {
+          "phase": "pairListed",
+          "readAt": 291135.550506375
+        },
+        {
+          "phase": "pairPlacing",
+          "readAt": 291135.713266083
+        }
+      ],
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "dragMotion": "MATCHED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 9,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "347d3f4b-0085-4829-be63-acb31b68a540",
+      "issued": true,
+      "method": "WindowServer session down/dragged/up on production cards",
+      "phaseStart": 291134.719745041,
+      "postReads": [
+        {
+          "clock": 291135.49939716666,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291135.49939716666,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291135.7660407917,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291135.7660407917,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291136.02099679166,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291136.02099679166,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291136.2634379167,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291136.2634379167,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291136.4878914583,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "reason": "postReadWindowCoordinatesUnconfirmed",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "BLOCKED",
+          "systemWindows": [
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291136.7145640834,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                0,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                0,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291136.7145640834,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291136.98175433336,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                0,
+                33,
+                615,
+                923
+              ],
+              [
+                615,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                0,
+                33,
+                615,
+                923
+              ],
+              [
+                615,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291136.98175433336,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291137.21875170834,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                0,
+                33,
+                615,
+                923
+              ],
+              [
+                615,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                0,
+                33,
+                615,
+                923
+              ],
+              [
+                615,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291137.21875170834,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        }
+      ],
+      "primaryDeadline": 291138.84356395836,
+      "reason": "twoIndependentCGAndAXBounds",
+      "source": 54547,
+      "status": "PASS",
+      "withinPrimary": true
+    },
+    "right": {
+      "after": [
+        {
+          "ax": [
+            [
+              615,
+              33,
+              615,
+              923
+            ],
+            [
+              0,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cg": [
+            [
+              615,
+              33,
+              615,
+              923
+            ],
+            [
+              0,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291133.7471254584,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "leaseState": "BOUND",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "verifiedOriginalPanelID": 54540,
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        },
+        {
+          "ax": [
+            [
+              615,
+              33,
+              615,
+              923
+            ],
+            [
+              0,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cg": [
+            [
+              615,
+              33,
+              615,
+              923
+            ],
+            [
+              0,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291133.9876359167,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "leaseState": "BOUND",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "verifiedOriginalPanelID": 54540,
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        }
+      ],
+      "before": {
+        "ax": [
+          [
+            555,
+            392,
+            320,
+            193
+          ],
+          [
+            585,
+            367,
+            320,
+            193
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            122
+          ],
+          [
+            1246,
+            318,
+            208,
+            122
+          ]
+        ],
+        "cg": [
+          [
+            555,
+            392,
+            320,
+            193
+          ],
+          [
+            585,
+            367,
+            320,
+            193
+          ]
+        ],
+        "clock": 291131.0522309167,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "members": [
+          54547,
+          54549
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54540,
+        "publishedManagementReasons": [],
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "destination": 54549,
+      "events": [
+        {
+          "afterPost": 291131.47044504166,
+          "beforePost": 291131.46292308334,
+          "eventTimestampNS": 291131462923208,
+          "expectedAppKitPanelPoint": [
+            120,
+            710
+          ],
+          "point": [
+            1350,
+            246
+          ],
+          "previousPoint": [
+            1350,
+            246
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "type": 1
+        },
+        {
+          "afterPost": 291131.61563895835,
+          "beforePost": 291131.6156305417,
+          "eventTimestampNS": 291131615630708,
+          "expectedAppKitPanelPoint": [
+            126,
+            695
+          ],
+          "point": [
+            1356,
+            261
+          ],
+          "previousPoint": [
+            1350,
+            246
+          ],
+          "quartzDelta": [
+            6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.636721,
+          "beforePost": 291131.63671287504,
+          "eventTimestampNS": 291131636712958,
+          "expectedAppKitPanelPoint": [
+            132,
+            680
+          ],
+          "point": [
+            1362,
+            276
+          ],
+          "previousPoint": [
+            1356,
+            261
+          ],
+          "quartzDelta": [
+            6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.66376533336,
+          "beforePost": 291131.6637487084,
+          "eventTimestampNS": 291131663748916,
+          "expectedAppKitPanelPoint": [
+            137,
+            666
+          ],
+          "point": [
+            1367,
+            290
+          ],
+          "previousPoint": [
+            1362,
+            276
+          ],
+          "quartzDelta": [
+            5,
+            14
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.6825917084,
+          "beforePost": 291131.6825762084,
+          "eventTimestampNS": 291131682579708,
+          "expectedAppKitPanelPoint": [
+            143,
+            651
+          ],
+          "point": [
+            1373,
+            305
+          ],
+          "previousPoint": [
+            1367,
+            290
+          ],
+          "quartzDelta": [
+            6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.7023115417,
+          "beforePost": 291131.7023005,
+          "eventTimestampNS": 291131702300750,
+          "expectedAppKitPanelPoint": [
+            149,
+            636
+          ],
+          "point": [
+            1379,
+            320
+          ],
+          "previousPoint": [
+            1373,
+            305
+          ],
+          "quartzDelta": [
+            6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.7342445417,
+          "beforePost": 291131.7342338333,
+          "eventTimestampNS": 291131734234250,
+          "expectedAppKitPanelPoint": [
+            155,
+            621
+          ],
+          "point": [
+            1385,
+            335
+          ],
+          "previousPoint": [
+            1379,
+            320
+          ],
+          "quartzDelta": [
+            6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.7542240417,
+          "beforePost": 291131.75421520835,
+          "eventTimestampNS": 291131754215375,
+          "expectedAppKitPanelPoint": [
+            160,
+            607
+          ],
+          "point": [
+            1390,
+            349
+          ],
+          "previousPoint": [
+            1385,
+            335
+          ],
+          "quartzDelta": [
+            5,
+            14
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.7773547917,
+          "beforePost": 291131.77734475,
+          "eventTimestampNS": 291131777344916,
+          "expectedAppKitPanelPoint": [
+            166,
+            592
+          ],
+          "point": [
+            1396,
+            364
+          ],
+          "previousPoint": [
+            1390,
+            349
+          ],
+          "quartzDelta": [
+            6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.803485625,
+          "beforePost": 291131.80347625003,
+          "eventTimestampNS": 291131803476541,
+          "expectedAppKitPanelPoint": [
+            172,
+            577
+          ],
+          "point": [
+            1402,
+            379
+          ],
+          "previousPoint": [
+            1396,
+            364
+          ],
+          "quartzDelta": [
+            6,
+            15
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291131.8891032917,
+          "beforePost": 291131.889093375,
+          "eventTimestampNS": 291131889093625,
+          "expectedAppKitPanelPoint": [
+            172,
+            577
+          ],
+          "point": [
+            1402,
+            379
+          ],
+          "previousPoint": [
+            1402,
+            379
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "type": 2
+        }
+      ],
+      "expected": [
+        [
+          615,
+          33,
+          615,
+          923
+        ],
+        [
+          0,
+          33,
+          615,
+          923
+        ]
+      ],
+      "film": {
+        "attempt": "c7c92ea8-3d27-49db-8466-a63dbe003ea3",
+        "audio": false,
+        "cursor": false,
+        "duration": 3.1,
+        "encodedFrames": 44,
+        "file": "right-drag-fixture-windows.mp4",
+        "gesture": "first existing right drag",
+        "receipt": "right-drag-film.json",
+        "scope": "two enrolled fixture windows over an opaque matte",
+        "sha256": "da8f146085e96ab3dd64d913e77e725e2720f78a1e61c475384abbd8005e6de6",
+        "sidebar": false,
+        "sourceDisplayUptime": 291131.2727241458,
+        "status": "CAPTURED"
+      },
+      "hostPhases": [
+        {
+          "phase": "cardDown",
+          "readAt": 291131.489797875
+        },
+        {
+          "phase": "cardDrop",
+          "readAt": 291131.906519416
+        },
+        {
+          "phase": "pairResolving",
+          "readAt": 291132.114535458
+        },
+        {
+          "phase": "pairListed",
+          "readAt": 291132.181298791
+        },
+        {
+          "phase": "pairPlacing",
+          "readAt": 291132.371276541
+        }
+      ],
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "dragMotion": "MATCHED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 9,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "c7c92ea8-3d27-49db-8466-a63dbe003ea3",
+      "issued": true,
+      "method": "WindowServer session down/dragged/up on production cards",
+      "phaseStart": 291131.277400458,
+      "postReads": [
+        {
+          "clock": 291132.03334225004,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291132.03334225004,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291132.28275008337,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291132.28275008337,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291132.5158820417,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291132.5158820417,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291132.76149758336,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291132.76149758336,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291132.99290354166,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291132.99290354166,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291133.22121750005,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291133.22121750005,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291133.48723566666,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291133.48723566666,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291133.7471254584,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291133.7471254584,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291133.9876359167,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "cg": [
+              [
+                615,
+                33,
+                615,
+                923
+              ],
+              [
+                0,
+                33,
+                615,
+                923
+              ]
+            ],
+            "clock": 291133.9876359167,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                615,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "cg": [
+                0,
+                33,
+                615,
+                923
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        }
+      ],
+      "primaryDeadline": 291135.3891032917,
+      "reason": "twoIndependentCGAndAXBounds",
+      "source": 54547,
+      "status": "PASS",
+      "withinPrimary": true
+    },
+    "self": {
+      "after": [
+        {
+          "ax": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291130.65011633333,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "leaseState": "BOUND",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "verifiedOriginalPanelID": 54540,
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        },
+        {
+          "ax": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291130.88382633333,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "leaseState": "BOUND",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "verifiedOriginalPanelID": 54540,
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        }
+      ],
+      "before": {
+        "ax": [
+          [
+            555,
+            392,
+            320,
+            193
+          ],
+          [
+            585,
+            367,
+            320,
+            193
+          ]
+        ],
+        "cards": [
+          [
+            1246,
+            185,
+            208,
+            122
+          ],
+          [
+            1246,
+            318,
+            208,
+            122
+          ]
+        ],
+        "cg": [
+          [
+            555,
+            392,
+            320,
+            193
+          ],
+          [
+            585,
+            367,
+            320,
+            193
+          ]
+        ],
+        "clock": 291128.7121564167,
+        "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+        "members": [
+          54547,
+          54549
+        ],
+        "panel": [
+          1230,
+          33,
+          240,
+          923
+        ],
+        "panelID": 54540,
+        "publishedManagementReasons": [],
+        "visible": [
+          0,
+          33,
+          1470,
+          923
+        ]
+      },
+      "destination": 54547,
+      "duringSelfDrag": [
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.20074166666
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.229684125
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.25254637504
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.28076158336
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.30411933333
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.33294108335
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.364128125
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.40093675
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.4506048334
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.47705008334
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.504839
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.54322833335
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.5761645417
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.6096104167
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.643204375
+        },
+        {
+          "cg": [
+            [
+              555,
+              392,
+              320,
+              193
+            ],
+            [
+              585,
+              367,
+              320,
+              193
+            ]
+          ],
+          "clock": 291129.675434125
+        }
+      ],
+      "events": [
+        {
+          "afterPost": 291129.02735600004,
+          "beforePost": 291129.01812408335,
+          "eventTimestampNS": 291129018124208,
+          "expectedAppKitPanelPoint": [
+            120,
+            710
+          ],
+          "point": [
+            1350,
+            246
+          ],
+          "previousPoint": [
+            1350,
+            246
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "type": 1
+        },
+        {
+          "afterPost": 291129.179977875,
+          "beforePost": 291129.179967625,
+          "eventTimestampNS": 291129179967916,
+          "expectedAppKitPanelPoint": [
+            122,
+            710
+          ],
+          "point": [
+            1352,
+            246
+          ],
+          "previousPoint": [
+            1350,
+            246
+          ],
+          "quartzDelta": [
+            2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.2094546667,
+          "beforePost": 291129.20944458334,
+          "eventTimestampNS": 291129209444875,
+          "expectedAppKitPanelPoint": [
+            124,
+            710
+          ],
+          "point": [
+            1354,
+            246
+          ],
+          "previousPoint": [
+            1352,
+            246
+          ],
+          "quartzDelta": [
+            2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.231957625,
+          "beforePost": 291129.23194995837,
+          "eventTimestampNS": 291129231950125,
+          "expectedAppKitPanelPoint": [
+            127,
+            710
+          ],
+          "point": [
+            1357,
+            246
+          ],
+          "previousPoint": [
+            1354,
+            246
+          ],
+          "quartzDelta": [
+            3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.2628079167,
+          "beforePost": 291129.26279762504,
+          "eventTimestampNS": 291129262797708,
+          "expectedAppKitPanelPoint": [
+            129,
+            710
+          ],
+          "point": [
+            1359,
+            246
+          ],
+          "previousPoint": [
+            1357,
+            246
+          ],
+          "quartzDelta": [
+            2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.28312358336,
+          "beforePost": 291129.2831152917,
+          "eventTimestampNS": 291129283115458,
+          "expectedAppKitPanelPoint": [
+            131,
+            710
+          ],
+          "point": [
+            1361,
+            246
+          ],
+          "previousPoint": [
+            1359,
+            246
+          ],
+          "quartzDelta": [
+            2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.31605775,
+          "beforePost": 291129.3160498334,
+          "eventTimestampNS": 291129316049958,
+          "expectedAppKitPanelPoint": [
+            133,
+            710
+          ],
+          "point": [
+            1363,
+            246
+          ],
+          "previousPoint": [
+            1361,
+            246
+          ],
+          "quartzDelta": [
+            2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.34693187504,
+          "beforePost": 291129.3469229167,
+          "eventTimestampNS": 291129346923125,
+          "expectedAppKitPanelPoint": [
+            136,
+            710
+          ],
+          "point": [
+            1366,
+            246
+          ],
+          "previousPoint": [
+            1363,
+            246
+          ],
+          "quartzDelta": [
+            3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.3809279167,
+          "beforePost": 291129.38091795833,
+          "eventTimestampNS": 291129380918041,
+          "expectedAppKitPanelPoint": [
+            138,
+            710
+          ],
+          "point": [
+            1368,
+            246
+          ],
+          "previousPoint": [
+            1366,
+            246
+          ],
+          "quartzDelta": [
+            2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.43291870836,
+          "beforePost": 291129.4329085834,
+          "eventTimestampNS": 291129432908666,
+          "expectedAppKitPanelPoint": [
+            140,
+            710
+          ],
+          "point": [
+            1370,
+            246
+          ],
+          "previousPoint": [
+            1368,
+            246
+          ],
+          "quartzDelta": [
+            2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.4532477917,
+          "beforePost": 291129.4532399167,
+          "eventTimestampNS": 291129453240125,
+          "expectedAppKitPanelPoint": [
+            137,
+            710
+          ],
+          "point": [
+            1367,
+            246
+          ],
+          "previousPoint": [
+            1370,
+            246
+          ],
+          "quartzDelta": [
+            -3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.4844825417,
+          "beforePost": 291129.4844732084,
+          "eventTimestampNS": 291129484473291,
+          "expectedAppKitPanelPoint": [
+            134,
+            710
+          ],
+          "point": [
+            1364,
+            246
+          ],
+          "previousPoint": [
+            1367,
+            246
+          ],
+          "quartzDelta": [
+            -3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.52242937504,
+          "beforePost": 291129.522419125,
+          "eventTimestampNS": 291129522419333,
+          "expectedAppKitPanelPoint": [
+            131,
+            710
+          ],
+          "point": [
+            1361,
+            246
+          ],
+          "previousPoint": [
+            1364,
+            246
+          ],
+          "quartzDelta": [
+            -3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.5546341667,
+          "beforePost": 291129.5546150417,
+          "eventTimestampNS": 291129554615375,
+          "expectedAppKitPanelPoint": [
+            129,
+            710
+          ],
+          "point": [
+            1359,
+            246
+          ],
+          "previousPoint": [
+            1361,
+            246
+          ],
+          "quartzDelta": [
+            -2,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.58673433337,
+          "beforePost": 291129.58671500004,
+          "eventTimestampNS": 291129586715375,
+          "expectedAppKitPanelPoint": [
+            126,
+            710
+          ],
+          "point": [
+            1356,
+            246
+          ],
+          "previousPoint": [
+            1359,
+            246
+          ],
+          "quartzDelta": [
+            -3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.62028725,
+          "beforePost": 291129.62026725,
+          "eventTimestampNS": 291129620267666,
+          "expectedAppKitPanelPoint": [
+            123,
+            710
+          ],
+          "point": [
+            1353,
+            246
+          ],
+          "previousPoint": [
+            1356,
+            246
+          ],
+          "quartzDelta": [
+            -3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.65546325,
+          "beforePost": 291129.6554394584,
+          "eventTimestampNS": 291129655439500,
+          "expectedAppKitPanelPoint": [
+            120,
+            710
+          ],
+          "point": [
+            1350,
+            246
+          ],
+          "previousPoint": [
+            1353,
+            246
+          ],
+          "quartzDelta": [
+            -3,
+            0
+          ],
+          "type": 6
+        },
+        {
+          "afterPost": 291129.7552095417,
+          "beforePost": 291129.7551659167,
+          "eventTimestampNS": 291129755166791,
+          "expectedAppKitPanelPoint": [
+            120,
+            710
+          ],
+          "point": [
+            1350,
+            246
+          ],
+          "previousPoint": [
+            1350,
+            246
+          ],
+          "quartzDelta": [
+            0,
+            0
+          ],
+          "type": 2
+        }
+      ],
+      "expected": [
+        [
+          555,
+          392,
+          320,
+          193
+        ],
+        [
+          585,
+          367,
+          320,
+          193
+        ]
+      ],
+      "hostPhases": [
+        {
+          "phase": "cardDown",
+          "readAt": 291129.043202625
+        }
+      ],
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "dragMotion": "MATCHED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 16,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "6fab9a19-2b36-4d5d-b4b5-a372392f6fbb",
+      "issued": true,
+      "method": "WindowServer session down/dragged/up on production cards",
+      "phaseStart": 291128.714131875,
+      "postReads": [
+        {
+          "clock": 291129.93623679166,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291129.93623679166,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291130.21742866666,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291130.21742866666,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 0,
+                "uniqueEnabled": false
+              },
+              {
+                "count": 0,
+                "uniqueEnabled": false
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291130.37232100003,
+          "frontKind": "fixture",
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "reason": "fixtureAXWindowInventoryUnavailable",
+          "registrationStage": "registeredBundleAndExecutable",
+          "status": "BLOCKED"
+        },
+        {
+          "clock": 291130.65011633333,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291130.65011633333,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        },
+        {
+          "clock": 291130.88382633333,
+          "fileDigestsMatch": true,
+          "frontKind": "fixture",
+          "geometry": {
+            "ax": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "cg": [
+              [
+                555,
+                392,
+                320,
+                193
+              ],
+              [
+                585,
+                367,
+                320,
+                193
+              ]
+            ],
+            "clock": 291130.88382633333,
+            "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+            "leaseState": "BOUND",
+            "members": [
+              54547,
+              54549
+            ],
+            "panel": [
+              1230,
+              33,
+              240,
+              923
+            ],
+            "panelID": 54540,
+            "verifiedOriginalPanelID": 54540,
+            "visible": [
+              0,
+              33,
+              1470,
+              923
+            ]
+          },
+          "leaseState": "BOUND",
+          "lsState": "regularExactBundleAndExecutable",
+          "sidebar": {
+            "cards": [
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              },
+              {
+                "count": 1,
+                "uniqueEnabled": true
+              }
+            ],
+            "otherCurrentCardCount": 0,
+            "panelCGID": 54540,
+            "panelVisible": true,
+            "publishedManagementReasons": [],
+            "unconfirmedRosterNotice": false
+          },
+          "status": "READ",
+          "systemWindows": [
+            {
+              "ax": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "cg": [
+                555,
+                392,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54547
+            },
+            {
+              "ax": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "cg": [
+                585,
+                367,
+                320,
+                193
+              ],
+              "inForwardCatalog": true,
+              "onOriginalSpace": true,
+              "window": 54549
+            }
+          ]
+        }
+      ],
+      "primaryDeadline": 291133.2552095417,
+      "reason": "twoIndependentCGAndAXBounds",
+      "source": 54547,
+      "status": "PASS",
+      "withinPrimary": true
+    }
+  },
+  "firstDocumentCapture": {
+    "after": {
+      "birth": 1795217708485379,
+      "clock": 291103.91283362504,
+      "fileSHA256": [
+        "3cf4ed0bb04a555ddbf944e24eb577a6ce1719b5c5c7089fc9c7ad5aa88c8ecb",
+        "b9514013548eadec030584153888ca74b3a76b83b61e184872d4a317179ac697"
+      ],
+      "hid": [
+        5760,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5760,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795217694652004,
+      "pid": 1060,
+      "window": 54549
+    },
+    "before": {
+      "birth": 1795217708485379,
+      "clock": 291103.568094875,
+      "fileSHA256": [
+        "3cf4ed0bb04a555ddbf944e24eb577a6ce1719b5c5c7089fc9c7ad5aa88c8ecb",
+        "b9514013548eadec030584153888ca74b3a76b83b61e184872d4a317179ac697"
+      ],
+      "hid": [
+        5760,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5760,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795217694652004,
+      "pid": 1060,
+      "window": 54549
+    },
+    "file": "first-registered-document.png",
+    "height": 386,
+    "scope": "sole enrolled document window",
+    "sha256": "a7d127783970bc8381c7612e31e4c1829a12f5b0859b932bfda44dbd1631de4d",
+    "status": "CAPTURED",
+    "target": 54549,
+    "width": 640
+  },
+  "fixturePreparation": {
+    "checkedAt": 291099.667517375,
+    "emptyLeaseReads": [
+      {
+        "extraOwners": [
+          "com.holdsnow.nearpane.alpha"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 291098.8715556667
+      },
+      {
+        "extraOwners": [
+          "com.holdsnow.nearpane.alpha"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 291099.2755050833
+      }
+    ],
+    "focused": 54547,
+    "id": "30c629ed-838b-4ae7-9b6e-460fd122f289",
+    "issued": true,
+    "launcherPID": 1058,
+    "method": "singleForegroundLaunchServicesOpen",
+    "originalForegroundBirth": 1795217694652004,
+    "productAction": false,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+    "status": "VERIFIED"
+  },
+  "fixtureSigning": {
+    "CDHash": "13733373d81504d5768a27cf484589a4b7fdf538",
+    "Identifier": "net.example.spaces-document",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "focusRestoreRequested": false,
+  "hostButtonTelemetry": {
+    "matched": 10,
+    "readerStatus": "OBSERVED",
+    "scope": "installed Host WindowFocusLatency category"
+  },
+  "launch": "foreground Launch Services open -n -W -a",
+  "layoutCapture": {
+    "files": [
+      {
+        "after": {
+          "ax": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cards": [
+            [
+              1246,
+              185,
+              208,
+              122
+            ],
+            [
+              1246,
+              318,
+              208,
+              122
+            ]
+          ],
+          "cg": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291137.6476597917,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "publishedManagementReasons": [],
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        },
+        "before": {
+          "ax": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cards": [
+            [
+              1246,
+              185,
+              208,
+              122
+            ],
+            [
+              1246,
+              318,
+              208,
+              122
+            ]
+          ],
+          "cg": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291137.38664000004,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "publishedManagementReasons": [],
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        },
+        "file": "paired-ordinary-window-A.png",
+        "height": 1846,
+        "sha256": "5be1c4ebe45f8cbbea029be43b750c821d31f930ae670adf2b79f5fe19f51213",
+        "slot": "A",
+        "width": 1230,
+        "window": 54547
+      },
+      {
+        "after": {
+          "ax": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cards": [
+            [
+              1246,
+              185,
+              208,
+              122
+            ],
+            [
+              1246,
+              318,
+              208,
+              122
+            ]
+          ],
+          "cg": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291138.08447266667,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "publishedManagementReasons": [],
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        },
+        "before": {
+          "ax": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "cards": [
+            [
+              1246,
+              185,
+              208,
+              122
+            ],
+            [
+              1246,
+              318,
+              208,
+              122
+            ]
+          ],
+          "cg": [
+            [
+              0,
+              33,
+              615,
+              923
+            ],
+            [
+              615,
+              33,
+              615,
+              923
+            ]
+          ],
+          "clock": 291137.79719095834,
+          "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+          "members": [
+            54547,
+            54549
+          ],
+          "panel": [
+            1230,
+            33,
+            240,
+            923
+          ],
+          "panelID": 54540,
+          "publishedManagementReasons": [],
+          "visible": [
+            0,
+            33,
+            1470,
+            923
+          ]
+        },
+        "file": "paired-ordinary-window-B.png",
+        "height": 1846,
+        "sha256": "6b0afd6f0d36ff17e64d5f0f3f3a83c5e91b188e77e3bd9713109c6b689ae508",
+        "slot": "B",
+        "width": 1230,
+        "window": 54549
+      }
+    ],
+    "scope": "two separate enrolled document windows",
+    "status": "CAPTURED"
+  },
+  "measurement": {
+    "boundedStaticScreenshots": {
+      "count": 0,
+      "downToConfirmedByUpperMs": {
+        "n": 0
+      },
+      "upToConfirmedByUpperMs": {
+        "n": 0
+      }
+    },
+    "clock": "ProcessInfo.systemUptime",
+    "displayPresentation": "OBSERVED",
+    "endpoint": "foreground application + focused and main AX window + both focused editor reads",
+    "nativeComparison": "NOT_MEASURED",
+    "origin": "WindowServer session mouse posting",
+    "percentiles": "sample only, median p50, nearest-rank p95",
+    "presentationCounts": {
+      "attempts": 10,
+      "observed": 10,
+      "sampled": 10
+    },
+    "statistics": {
+      "downToFocusLowerMs": {
+        "max": 178.572750010062,
+        "n": 10,
+        "p50": 147.49239583034068,
+        "p95": 178.572750010062
+      },
+      "downToFocusUpperMs": {
+        "max": 212.2877916553989,
+        "n": 10,
+        "p50": 172.33812500489876,
+        "p95": 212.2877916553989
+      },
+      "downToHostButtonMs": {
+        "max": 68.22708330582827,
+        "n": 10,
+        "p50": 58.5715833294671,
+        "p95": 68.22708330582827
+      },
+      "downToVisibleMSLower": {
+        "max": 207.95804174849764,
+        "n": 10,
+        "p50": 177.32883332064375,
+        "p95": 207.95804174849764
+      },
+      "downToVisibleMSUpper": {
+        "max": 234.81245833681896,
+        "n": 10,
+        "p50": 204.50614581932314,
+        "p95": 234.81245833681896
+      },
+      "secondPositiveAfterUpMs": {
+        "max": 172.17704170616344,
+        "n": 10,
+        "p50": 137.1907499851659,
+        "p95": 172.17704170616344
+      },
+      "upToFocusLowerMs": {
+        "max": 139.2008750117384,
+        "n": 10,
+        "p50": 105.47750000841916,
+        "p95": 139.2008750117384
+      },
+      "upToFocusUpperMs": {
+        "max": 165.54770834045485,
+        "n": 10,
+        "p50": 123.62318750820123,
+        "p95": 165.54770834045485
+      },
+      "upToVisibleMSLower": {
+        "max": 168.58616675017402,
+        "n": 10,
+        "p50": 139.41362500190735,
+        "p95": 168.58616675017402
+      },
+      "upToVisibleMSUpper": {
+        "max": 188.0723750218749,
+        "n": 10,
+        "p50": 158.85360416723415,
+        "p95": 188.0723750218749
+      }
+    },
+    "unit": "ms"
+  },
+  "observerSigning": {
+    "CDHash": "748fe46aa8421afe691696f5e796f033f6622d39",
+    "Identifier": "net.example.nearpane.p2-observer",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "operationStatus": "PASS",
+  "passes": 10,
+  "reason": "tenExactPointerInputsAndThreeOrdinaryDragChecks",
+  "registration": {
+    "birth": 1795217708485379,
+    "bundle": "net.example.spaces-document",
+    "bundleURL": "/private/tmp/nearpane-d01.pair-compositor.sASF4gr2/Field Notes.app",
+    "cdHash": "13733373d81504d5768a27cf484589a4b7fdf538",
+    "executable": "/private/tmp/nearpane-d01.pair-compositor.sASF4gr2/Field Notes.app/Contents/MacOS/FieldNotes",
+    "kernelExecutableConfirmed": true,
+    "launch": 1795217708.481647,
+    "pid": 1060,
+    "regular": true,
+    "team": "ZB9D4T66QB"
+  },
+  "scenario": "pair-pointer",
+  "scope": {
+    "allowedFront": 280,
+    "allowedFrontBirth": 1795217694652004,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "hostBirth": 1795217694652004,
+    "hostHash": "4b9ce3992bcc7acf7a142e86a8d839d45725488d",
+    "hostPID": 280,
+    "leaseHardwareCounters": [
+      5760,
+      70,
+      0,
+      3049,
+      136752
+    ],
+    "space": 5095,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+  },
+  "selection": {
+    "attempted": 10,
+    "focusTimed": 10,
+    "inputsConfirmed": 10,
+    "notAttempted": 0,
+    "planned": 10,
+    "status": "PASS"
+  },
+  "status": "PASS",
+  "superseded": false,
+  "workRect": {
+    "ordinary": [
+      0,
+      33,
+      1230,
+      923
+    ],
+    "panel": [
+      1230,
+      33,
+      240,
+      923
+    ],
+    "policy": {
+      "edge": "right",
+      "explicit": null,
+      "sha256": "8d2d086411fe2b2f7b4f7f4216a9c2e64e3feca839e67c46f078e2a570bd48ef"
+    },
+    "source": "independent NSScreen usable bounds, actual installed panel, isolated configuration",
+    "usable": [
+      0,
+      33,
+      1470,
+      923
+    ]
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "status": "PASS",
+  "profileRemoved": true,
+  "installedHost": "NOT_RUN",
+  "groupVisibilitySwitch": "NOT_RUN",
+  "physicalMultiDisplay": "NOT_RUN",
+  "nativeWrites": 0,
+  "sourceRevision": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+  "scope": "two registered ordinary fixture apps and two independent directory readers",
+  "record": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "BDCF7ECC-6A67-416B-A325-DAD9AA50AB5C",
+      "F8A8D2E1-9D56-4E95-A0AA-5E8C7FA32586"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 11564,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "oldBindingsIneligible": false,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "reopen": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "BDCF7ECC-6A67-416B-A325-DAD9AA50AB5C",
+      "F8A8D2E1-9D56-4E95-A0AA-5E8C7FA32586"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 11573,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "oldBindingsIneligible": true,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      679
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "singleWindowVisibility": {
+    "identity": "retained AX object and owner-assigned AX identifier bound to its declared CGWindowID",
+    "nativeMembership": "UNKNOWN",
+    "naturalKeyboardInput": "NOT_RUN",
+    "park": {
+      "focusObservation": {
+        "frontProcessUnchanged": true,
+        "siblingKeyUnchanged": true,
+        "targetKeyUnchanged": true
+      },
+      "independentSamples": 2,
+      "observed": {
+        "restoredPresentation": true,
+        "siblingAndOtherApp": true,
+        "targetAppKit": true,
+        "targetAX": true,
+        "targetCG": true
+      },
+      "status": "PASS"
+    },
+    "parkSetter": 0,
+    "profileChanges": 0,
+    "reason": "singleAttributeRoundTripObserved",
+    "restore": {
+      "focusObservation": {
+        "frontProcessUnchanged": true,
+        "siblingKeyUnchanged": true,
+        "targetKeyUnchanged": false
+      },
+      "independentSamples": 2,
+      "observed": {
+        "restoredPresentation": true,
+        "siblingAndOtherApp": true,
+        "targetAppKit": true,
+        "targetAX": true,
+        "targetCG": true
+      },
+      "status": "PASS"
+    },
+    "restoreIdentity": {
+      "dispatchAvailable": true,
+      "listedIdentifierMatches": 1,
+      "listedSameObject": true,
+      "originalEnumerationRoute": false,
+      "ownerAndAXAgreeOnState": true,
+      "ownerConfirmedSameNumber": true,
+      "ownerGeneration": true,
+      "retainedAXOwner": true,
+      "retainedIdentifierMatches": true,
+      "retainedIdentifierPresent": true,
+      "windowListReadable": true
+    },
+    "restoreSetter": 0,
+    "scope": "one enrolled foreign window, one same-owner sibling, one other-app bystander",
+    "setRequests": 2,
+    "status": "PASS",
+    "wholeGroupSwitch": "NOT_RUN"
+  },
+  "fixtureProcessesExited": true
+}

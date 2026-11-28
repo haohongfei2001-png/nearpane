@@ -1,0 +1,132 @@
+{
+  "actualR4Inputs" : 0,
+  "appExpose" : "NOT_RUN",
+  "cleanup" : true,
+  "desktopGestures" : "NOT_RUN",
+  "dispatchAttempted" : false,
+  "events" : [
+
+  ],
+  "foreignWindowReadback" : false,
+  "fullScreenSplitView" : "NOT_RUN",
+  "groupMergeSplit" : "NOT_RUN",
+  "lastReadiness" : {
+    "accessibilityRead" : "available",
+    "accessibilityTrusted" : true,
+    "catalogComplete" : false,
+    "catalogCompletenessObserved" : true,
+    "catalogIssues" : [
+      "membershipUnavailable:pid=32739,window=54",
+      "membershipUnavailable:pid=32739,window=69",
+      "membershipUnavailable:pid=357,window=21",
+      "membershipUnavailable:pid=32739,window=67",
+      "membershipUnavailable:pid=357,window=20",
+      "membershipUnavailable:pid=32739,window=66",
+      "membershipUnavailable:pid=357,window=19",
+      "membershipUnavailable:pid=32739,window=65",
+      "membershipUnavailable:pid=357,window=18",
+      "membershipUnavailable:pid=32743,window=64",
+      "membershipUnavailable:pid=32743,window=63",
+      "membershipUnavailable:pid=32743,window=62",
+      "membershipUnavailable:pid=32743,window=57",
+      "membershipUnavailable:pid=32743,window=61",
+      "membershipUnavailable:pid=357,window=25"
+    ],
+    "currentScopes" : [
+      {
+        "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "ordinaryUUID" : "C04AD14F-50DC-6E53-A46F-3B460E69F083",
+        "record" : "12"
+      }
+    ],
+    "distinctFixtureGroupCount" : 0,
+    "fixtureGroupCount" : 0,
+    "fresh" : true,
+    "nativeStageManager" : "off",
+    "observedCapability" : "unavailable",
+    "revision" : 7,
+    "roster" : [
+      {
+        "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "isOnscreen" : true,
+        "membership" : "known(recordIDs: [\"12\"])",
+        "number" : 56,
+        "onActiveDesktop" : true,
+        "ordinaryRole" : "ordinary",
+        "pid" : 32743
+      },
+      {
+        "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "isOnscreen" : true,
+        "membership" : "known(recordIDs: [\"12\"])",
+        "number" : 55,
+        "onActiveDesktop" : true,
+        "ordinaryRole" : "ordinary",
+        "pid" : 32739
+      },
+      {
+        "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "isOnscreen" : true,
+        "membership" : "known(recordIDs: [\"12\"])",
+        "number" : 53,
+        "onActiveDesktop" : true,
+        "ordinaryRole" : "ordinary",
+        "pid" : 32739
+      }
+    ],
+    "snapshotAvailable" : true,
+    "spacesRead" : "observed",
+    "targets" : [
+      {
+        "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "included" : true,
+        "isOnscreen" : true,
+        "membership" : "known(recordIDs: [\"12\"])",
+        "number" : 53,
+        "onActiveDesktop" : true,
+        "pid" : 32739
+      },
+      {
+        "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "included" : true,
+        "isOnscreen" : true,
+        "membership" : "known(recordIDs: [\"12\"])",
+        "number" : 55,
+        "onActiveDesktop" : true,
+        "pid" : 32739
+      },
+      {
+        "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "included" : true,
+        "isOnscreen" : true,
+        "membership" : "known(recordIDs: [\"12\"])",
+        "number" : 56,
+        "onActiveDesktop" : true,
+        "pid" : 32743
+      }
+    ],
+    "windowCount" : 3
+  },
+  "missionControl" : "NOT_RUN",
+  "nativeDesktopReveal" : "NOT_RUN",
+  "nativeDesktopSwitch" : "NOT_RUN",
+  "nativeFullScreen" : "NOT_RUN",
+  "qualificationGranted" : false,
+  "reason" : "fixtureGroupsNotReady",
+  "reasonBeforeCleanup" : "fixtureGroupsNotReady",
+  "schema" : 1,
+  "status" : "BLOCKED",
+  "statusBeforeCleanup" : "BLOCKED",
+  "windowPreviewMetrics" : {
+    "activeStreams" : 3,
+    "cacheEntries" : 3,
+    "captureRequests" : 9,
+    "capturesInFlight" : 0,
+    "chargedPixelBytes" : 1241088,
+    "deliveredFrames" : 10,
+    "gallerySessions" : 1,
+    "visibleDisplays" : 1,
+    "windowManagementBusy" : false
+  },
+  "yellowButtonRouting" : "NOT_RUN"
+}

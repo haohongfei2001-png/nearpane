@@ -1,0 +1,68 @@
+{
+  "verifiedArchiveSHA256": "43d8afce35c8c67c4d68943a788dde6db9fe6ad5fad5d74294cfb5c892b0d4de",
+  "hashedMembers": 74,
+  "observedSteps": 3,
+  "AXPress": 3,
+  "uniqueSignedHostIntents": 3,
+  "method": "Recomputed phases, exact intent/window, 2-second post-arrival dwell, placement and nearest-rank latency from archived raw Host and WindowServer records. Physical-video status is carried from its separate observation receipt.",
+  "stages": {
+    "roundTrip": {
+      "gate": "PASS",
+      "navigation": "PASS",
+      "expected": 2,
+      "samples": 2,
+      "AXPress": 2,
+      "gestureSequences": 2,
+      "independentlyConfirmed": 2,
+      "foreignSpaceSamples": 0,
+      "postDispatchWindowServerReads": 99,
+      "visualByAction": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 2
+      },
+      "timeToFirstStableTargetSampleMS": {
+        "p50": 222.47,
+        "p95": 317.01,
+        "p99": 317.01
+      }
+    },
+    "ten": {
+      "gate": "UNKNOWN",
+      "navigation": "BLOCKED",
+      "expected": 10,
+      "samples": 1,
+      "AXPress": 1,
+      "gestureSequences": 1,
+      "independentlyConfirmed": 1,
+      "foreignSpaceSamples": 0,
+      "postDispatchWindowServerReads": 49,
+      "visualByAction": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 1
+      },
+      "timeToFirstStableTargetSampleMS": {
+        "p50": 226.64,
+        "p95": 226.64,
+        "p99": 226.64
+      }
+    },
+    "fifty": {
+      "gate": "NOT_RUN",
+      "navigation": "NOT_RUN",
+      "expected": 50,
+      "samples": 0,
+      "AXPress": 0,
+      "gestureSequences": 0,
+      "independentlyConfirmed": 0,
+      "foreignSpaceSamples": 0,
+      "postDispatchWindowServerReads": 0,
+      "visualByAction": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0
+      }
+    }
+  }
+}

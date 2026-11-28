@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "events": [
+    {
+      "stage": "p0RequiredBeforeQuit",
+      "utc": "2026-11-22T16:29:42.388439+00:00"
+    }
+  ],
+  "status": "BLOCKED",
+  "scope": "spaces",
+  "qualification": "BLOCKED",
+  "p0Status": "BLOCKED",
+  "p0Reason": "fullscreenType4",
+  "p0SHA256": "7b17f8bf93ac2a1a87e07460114a07385b1388ca832a1db57169e26bedf03d4b",
+  "quitRequests": 0,
+  "stage": "p0RequiredBeforeQuit",
+  "privateSupervisorReceiptSHA256": "9d8526aff64971f3de88bbe78953f820e35c45a991c3b0888472db9f0fb4d9cd"
+}

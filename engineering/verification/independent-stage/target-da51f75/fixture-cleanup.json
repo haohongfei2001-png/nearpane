@@ -1,0 +1,10 @@
+[
+  {
+    "command": "directChildTermination",
+    "exit": -15
+  },
+  {
+    "command": "directChildTermination",
+    "exit": -15
+  }
+]

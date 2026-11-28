@@ -1,0 +1,9 @@
+{
+  "hasMenuContext": true,
+  "installedProviders": 1,
+  "phase": "serviceRegistration",
+  "portMatchesBundleName": true,
+  "reason": "Unique installed provider",
+  "registeredProviders": 1,
+  "status": "READY"
+}

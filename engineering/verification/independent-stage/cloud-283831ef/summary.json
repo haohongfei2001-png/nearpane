@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "revision": "283831ef8fdd452a50dd8a637d8a501ba9efb0ae",
+  "workflowRun": 45678251498,
+  "job": 139431534762,
+  "artifact": 15053163726,
+  "candidateZipSHA256": "c0c60dbb014b0d0b135f52605c2bb694ec3d60b0b8a1996876c8224b7d234e5f",
+  "environment": {
+    "macOS": "27.0.1",
+    "kernelBuild": "26A434",
+    "architecture": "arm64",
+    "sipEnabled": false,
+    "accessibility": true
+  },
+  "source": "PASS",
+  "fullReleaseCompile": "PASS",
+  "spacesWorkerCompileSignatureAndProtocol": "PASS",
+  "candidateBundleSignature": "PASS",
+  "candidateArchive": "PASS",
+  "foreignWindowWrites": 0,
+  "launchCanary": "NOT_RUN",
+  "foreignEngine": "BLOCKED ordinaryDesktopUnavailable",
+  "productR4": "UNKNOWN productionRestoreIncomplete; actualR4Inputs=0; original preflight reason was obscured by cleanup",
+  "fixtureCleanup": "PASS ownedWindowQuit exit0 for both children",
+  "exactTarget": "NOT_PROVEN",
+  "qualificationGranted": false,
+  "originalReceiptSHA256": {
+    "candidate.json": "ca604e47a4b919fe94b25a80e9482fba09664674dedde97a4a3405eafb272b0f",
+    "candidate.sha256": "9be893b0764930f10b4b55427cece06ee9a9cd9fae0d71a150ebe26bfcfaf530",
+    "source-summary.json": "86b605454059f021e7fab14914f72d7000f5d3ad3310b431d1244f0ef15e64c4",
+    "engine-result.json": "5acc65f47077b42fca339cd2adb1145f1ca186f22b48b09052f305a58339a313",
+    "engine.log": "421eb64a5ac557d16e21619cc0a400f740c3bbce6cdfbcb59354464bae8a65f1",
+    "product-result.json": "a945d7bde17b2d6b05e716dc764f296aab686656ffe716e3aee2f25e5ead93a3",
+    "fixture-cleanup.json": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+  }
+}

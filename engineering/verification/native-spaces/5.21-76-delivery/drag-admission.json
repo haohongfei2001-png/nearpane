@@ -1,0 +1,12 @@
+{
+  "cleanup": {
+    "required": false
+  },
+  "completed": [],
+  "fixtureStarted": false,
+  "inputs": 0,
+  "movementAttempts": 0,
+  "reason": "No positive, unexpired test-Space creation manifest.",
+  "scenario": "D01",
+  "status": "BLOCKED"
+}

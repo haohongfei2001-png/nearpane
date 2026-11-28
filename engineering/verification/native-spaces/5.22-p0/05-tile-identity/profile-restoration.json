@@ -1,0 +1,13 @@
+{
+  "installed": "/Applications/Nearpane.app",
+  "build": "90",
+  "source": "f9e981c3ac8d472d362247bbb9e1ce7c539afdcd",
+  "startedWithDailyHost": true,
+  "normalLaunch": true,
+  "isolatedLockConfirmed": true,
+  "isolatedPID": 63905,
+  "commandExit": 2,
+  "dailyHostRestored": true,
+  "dailyProfileAndConfigurationUnchanged": true,
+  "isolatedHomeRemoved": true
+}

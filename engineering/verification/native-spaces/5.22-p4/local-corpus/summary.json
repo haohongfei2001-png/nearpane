@@ -1,0 +1,64 @@
+{
+  "observedUTC": "2026-11-20T19:40:34.642174+00:00",
+  "sourceParent": "147a91c",
+  "machine": "Version 27.0 (Build 26A428)",
+  "software": "current P4 source, compiled in independent worktree; official /Applications candidate d2d0bb6 was not started",
+  "sixColdFileCases": {
+    "journalReopen": "PASS",
+    "onsetPCM": "PASS",
+    "distinctColdProcesses": 12,
+    "wholePCMByteIdenticalCases": 6,
+    "actualASRScored": 0
+  },
+  "source": "local Tingting synthesis into WAV files with no playback, 3 clean + 3 deterministic 10 dB noisy",
+  "firstAudibleContent": "all samples, including the first 320 PCM samples and the complete tail, byte-identical to the original through each recording. First voiced 150ms also independently located.",
+  "storedStateByCase": [
+    "recoverable",
+    "recoverable",
+    "recoverable",
+    "recoverable",
+    "recoverable",
+    "recoverable"
+  ],
+  "realDefaultFinalsScored": 0,
+  "firstCharacterRate": null,
+  "CER": null,
+  "modelQualification": {
+    "saytile": {
+      "installedLocale": true,
+      "inventory": "supported",
+      "locale": "zh_CN"
+    },
+    "legacyPermission": "notDetermined for this diagnostic process",
+    "dictation": {
+      "installedLocale": true,
+      "inventory": "supported",
+      "locale": "zh_CN"
+    },
+    "defaultFileRecognition": "BLOCKED_MODEL_NOT_INSTALLED",
+    "localAssetDownload": false,
+    "hostedReference": "d6df4bf hosted public macOS arm64 runner"
+  },
+  "dictionaryContent": {
+    "status": "PASS_OFFSCREEN_CONTENT",
+    "localEnglishTerm": "bicycle",
+    "foundChineseTerm": "自行车",
+    "renderedSize": [
+      62,
+      37
+    ],
+    "source": "system Dictionary Services, synthetic offscreen fixture only",
+    "newNotebookReopen": true
+  },
+  "remaining": {
+    "enToZhHansProductionTranslation": "BLOCKED_MODEL_NOT_INSTALLED",
+    "signedNSServicesVisiblePanel": "NOT_RUN",
+    "60PhysicalMicStarts": "NOT_RUN"
+  },
+  "tests": {
+    "actualDefaultAssetRead": "PASS",
+    "digitalAlignmentRegressions": 2,
+    "offscreenProductionContentAndWordStorage": "PASS"
+  },
+  "rollback": "Revert this diagnostic commit. The same production text view remains in the official TranslationSession panel. No provider was enabled or model installed."
+}

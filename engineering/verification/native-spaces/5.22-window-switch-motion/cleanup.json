@@ -1,0 +1,13 @@
+{
+  "registeredTemporaryApps": 0,
+  "temporariesRunning": 0,
+  "removedSignedFixtureKits": 2,
+  "removedReadOnlyProbeKit": 1,
+  "removedLooseCandidateMatchingArchive": true,
+  "removedDetachedHarnessCheckout": true,
+  "retainedSignedArchive": "8e5de3880c121e45b66cabf985943946bb7e707fb6ec617422ec9b33c6b4bfba",
+  "lastReadOnlyAdmission": {
+    "ready": false,
+    "reason": "originalSpaceIsNotOrdinary"
+  }
+}

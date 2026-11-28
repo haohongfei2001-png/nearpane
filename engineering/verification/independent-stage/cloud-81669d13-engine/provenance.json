@@ -1,0 +1,66 @@
+{
+  "R4ProductPath": "NOT_RUN",
+  "artifact": 15063428182,
+  "artifactDigest": "sha256:fa7d28426eca4855e3b57250c1df759b6fd5bbc06007c513f1d45f267ab84e83",
+  "candidate": "NOT_RUN",
+  "controlledSetupAXWrites": 2,
+  "engineSpaceWrites": 0,
+  "environment": {
+    "exactTarget": false,
+    "kernelBuild": "26A434",
+    "sipEnabled": false
+  },
+  "implementationRevision": "5607d3b3cddc6711514b16ce3fc7f431b03cd7db",
+  "job": 139519726914,
+  "launchCanary": "NOT_RUN",
+  "normalEngine": "BLOCKED",
+  "originalFiles": {
+    "ci-workspace-cleanup.log": {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup.log",
+      "bytes": 352,
+      "sha256": "e5a509eb913ec0c5949e43219f7c687ccf98d1e386d170e1ae9540aa414c2bf0"
+    },
+    "ci-workspace-prepare.log": {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare.log",
+      "bytes": 344,
+      "sha256": "94fb800d269af914c7d096a851ba1a74e8a64f015130bf7e6fd2ed3b44df70ee"
+    },
+    "engine-result.json": {
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 3218,
+      "sha256": "247a8883a1db7e2cf20f24864c120a3f52d1632b4b7c657d2029e104fd6a7603"
+    },
+    "engine.log": {
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 6435,
+      "sha256": "218e485db73d133f5f38476a8a810763259bd1e1a62278b2249e47c93389f20f"
+    },
+    "fixture-cleanup.json": {
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    }
+  },
+  "platformReceipt": {
+    "artifactPath": "independent-runtime/runtime/platform-result.json",
+    "cleanup": true,
+    "sha256": "42418d4594cae3cccec55d24f2bd6155cf4de0cf1d4b8ea6d21462e03c13e4de",
+    "status": "PLATFORM_FOREIGN_PASS",
+    "windowWrites": 4
+  },
+  "qualificationGranted": false,
+  "revision": "81669d1322d39beb2ad3098e5ebf4f63eff9b1b2",
+  "schema": 1,
+  "source": "NOT_RUN",
+  "workflowRun": 45703598130,
+  "workspacePreparation": {
+    "created": {
+      "id": 12,
+      "type": 0,
+      "uuid": "E25D52E1-E0B6-0ABB-B54C-D6DF713DF143"
+    },
+    "phase": "readyCreated",
+    "status": "READY",
+    "systemInputs": 6
+  }
+}

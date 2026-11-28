@@ -1,0 +1,24 @@
+{
+  "status": "UNKNOWN",
+  "requestCount": 1,
+  "restart": "NOT_RUN",
+  "wordAfterRestart": "NOT_RUN",
+  "installed": {
+    "source": "9ba33eb6bce7fe1fb13deb2c4f3ddd2716d8f329",
+    "cdhash": "ff512ed7d1963cf8a3adbb73e701893e66c8b520",
+    "build": "90"
+  },
+  "registration": {
+    "exit": 0,
+    "status": "READY",
+    "result": "registration/result.json"
+  },
+  "translation": {
+    "exit": 3,
+    "status": "UNKNOWN",
+    "result": "translation/result.json"
+  },
+  "handoff": "PASS",
+  "nonactivatingPanel": "UNKNOWN",
+  "reason": "Could not bind this non-key visible window, its content and foreground fixture to the same Services request"
+}

@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "kind": "isolated full NearpaneHost module validation",
+  "snapshotBase": "1b60d2d330097fc343ebd6636eb5f0dc63df1a66",
+  "files": {
+    "Sources/NearpaneHost/NearpaneApp.swift": "c5df29a2d3fcf705d844eb9213c581b1792c0a539d59572e49603f09f0cff156",
+    "Sources/NearpaneHost/StageEngineHostScope.swift": "6d3748371d266b9dcfcb88bc84baea455818fe8a6c5e285fbb3d6dd9f8d5f2b8",
+    "Sources/NearpaneHost/StageEnginePackageProbe.swift": "5f38f9f11d85a1754235e3f96047708ff39c02b5ee72c8d4fcc7ca1be13dc844",
+    "Sources/NearpaneHost/StageInteractiveFootprint.swift": "0169c085835ff0d50a563b3e36d66f502fb54449067c68b9eeaf3bae8bc173c8",
+    "Sources/NearpaneHost/StageInteractivePair.swift": "1449e13d1a85b43fa379e0056c51003c70b7925cf3b7facba289903c92cc8d81",
+    "Sources/NearpaneHost/StageInteractivePeer.swift": "fbdd13a79b7bb8d84b5f32f138aeadf62b6eb01167cef76e8f08e58cfbe0540c",
+    "Sources/NearpaneHost/StageInteractiveWindows.swift": "d2626d4054bff44c94284f6d6ff94881e3b26dd3af0ee75cc49306b6c0dcddca",
+    "Tests/NearpaneHostTests/StageInteractivePairTests.swift": "e4c9e1599a166d738faf293159ac43e4b6e6f4b72fdaed996dd21a60bd88ec6d",
+    "scripts/acceptance/window-engine/host/launch-scope.m": "ce0d2c96d74f7674865ffdd8ca386c09858487e0ac5cf4c750e8774ded33e210",
+    "scripts/acceptance/window-engine/host/interactive-pair.py": "4930f2d606857e9cc5fe8e9c55154da9b9f49128d634557e1343b074f8723daf",
+    "scripts/acceptance/window-engine/host/test_interactive_pair.py": "46d6ea585f7a76f0aee62b2531683389c9ea762b1ccc52a783c80d7ae8c20575"
+  },
+  "patchSHA256": "8454c79d32cda42b9b69e307d5f13aec88fc2a24cc959f13a27e7128513dc421",
+  "fixture": {
+    "identifier": "com.holdsnow.nearpane.stage-interactive-fixture",
+    "team": "ZB9D4T66QB",
+    "cdhash": "fd91fca5661167442e4ff15bafce9587fe7f7b31",
+    "executableSHA256": "d061a44b92ce37427c5f524a6cf67919da856fb06b6084e92a3e60023ffc1120",
+    "regularApplicationBundle": true,
+    "strictDeveloperIDVerification": true,
+    "auditedForbiddenImportCount": 19,
+    "launched": false
+  },
+  "boundedClaims": {
+    "physicalWindowCreation": "NOT_RUN",
+    "PIDTargetedReceiver": "NOT_RUN",
+    "actualKeyboardRouting": "NOT_RUN",
+    "actualMouseHit": "NOT_RUN",
+    "engineVisibilityRoundTrip": "NOT_RUN",
+    "productionQualified": false
+  },
+  "projections": "Signed frozen fixture content rectangles and AppKit standard frame conversion; numeric-only WindowServer census before launch, after launch, and immediately before the authenticated open request. Post-open owner and both exact projected frames checked, including surfaces behind them.",
+  "status": "PASS_OFFLINE",
+  "swift": {
+    "tests": 21,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "suites": [
+      "StageInteractivePairTests",
+      "StageInstalledProbeTests",
+      "StageEngineHostScopeTests"
+    ],
+    "fullProductionDependencyBuild": true,
+    "foundationOnly": false,
+    "linkedHostBinarySHA256": "985d7c668a7245568e7176cd56f35847fa1b98a556dee34f00934e517266bab3"
+  },
+  "python": {
+    "tests": 5,
+    "failures": 0
+  },
+  "noncanonical": {
+    "kind": "headless noncanonical role rejection before NSApplication initialization",
+    "exit": 2,
+    "stdoutBytes": 0,
+    "stderrBytes": 0,
+    "createdAnyNonceDirectory": false,
+    "fixtureOpened": false,
+    "mode": "interactive-window-pair",
+    "product": "NearpaneHost full graph",
+    "binarySHA256": "985d7c668a7245568e7176cd56f35847fa1b98a556dee34f00934e517266bab3"
+  },
+  "artifacts": {
+    "full-isolated.log": "573b1f4bcedbb906c7524af16cbc5fae8db0f6cf17d59c7d1e63f5f64db4679e",
+    "tests-isolated.log": "f4530c8603c65a495ad7c893473dc4e3fc261eaf17198c7a7622fa95e973d30e",
+    "isolated.xml": "c0595b9b952579cf689a5cd6d97d8ff254120fe932f60744cd7023ea599461f3",
+    "python-tests.log": "e365e4b0218088fbdadc371a88614d9f25fcb2676c80be684af9c8083f39a4aa",
+    "noncanonical.json": "07c30e4cf7592b0493c234b8272868b56ed6fa9dff5d6eb8e3981d29ea9e5212",
+    "verified.patch": "8454c79d32cda42b9b69e307d5f13aec88fc2a24cc959f13a27e7128513dc421",
+    "source-receipt.json": "0f2dbe31bf5e865c5740fab73a75e525c9aac898551d8b321349ed5901a3ed78"
+  },
+  "publicReceipt": "Only the temporary preparation path was omitted."
+}

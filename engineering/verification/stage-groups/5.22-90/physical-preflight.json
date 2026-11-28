@@ -1,0 +1,19 @@
+{
+  "activeKindRead1": [
+    "ordinary"
+  ],
+  "activeKindRead2": [
+    "ordinary"
+  ],
+  "builtIn": 1,
+  "displayCount": 1,
+  "external": 0,
+  "foregroundIsEnrolledFixture": false,
+  "nativeSpaceWrites": 0,
+  "os": "Version 27.0 (Build 26A428)",
+  "priorEnrolledFixtureDesktopIsCurrent": false,
+  "profileWrites": 0,
+  "scope": "physical Mac read-only preflight",
+  "systemStageManagerPreference": "disabled",
+  "windowWrites": 0
+}

@@ -1,0 +1,42 @@
+{
+  "diagnosis": {
+    "bootMatched": true,
+    "currentSpace": 4,
+    "frontIsOriginalOwner": true,
+    "frontIsRestoredHost": false,
+    "hidCounters": 13,
+    "hidDeltas": [
+      13,
+      1,
+      0,
+      1,
+      1588,
+      1,
+      2,
+      13,
+      1,
+      0,
+      55,
+      1,
+      0
+    ],
+    "issued": false,
+    "originalWindowRead": "NOT_RUN",
+    "reason": "newHumanInputPreserved",
+    "restoredHostSignatureAndBirthMatched": false,
+    "retainedOriginalAX": false,
+    "scope": "readOnlyClosedTransaction",
+    "topologyMatched": true,
+    "uptime": 295119.5037075417
+  },
+  "historicalInitialSignerRecorded": false,
+  "historicalInputsByTrial": 0,
+  "normalActivationIssued": false,
+  "observerCDHash": "7d6576edde1f6a27dd7579de23f30d70369dcf49",
+  "previouslyRetainedReferenceReleased": true,
+  "receiptSHA256": "91be972493215a754360bf33ce64c357c132d8e2aaf5c597ac8a009bc937f787",
+  "schema": 1,
+  "status": "BLOCKED",
+  "transaction": "b8aab519-0c81-4f6c-8ad2-85416aa44765",
+  "utc": "2026-11-21T00:42:08.363961+00:00"
+}

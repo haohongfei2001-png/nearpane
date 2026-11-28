@@ -1,0 +1,31 @@
+{
+  "actualR4Inputs" : 0,
+  "appExpose" : "NOT_RUN",
+  "cleanup" : false,
+  "desktopGestures" : "NOT_RUN",
+  "events" : [
+
+  ],
+  "foreignWindowReadback" : false,
+  "fullScreenSplitView" : "NOT_RUN",
+  "groupMergeSplit" : "NOT_RUN",
+  "missionControl" : "NOT_RUN",
+  "nativeDesktopSwitch" : "NOT_RUN",
+  "nativeFullScreen" : "NOT_RUN",
+  "qualificationGranted" : false,
+  "reason" : "productionRestoreIncomplete",
+  "schema" : 1,
+  "status" : "UNKNOWN",
+  "windowPreviewMetrics" : {
+    "activeStreams" : 0,
+    "cacheEntries" : 0,
+    "captureRequests" : 0,
+    "capturesInFlight" : 0,
+    "chargedPixelBytes" : 0,
+    "deliveredFrames" : 0,
+    "gallerySessions" : 1,
+    "visibleDisplays" : 1,
+    "windowManagementBusy" : false
+  },
+  "yellowButtonRouting" : "NOT_RUN"
+}

@@ -1,0 +1,112 @@
+{
+  "status": "PASS",
+  "profileRemoved": true,
+  "installedHost": "NOT_RUN",
+  "groupVisibilitySwitch": "NOT_RUN",
+  "physicalMultiDisplay": "NOT_RUN",
+  "nativeWrites": 0,
+  "sourceRevision": "b77111458e18d354d456304efd5c8317e1277104",
+  "scope": "two registered ordinary fixture apps and two independent directory readers",
+  "record": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "5E5AF1D8-CD7C-41EA-9318-A205852BFA11",
+      "FDF09080-5B04-432E-8A88-AFDC586E81B9"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 13681,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      674
+    ],
+    "oldBindingsIneligible": false,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      674
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "reopen": {
+    "axTrusted": true,
+    "checkedNativeMembership": "UNKNOWN",
+    "groupIDs": [
+      "5E5AF1D8-CD7C-41EA-9318-A205852BFA11",
+      "FDF09080-5B04-432E-8A88-AFDC586E81B9"
+    ],
+    "groupSizes": [
+      2,
+      1
+    ],
+    "inspectorPID": 13683,
+    "layoutCheckedAgainstWindowServer": true,
+    "nativeMembership": [],
+    "noActiveGroupInferred": true,
+    "observedWorkArea": [
+      0,
+      31,
+      1024,
+      674
+    ],
+    "oldBindingsIneligible": true,
+    "onScreenWindows": 3,
+    "originalWorkArea": [
+      0,
+      31,
+      1024,
+      674
+    ],
+    "physicalDisplayUUID": "EEBC8EBB-1747-4179-8CB3-7038F756154C",
+    "separateOwners": 2,
+    "status": "PASS",
+    "systemStageManagerOwnsDispatch": false,
+    "workAreaChanged": false
+  },
+  "processLifecycle": {
+    "departure": [
+      {
+        "firstAbsent": 549.0174509583334,
+        "lifetime": "7D1E0C2C-6641-45CA-B977-E165925447F6",
+        "reason": "processExit",
+        "secondAbsent": 549.175972625,
+        "window": {
+          "birth": 1795386540809621,
+          "number": 149,
+          "pid": 13674
+        }
+      }
+    ],
+    "driver": "StageGroupStore",
+    "originalGroupPreserved": true,
+    "originalWindow": {
+      "birth": 1795386540809621,
+      "number": 149,
+      "pid": 13674
+    },
+    "productionWindowEngine": "NOT_RUN",
+    "replacementSingleton": "E9827A8E-5B5A-4A4D-BFA0-ED81AD9DA107",
+    "replacementWindow": {
+      "birth": 1795386542719923,
+      "number": 154,
+      "pid": 13689
+    },
+    "siblingWindowsUnchanged": 2,
+    "status": "PASS"
+  },
+  "fixtureProcessesExited": true
+}

@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "revision": "d230e38c0cc384b820c4ed2cdb5223f777eef7d4",
+  "workflowRun": 46010109426,
+  "recorded": "2026-11-27",
+  "fullRuntimeAtRecord": "COMPLETE_FAIL",
+  "purpose": "Original first-fix results, not evidence for subsequent fixes",
+  "files": [
+    {
+      "file": "fast/runtime-summary.json",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 22905,
+      "sha256": "f926168c9049857b8766f79196a7a494caf47223287022587656aa8f870cde6a"
+    },
+    {
+      "file": "fast/engine-result.json",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4382,
+      "sha256": "155a2a6779c25416dfbc338eeb6c97d2a2f239688c55f5a4132cef5ac6195ca8"
+    },
+    {
+      "file": "fast/engine.log",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 42458,
+      "sha256": "667dfdfc2433b44b5a0ec25b2411e4d36380964417ac839b68e04360bd4b0cd7"
+    },
+    {
+      "file": "fast/engine.stderr.log",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 15452,
+      "sha256": "dbec21fe7bd05f23c7e447fa5ecd1527b278b3d4d221e5539082de94eb7dbb9a"
+    },
+    {
+      "file": "fast/product-result.json",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 15348,
+      "sha256": "d195cf352c822d1675246e6a5ac6322bed5173b971699b6f283c86900925f1ea"
+    },
+    {
+      "file": "fast/product.stderr.log",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 26745,
+      "sha256": "a31ea68451c1f4a011bfb55121c76203680e1d1fe47c04bd70681d1e52b0eb95"
+    },
+    {
+      "file": "fast/host-main-thread.sample.txt",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 199823,
+      "sha256": "d0055c8a81687ce47659f34f5e0aade5eb4100467ca07f54fb58e818ab77ff32"
+    },
+    {
+      "file": "fast/fixture-cleanup.json",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "fast/ci-workspace-cleanup-receipt.json",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "19c159b4c66b58d5843e9396617182194a33918984dca374ae4d4eff784b8741"
+    },
+    {
+      "file": "fast/r4-press-result.json",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-f829c9bf-932b-417d-86f3-0cd910941b2a.result.json",
+      "bytes": 3897,
+      "sha256": "4eaa6ebdbc4326592800385014c42297948dd4addda7b5aa62d2355648186ffe"
+    },
+    {
+      "file": "fast/worker.jsonl",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-0e108139-1eab-4e1b-a5d9-498610af5e07.jsonl",
+      "bytes": 29979,
+      "sha256": "2ccd39a12e6a70bdacd22c67591f782ecc08f482fbd8e85a419545906045cf06"
+    },
+    {
+      "file": "fast/worker-lifecycle.json",
+      "artifact": 15202788287,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-d0bf07d0-e62c-4a10-b2c3-58926a14bc8c.json",
+      "bytes": 1085,
+      "sha256": "9b286bca233d0cbb78741c29aa6469222fd64706c9697c0eea6603e981bf4264"
+    },
+    {
+      "file": "full-source/summary.json",
+      "artifact": 15204032126,
+      "artifactPath": "source/summary.json",
+      "bytes": 1212,
+      "sha256": "a11b30ff40ab7a5aa72b239e4eaf7804ea0dc5eb111c298855576d8b9fc8829e"
+    },
+    {
+      "file": "full-source/swift.log",
+      "artifact": 15204032126,
+      "artifactPath": "source/swift.log",
+      "bytes": 55317,
+      "sha256": "81d1f3f65ff94a1a33c039998ad258908446f3ca98a8d322d93318869bea2e1e"
+    },
+    {
+      "file": "full-source/swift.stderr.log",
+      "artifact": 15204032126,
+      "artifactPath": "source/swift.stderr.log",
+      "bytes": 175690,
+      "sha256": "8de209242da8542e49afeaad1f84b40a32a08696cfece4f11536f587e68efc54"
+    },
+    {
+      "file": "full-source/windowserver-context.json",
+      "artifact": 15204032126,
+      "artifactPath": "source/windowserver-context.json",
+      "bytes": 1990,
+      "sha256": "afa7ddf8a85c410597bf7a579aa6644b9436db94737ef33f9f14d10d1e313280"
+    },
+    {
+      "file": "full/runtime-summary.json",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 22588,
+      "sha256": "50dd6a4463dfa903349994e516c4cecaa09fc7ec01f421605eedf33cdd02d85a"
+    },
+    {
+      "file": "full/engine-result.json",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "6e1553bc2dbd94b9cc7f86eafb4637e3519813e084c8db97ebce522403867365"
+    },
+    {
+      "file": "full/product-result.json",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 14960,
+      "sha256": "7bf43e4347a45bca3000c5feed834be51fb33dec35b8590f3da99fd6d2e7be61"
+    },
+    {
+      "file": "full/product.stderr.log",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 5643,
+      "sha256": "f8062eaa249d1e8186e1921a560800f9c15e5b03d3ab464d91c6872681e21839"
+    },
+    {
+      "file": "full/host-main-thread.sample.txt",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 278499,
+      "sha256": "4b498293a46132f72802fa9b98afe6289ae1b53893a18d22aec7c7894f5fc7c7"
+    },
+    {
+      "file": "full/fixture-cleanup.json",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "full/ci-workspace-cleanup-receipt.json",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "e5b541ba37cc2ff49b3232ff38212fd56730c0af9f6e88b80012408dc4781c4e"
+    },
+    {
+      "file": "full/r4-press-result.json",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-88d572e7-29fc-478d-bd4b-ca74a6330d38.result.json",
+      "bytes": 3622,
+      "sha256": "c6a97d3863bc7b0945e2c574b08817f7f986c63a6ec09cfe46fae192b68a7378"
+    },
+    {
+      "file": "full/candidate.json",
+      "artifact": 15203674146,
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "24f47a58d2fe67d6dab6637f73ebf839f41185bd63343f04b7c697da96cd89a3"
+    },
+    {
+      "file": "full/worker.jsonl",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-40f395d6-b2c8-4412-9188-9aa608c5b01c.jsonl",
+      "bytes": 570,
+      "sha256": "8492c041fe610983ae3b0cec30a61a8fbf892080340b698665fa06a9767b5d9a"
+    },
+    {
+      "file": "full/worker-lifecycle.json",
+      "artifact": 15203674146,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-046a948c-0c29-4fbb-8bde-f657e1c7ba46.json",
+      "bytes": 1085,
+      "sha256": "d729f433cc51255cd85ab6183b4b4b517c2ad757c1061cd32e4655e2a5c7bf2b"
+    }
+  ],
+  "fullArtifact": 15203674146
+}

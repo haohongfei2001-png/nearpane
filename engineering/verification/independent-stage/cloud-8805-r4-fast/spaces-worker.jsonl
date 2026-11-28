@@ -1,0 +1,2 @@
+{"event":"spacesWorker","phase":"ready","pid":12307,"parentPID":12287,"birth":1795660163663041,"parentBirth":1795660159958912,"lifecycleNonce":"409f3a98-4f56-4d55-ac1d-1a29c6bddaee","engineDestroyed":false,"pendingDrained":true,"transport":0,"status":0,"detail":0,"flags":0,"owned":0}
+{"event":"spacesWorker","phase":"closed","pid":12307,"parentPID":12287,"birth":1795660163663041,"parentBirth":1795660159958912,"lifecycleNonce":"409f3a98-4f56-4d55-ac1d-1a29c6bddaee","engineDestroyed":true,"pendingDrained":true,"transport":0,"status":0,"detail":0,"flags":0,"owned":0}

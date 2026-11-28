@@ -1,0 +1,33 @@
+--- ChromeAppleEventsExecutor.swift
++++ ChromeAppleEventsExecutor.swift
+@@ -26,8 +26,29 @@
+     /// mouse-down. The browser must establish it within the same deadline;
+     /// waiting for its reply and validating the result happen off the UI thread.
+     public func targetForClick(program: WebPageProgram) throws -> Task<TargetLease, Error> {
++        try targetForClick(program: program, witnessID: UUID())
++    }
++
++    /// A composing host can share its original click identifier with the native pin.
++    public func targetForClick(program: WebPageProgram, witnessID: UUID) throws -> Task<TargetLease, Error> {
+         let frozen = try freezeChatClick()
+-        return try enqueueChatClick(frozen, program: program)
++        return try enqueueChatClick(frozen, program: program, witnessID: witnessID)
++    }
++
++    /// Identify an attachment entry on the original candidate page. This result carries no transfer lease.
++    public func inspectOriginalEntry(session: String, window: String, tab: String, url: URL) throws -> Task<Bool, Error> {
++        let frozen = try freezeChatClick(includeCandidateSites: true)
++        guard frozen.identity.session == session, frozen.route.window == window, frozen.route.tab == tab,
++              frozen.originalURL.absoluteString == url.absoluteString else { throw WebAdapterError.invalidTarget }
++        let catalog = try Issue120ProviderCatalog()
++        let route = try resolveProvider(url, among: catalog.providers)
++        let read = try inspectOriginalProvider(frozen, catalog: catalog, route: route,
++                                               id: UUID(), maximumBytes: ProviderDiscoveryPin.maximumSourceBytes)
++        return Task {
++            let result = try await withTaskCancellationHandler { try await read.value } onCancel: { read.cancel() }
++            try Task.checkCancellation()
++            return result.attachmentEntry == "direct_owned_input" || result.attachmentEntry == "menu_owned_input_observed"
++        }
+     }
+ 
+     fileprivate struct FrozenChatClick {

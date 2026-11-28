@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "revision": "34f37360144eb8e339ac81b1f901536f31853ad6",
+  "sourceRevision": "34f37360144eb8e339ac81b1f901536f31853ad6",
+  "sourceState": "clean",
+  "candidateRevision": "34f37360144eb8e339ac81b1f901536f31853ad6",
+  "candidatePath": "/private/tmp/NearpaneIndependentStage-34f.app",
+  "bundleIdentifier": "com.holdsnow.nearpane.independent-stage-candidate",
+  "signatureVerificationExit": 0,
+  "signatureVerificationStderr": "",
+  "launched": false,
+  "R4ProductPath": "NOT_RUN",
+  "qualificationGranted": false,
+  "executables": [
+    {
+      "path": "Contents/MacOS/NearpaneHost",
+      "bytes": 39197984,
+      "sha256": "5eac1ce99f4056db678a6a05f41ca69ab700f64e5a6fab3728230fab00ec8d0a"
+    },
+    {
+      "path": "Contents/Helpers/NearpaneSpacesEngine",
+      "bytes": 2540672,
+      "sha256": "f917a638f406adc17844cd88ed070e51f4158b7aaf8c2d5cc1542a2353b62bb9"
+    },
+    {
+      "path": "Contents/Helpers/NearpaneDesktopReader",
+      "bytes": 6404152,
+      "sha256": "86d8c3efe56f2c68794208faad16af52d239f0c267757ca4dac03f8f8cf82778"
+    }
+  ]
+}

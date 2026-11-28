@@ -1,0 +1,37 @@
+{
+  "focusedNumber": 50525,
+  "frontPID": 69905,
+  "hid": [
+    5514,
+    68,
+    0,
+    3008,
+    130524,
+    18485,
+    35,
+    0
+  ],
+  "observerAX": true,
+  "systemFocus": {
+    "number": 50525,
+    "pid": 69905
+  },
+  "topology": {
+    "current": 4,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "records": [
+      {
+        "id": 4,
+        "type": 0,
+        "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+      },
+      {
+        "id": 6,
+        "type": 0,
+        "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+      }
+    ]
+  },
+  "uptime": 252189.05399545835,
+  "workspaceFrontPID": 69905
+}

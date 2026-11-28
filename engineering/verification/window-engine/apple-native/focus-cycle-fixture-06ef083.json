@@ -1,0 +1,88 @@
+{
+  "checkedUTC": "2026-11-25T14:48:04.827096+00:00",
+  "scope": "Three signed isolated fixture apps and internal QA Host; preparation and independent static checks only",
+  "source": "06ef0839c76f12e60860f769d0b6200b4d541e18",
+  "system": {
+    "build": "26A428",
+    "arch": "arm64",
+    "SIP": "System Integrity Protection status: enabled."
+  },
+  "version": "0.2.0",
+  "build": "1",
+  "engineABI": 1,
+  "sourceState": "clean",
+  "seal": {
+    "fixtures": {
+      "com.holdsnow.stageworkset-merge-fixture.a": {
+        "CDHash": "2d274a3b472dcf43c68de826b7501035f7d5242d",
+        "Identifier": "com.holdsnow.stageworkset-merge-fixture.a",
+        "TeamIdentifier": "ZB9D4T66QB"
+      },
+      "com.holdsnow.stageworkset-merge-fixture.b": {
+        "CDHash": "dec5db57520f6c262e80078bc4ff2e1104a75e48",
+        "Identifier": "com.holdsnow.stageworkset-merge-fixture.b",
+        "TeamIdentifier": "ZB9D4T66QB"
+      },
+      "com.holdsnow.stageworkset-merge-fixture.c": {
+        "CDHash": "3e8775158f3815c11a6017ee4cfb755b30330fc4",
+        "Identifier": "com.holdsnow.stageworkset-merge-fixture.c",
+        "TeamIdentifier": "ZB9D4T66QB"
+      }
+    },
+    "host": {
+      "CDHash": "71f5b9564e8c238b38fadfafaa5811feb202e484",
+      "Identifier": "com.holdsnow.nearpane.host",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "normalizedStagingFinderInfo": 9,
+    "quarantinePreserved": true,
+    "scope": "R4 native focus cycle",
+    "source": "06ef0839c76f12e60860f769d0b6200b4d541e18",
+    "nonceSHA256": "3de2c8cc168052fc8d2fdb36902652da34bdc1322dfc03d9e274562a6a751c7a"
+  },
+  "sealSHA256": "f2d0de4c8d4a4766bb9b16ad7e0cff905095299f758cb8a8c5575799bef23e2a",
+  "components": {
+    "com.holdsnow.nearpane.host": {
+      "Identifier": "com.holdsnow.nearpane.host",
+      "CDHash": "71f5b9564e8c238b38fadfafaa5811feb202e484",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "hardenedRuntime": true,
+      "strictIndependentCodeRequirement": "PASS",
+      "CodeResourcesSHA256": "21ed6249b8c07a381db57728ee26d343b15205ef798fd00f4c6493fbac272a32"
+    },
+    "com.holdsnow.stageworkset-merge-fixture.a": {
+      "Identifier": "com.holdsnow.stageworkset-merge-fixture.a",
+      "CDHash": "2d274a3b472dcf43c68de826b7501035f7d5242d",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "hardenedRuntime": true,
+      "strictIndependentCodeRequirement": "PASS",
+      "CodeResourcesSHA256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    "com.holdsnow.stageworkset-merge-fixture.b": {
+      "Identifier": "com.holdsnow.stageworkset-merge-fixture.b",
+      "CDHash": "dec5db57520f6c262e80078bc4ff2e1104a75e48",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "hardenedRuntime": true,
+      "strictIndependentCodeRequirement": "PASS",
+      "CodeResourcesSHA256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    "com.holdsnow.stageworkset-merge-fixture.c": {
+      "Identifier": "com.holdsnow.stageworkset-merge-fixture.c",
+      "CDHash": "3e8775158f3815c11a6017ee4cfb755b30330fc4",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "hardenedRuntime": true,
+      "strictIndependentCodeRequirement": "PASS",
+      "CodeResourcesSHA256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    }
+  },
+  "strictCodeAndSealedResources": "PASS",
+  "staticResourceVerification": "40 resources, SHA-256 5196483617c8e19d2b2185ea332fcd9b8cca7cfb67e004cf25b954ca0b034310; executable 3c0e1baf9f5bcf9d0d3e4ed73c263bdc0f779726579ee9df82920d5980cc5cc2",
+  "prepared": "PASS",
+  "launches": 0,
+  "ordinaryInstallationModified": false,
+  "physicalR4FocusCycle": "NOT_RUN",
+  "physicalMinimizeToStage": "NOT_RUN",
+  "physicalDockOrCommandTab": "NOT_RUN",
+  "productionQualified": false,
+  "originalReceiptSHA256": "12d2b9cfb095d8371743830c73dbc7817733ac940f752ee3c137b6135cd3384c"
+}

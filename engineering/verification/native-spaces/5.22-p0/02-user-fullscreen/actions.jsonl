@@ -1,0 +1,1 @@
+{"event": "stopped", "monotonic": 242342.152980583, "reason": "original foreground is a private fullscreen; creating ordinary windows there would not keep the source under fixture control"}

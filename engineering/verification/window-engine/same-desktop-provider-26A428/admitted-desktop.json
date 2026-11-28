@@ -1,0 +1,582 @@
+{
+  "admission" : {
+    "appSource" : "systemFocusedApplication",
+    "axFocusedWindowError" : 0,
+    "axFrontmost" : true,
+    "axFrontmostError" : 0,
+    "birth" : 1795271950317697,
+    "cgWindowID" : 71354,
+    "systemFocusedApplicationError" : 0,
+    "uptime" : 458728.5351360417,
+    "workspacePID" : 48228
+  },
+  "build" : "26A428",
+  "buttonsAfter" : 0,
+  "buttonsBefore" : 0,
+  "clockEnd" : {
+    "denom" : 3,
+    "machAbsolute" : 11009492227860,
+    "machContinuous" : 14691214028840,
+    "numer" : 125,
+    "unix" : 1795399049.0482512,
+    "uptime" : 458728.84282695834
+  },
+  "clockStart" : {
+    "denom" : 3,
+    "machAbsolute" : 11009479472577,
+    "machContinuous" : 14691201273553,
+    "numer" : 125,
+    "unix" : 1795399048.5167789,
+    "uptime" : 458728.31135708338
+  },
+  "endedUTC" : "2026-11-23T01:57:29Z",
+  "hidAfterPassiveRead" : [
+    10438,
+    10438,
+    103,
+    103,
+    0,
+    0,
+    1263909,
+    36292,
+    38,
+    0,
+    6484,
+    6484,
+    301,
+    316981
+  ],
+  "hidBeforePassiveRead" : [
+    10438,
+    10438,
+    103,
+    103,
+    0,
+    0,
+    1263909,
+    36292,
+    38,
+    0,
+    6484,
+    6484,
+    301,
+    316981
+  ],
+  "host" : {
+    "birth" : 1795343882268848,
+    "bundle" : "com.holdsnow.nearpane.alpha",
+    "cdhash" : "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path" : "\/Applications\/Nearpane.app\/Contents\/MacOS\/NearpaneHost",
+    "pid" : 32364,
+    "source" : "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team" : "ZB9D4T66QB"
+  },
+  "hostRole" : "runningRegularInstalledHost",
+  "hostTelemetry" : [
+    {
+      "attempts" : [
+        {
+          "endUptime" : 458728.64846516668,
+          "exit" : 0,
+          "missionControlObservation" : "signedDockAXListWithoutMC",
+          "missionControlPresented" : 0,
+          "missionControlSample" : "cached",
+          "pid" : 32364,
+          "source" : "installedHostPreviewMetrics",
+          "status" : "observed",
+          "targetBirth" : 1795343882268848,
+          "targetPID" : 32364,
+          "uptime" : 458728.60452662501
+        }
+      ],
+      "endUptime" : 458728.64853862504,
+      "missionControlObservation" : "signedDockAXListWithoutMC",
+      "missionControlPresented" : 0,
+      "phase" : "passive",
+      "pid" : 32364,
+      "startUptime" : 458728.60452362505,
+      "withinPhase" : false
+    }
+  ],
+  "inputAvailableAfter" : true,
+  "inputAvailableBefore" : true,
+  "launchedHosts" : 0,
+  "observerAXTrusted" : true,
+  "observerSHA256" : "50988dde5d9c89e650e267cbaf6f56580c9d40decc31cd8ecdab8fc2ab150e9e",
+  "reason" : "passiveObservationWithoutPresentation",
+  "sameHostAtEnd" : true,
+  "schema" : 1,
+  "scope" : {
+    "displayUUID" : "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "nativeID" : 4,
+    "reason" : "sameHostLoginScreenAndOrdinarySpaceTwice",
+    "spaceUUID" : "0695C8A7-8344-4AEC-A780-2FE0562E63B9",
+    "status" : "PASS"
+  },
+  "sip" : "System Integrity Protection status: enabled.",
+  "spaceWrites" : 0,
+  "stage" : "passiveReadOnly",
+  "startedUTC" : "2026-11-23T01:57:28Z",
+  "status" : "NOT_RUN",
+  "systemVersion" : "27.0",
+  "terminalAdmission" : {
+    "appSource" : "systemFocusedApplication",
+    "axFocusedWindowError" : 0,
+    "axFrontmost" : true,
+    "axFrontmostError" : 0,
+    "birth" : 1795271950317697,
+    "cgWindowID" : 71354,
+    "sameOriginalAX" : true,
+    "systemFocusedApplicationError" : 0,
+    "uptime" : 458728.83780675003,
+    "workspacePID" : 48228
+  },
+  "terminalReadbackUptime" : 458728.8416502917,
+  "terminalScope" : {
+    "displayUUID" : "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "nativeID" : 4,
+    "reason" : "sameHostLoginScreenAndOrdinarySpaceTwice",
+    "spaceUUID" : "0695C8A7-8344-4AEC-A780-2FE0562E63B9",
+    "status" : "PASS"
+  },
+  "windowWrites" : 0,
+  "workspaceDidActivate" : [
+
+  ],
+  "workspaceTimeline" : {
+    "clock" : "ProcessInfo.systemUptime",
+    "dropped" : 0,
+    "events" : [
+      {
+        "activeSpace" : 4,
+        "activeSpaceAtEnd" : 4,
+        "allWindowsRead" : true,
+        "axFocusedApplicationError" : 0,
+        "axFocusedApplicationPID" : 48228,
+        "directError" : 0,
+        "endUptime" : 458728.60448012501,
+        "inventoryError" : 0,
+        "kind" : "windowSnapshot",
+        "onScreenListRead" : true,
+        "phase" : "passive",
+        "sameActiveSpace" : true,
+        "screenLocked" : false,
+        "sessionOnConsole" : true,
+        "subjects" : [
+          {
+            "axCountError" : 0,
+            "axFocusedWindowError" : 0,
+            "axFocusedWindowID" : 71354,
+            "axFrontmost" : true,
+            "axFrontmostError" : 0,
+            "axListError" : 0,
+            "axWindowCount" : 4,
+            "axWindowIDs" : [
+              71359,
+              71354,
+              71357,
+              71266
+            ],
+            "birth" : 1795271950317697,
+            "cgLayerZeroCount" : 13,
+            "hidden" : false,
+            "pid" : 48228,
+            "sameGenerationAtEnd" : true,
+            "scope" : "application",
+            "subject" : "com.microsoft.edgemac",
+            "terminated" : false,
+            "windows" : [
+              {
+                "activeSpaceHits" : 1,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 20,
+                  "Width" : 66,
+                  "X" : 80,
+                  "Y" : 84
+                },
+                "id" : 71359,
+                "inOnScreenList" : true,
+                "layer" : 0,
+                "onScreen" : true,
+                "reverseError" : 0,
+                "spaces" : [
+                  4
+                ]
+              },
+              {
+                "activeSpaceHits" : 1,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 20,
+                  "Width" : 66,
+                  "X" : 58,
+                  "Y" : 62
+                },
+                "id" : 71357,
+                "inOnScreenList" : true,
+                "layer" : 0,
+                "onScreen" : true,
+                "reverseError" : 0,
+                "spaces" : [
+                  4
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 1,
+                  "Width" : 1,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 71356,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 1,
+                  "Width" : 1,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 71355,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 1,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 700,
+                  "Width" : 1040,
+                  "X" : 70,
+                  "Y" : 74
+                },
+                "id" : 71354,
+                "inOnScreenList" : true,
+                "layer" : 0,
+                "onScreen" : true,
+                "reverseError" : 0,
+                "spaces" : [
+                  4
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 1,
+                  "Width" : 1,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 71268,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 1,
+                  "Width" : 1,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 71267,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 1,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 700,
+                  "Width" : 1040,
+                  "X" : 48,
+                  "Y" : 52
+                },
+                "id" : 71266,
+                "inOnScreenList" : true,
+                "layer" : 0,
+                "onScreen" : true,
+                "reverseError" : 0,
+                "spaces" : [
+                  4
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 63794,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 63793,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 63792,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 63791,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 64,
+                  "Width" : 64,
+                  "X" : 0,
+                  "Y" : 456
+                },
+                "id" : 65126,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              }
+            ]
+          },
+          {
+            "axCountError" : 0,
+            "axFocusedWindowError" : 0,
+            "axFocusedWindowID" : 17742,
+            "axFrontmost" : false,
+            "axFrontmostError" : 0,
+            "axListError" : null,
+            "axWindowCount" : 0,
+            "axWindowIDs" : [
+
+            ],
+            "birth" : 1794944389149251,
+            "cgLayerZeroCount" : 6,
+            "hidden" : false,
+            "pid" : 56354,
+            "sameGenerationAtEnd" : true,
+            "scope" : "application",
+            "subject" : "com.github.GitHubClient",
+            "terminated" : false,
+            "windows" : [
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 500,
+                  "Width" : 500,
+                  "X" : 0,
+                  "Y" : 456
+                },
+                "id" : 17744,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 660,
+                  "Width" : 960,
+                  "X" : 110,
+                  "Y" : 151
+                },
+                "id" : 17742,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+                  6
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 17741,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 17740,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 17739,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              },
+              {
+                "activeSpaceHits" : 0,
+                "alpha" : 1,
+                "forwardError" : 0,
+                "frame" : {
+                  "Height" : 33,
+                  "Width" : 1470,
+                  "X" : 0,
+                  "Y" : 0
+                },
+                "id" : 17738,
+                "inOnScreenList" : false,
+                "layer" : 0,
+                "onScreen" : null,
+                "reverseError" : 0,
+                "spaces" : [
+
+                ]
+              }
+            ]
+          }
+        ],
+        "uptime" : 458728.577873,
+        "workspaceFrontPID" : 48228,
+        "workspaceFrontPIDAtEnd" : 48228
+      }
+    ],
+    "notificationTime" : "callbackDelivery"
+  }
+}

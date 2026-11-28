@@ -1,0 +1,191 @@
+{
+  "allRequiredPassed": false,
+  "attemptCount": 0,
+  "failedAttempts": 0,
+  "hiddenBudget": {
+    "observedSeconds": 60,
+    "priorScreenPermission": null,
+    "zeroNewRequests": true
+  },
+  "performancePercentiles": null,
+  "productAttempts": [],
+  "scenarios": {
+    "C01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "D01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "F01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "I01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "M01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "N01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "P01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "R01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "R02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S03": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "V01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W03": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    }
+  },
+  "sidebarVisibilityRestored": true,
+  "streamDelivery": {
+    "after": [
+      {
+        "activeStreams": 0,
+        "cacheEntries": 0,
+        "captureRequests": 5,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 0,
+        "deliveredFrames": 2272,
+        "gallerySessions": 0,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263493.572482041,
+        "visibilityRevision": 263392978758627,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      {
+        "activeStreams": 2,
+        "cacheEntries": 1,
+        "captureRequests": 7,
+        "capturesInFlight": 1,
+        "chargedPixelBytes": 490752,
+        "deliveredFrames": 2275,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263493.826999375,
+        "visibilityRevision": 263392978758627,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      {
+        "activeStreams": 2,
+        "cacheEntries": 2,
+        "captureRequests": 7,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 981504,
+        "deliveredFrames": 2305,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263494.08070825,
+        "visibilityRevision": 263392978758627,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      }
+    ],
+    "before": [
+      {
+        "activeStreams": 2,
+        "cacheEntries": 2,
+        "captureRequests": 5,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 981504,
+        "deliveredFrames": 2186,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263430.317652583,
+        "visibilityRevision": 263392978758625,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      },
+      {
+        "activeStreams": 2,
+        "cacheEntries": 2,
+        "captureRequests": 5,
+        "capturesInFlight": 0,
+        "chargedPixelBytes": 981504,
+        "deliveredFrames": 2214,
+        "gallerySessions": 1,
+        "pid": 59059,
+        "stageManagerOwnsDispatch": 0,
+        "surfaceHidden": 0,
+        "uptime": 263430.565544291,
+        "visibilityRevision": 263392978758625,
+        "visibleDisplays": 1,
+        "windowManagementBusy": 0
+      }
+    ],
+    "contract": "installed status menu, seven readbacks over 60s, restored delivery",
+    "hiddenBudget": {
+      "observedSeconds": 60,
+      "priorScreenPermission": null,
+      "zeroNewRequests": true
+    },
+    "newStreamsDuringHidden": "NOT_MEASURED",
+    "noNewDeliveredFramesAcrossMinute": true,
+    "originalCardKinds": [
+      "窗口画面",
+      "窗口画面"
+    ],
+    "originalContract": "Hidden interval completed; remaining N01 visual, native timing and memory batches require separate samples.",
+    "restoredBoundCards": true,
+    "sidebarVisibilityRestored": true,
+    "status": "PASS",
+    "zeroActiveStreamsAtEverySample": true
+  },
+  "unknownAttempts": 0
+}

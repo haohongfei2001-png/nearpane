@@ -1,0 +1,53 @@
+{
+  "directPreferenceWrites": 0,
+  "installedHost": "NOT_RUN",
+  "markerSamples": {},
+  "pane": {
+    "desktopControls": [
+      {
+        "id": "show-stage-manager-widgets",
+        "owner": "com.apple.systempreferences",
+        "role": "AXCheckBox"
+      },
+      {
+        "id": "show-desktop-widgets",
+        "owner": "com.apple.systempreferences",
+        "role": "AXCheckBox"
+      },
+      {
+        "id": "stage-manager-on",
+        "owner": "com.apple.systempreferences",
+        "role": "AXCheckBox"
+      },
+      {
+        "id": "click-wallpaper-to-reveal-desktop",
+        "owner": "com.apple.systempreferences",
+        "role": "AXPopUpButton"
+      },
+      {
+        "id": "desktop-items",
+        "owner": "com.apple.systempreferences",
+        "role": "AXCheckBox"
+      },
+      {
+        "id": "com.apple.Desktop-Settings.extension",
+        "owner": "com.apple.systempreferences",
+        "role": "AXStaticText"
+      }
+    ],
+    "frontmost": "com.apple.systempreferences",
+    "visited": 232
+  },
+  "reason": "nativeDesktopItemsCheckboxUnreadable",
+  "sourceRevision": "ef8a375138d931c179e94ab5b554efac974ea3f1",
+  "status": "BLOCKED",
+  "captureExit": 1,
+  "captureDetail": "Fixture recording: Error Domain=com.apple.ScreenCaptureKit.SCStreamErrorDomain Code=-3808 \"Failed to stop a stream that is already stopped or does not exist\" UserInfo={NSLocalizedDescription=Failed to stop a stream that is already stopped or does not exist}\n",
+  "fixtureOwnersExited": true,
+  "recording": {
+    "status": "UNKNOWN",
+    "seconds": 6.803333333333334,
+    "inspectorSeconds": 6.73521762499999,
+    "bytes": 245212
+  }
+}

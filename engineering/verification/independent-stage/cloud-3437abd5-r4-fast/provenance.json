@@ -1,0 +1,83 @@
+{
+  "revision": "3437abd5b545cfd25f6eda2ee943c242908ac956",
+  "run": 45738564830,
+  "fastJob": 139637658111,
+  "sourceJob": 139637658403,
+  "artifacts": [
+    {
+      "id": 15079564923,
+      "bytes": 24225865,
+      "sha256": "1acbde8dd490d6dffbd002c63f838e3c2226e830d666a9060c53fce97a6ad6e2"
+    },
+    {
+      "id": 15079844494,
+      "bytes": 20876,
+      "sha256": "43493a7db1fef5ed8ff32584ffa47cd6b474687dadca69436fc902c0ecc5cdfa"
+    }
+  ],
+  "files": [
+    {
+      "file": "source-summary.json",
+      "artifact": 15079844494,
+      "artifactPath": "source/summary.json",
+      "bytes": 1253,
+      "sha256": "50aa15ca8ecdd4a38565246c959e3d786ccdf34aab9527b7b035a21a3e7226d6"
+    },
+    {
+      "file": "engine-result.json",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "692e15ed93a68bbf2a79b76be284dc9b307c991904c3b4f2df9a27175dd12b62"
+    },
+    {
+      "file": "product-result.json",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 12418,
+      "sha256": "1e313a727f8bafb612fa8740866b851e7d3747a869739dc436eefa14c52a9d9d"
+    },
+    {
+      "file": "product.stderr.log",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 2298,
+      "sha256": "2125573a8b6a2bd92a972535b0f91a3f4e89c7a5877362ad15273d1fe9b79503"
+    },
+    {
+      "file": "r4-press-result.json",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-81ae66cf-25a7-49ee-ad52-6567ce9bae75.result.json",
+      "bytes": 3351,
+      "sha256": "3efbeb961c6bfd1f423b54f097421a7d182ccd850246980181bc1f51a0f257d5"
+    },
+    {
+      "file": "host-main-thread-sample.json",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 211,
+      "sha256": "ce3625f5eda99b6182cba9ad1e9886fbe4964e59e52b230fd265b4a8b781245b"
+    },
+    {
+      "file": "host-main-thread-sample.log",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "host-main-thread-sample.stderr.log",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.stderr.log",
+      "bytes": 266,
+      "sha256": "00c2658c1a277f61c55b70ce5bdf708f71f27536a08ee745a9606824711a5dcf"
+    },
+    {
+      "file": "host-main-thread.sample.txt",
+      "artifact": 15079564923,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 350015,
+      "sha256": "67d97c656a0b96709123e94bb4547f0f0d3f317a657ce2fb405efb86007eac10"
+    }
+  ]
+}

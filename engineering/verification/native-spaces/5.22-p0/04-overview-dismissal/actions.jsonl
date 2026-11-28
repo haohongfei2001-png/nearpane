@@ -1,0 +1,14 @@
+{"event": "fixture-opened", "monotonic": 243084.137907583, "windows": [{"birth": 1795169691572634, "executable": "/private/tmp/nearpane-d01.qcKKO3BP/Lifecycle Window.app/Contents/MacOS/Lifecycle", "hash": "88646d96c6618f0df115957b2a74d6f4decae364", "identifier": "org.nearpane.acceptance.LifecycleWindow", "pid": 55798, "number": 48326}, {"birth": 1795169691572634, "executable": "/private/tmp/nearpane-d01.qcKKO3BP/Lifecycle Window.app/Contents/MacOS/Lifecycle", "hash": "88646d96c6618f0df115957b2a74d6f4decae364", "identifier": "org.nearpane.acceptance.LifecycleWindow", "pid": 55798, "number": 48327}]}
+{"event": "system-fixture-command", "monotonic": 243084.197419541, "nonce": "2d3d59dd-62ac-4927-b9cf-a4d078fc8ac0", "action": "activate", "index": 0}
+{"event": "owned-ordinary-source", "monotonic": 243084.83350725, "source": 4, "originalUserSpace": 2000, "macOSAssigned": true}
+{"event": "creation-ledger", "monotonic": 243085.715238208, "path": "/private/tmp/nearpane-p0-cards-20261120/build/verification/secondary-route-followup/3a31c8bb-c9fe-4147-8d03-0c9ba1ea9473/provision", "operation": "a71a7bb6-adc0-46db-a0b5-e459845de177"}
+{"event": "system-fixture-intent", "monotonic": 243085.854591833, "operation": "add", "current": 4, "target": null, "other": null}
+{"event": "system-fixture-result", "monotonic": 243086.37204, "operation": "add", "target": null, "issued": true, "overviewDismissed": false, "windowServerConfirmedBeforeClose": true, "acknowledged": true, "overviewCloseReason": "system Dock unavailable"}
+{"event": "system-fixture-created", "monotonic": 243086.678110625, "desktop": {"id": 4970, "type": 0, "uuid": "9D509756-5533-9FC9-A487-5A36AFC7881A"}, "oldCurrent": 4, "newCurrent": 4}
+{"event": "creation-ledger", "monotonic": 243086.987806708, "path": "/private/tmp/nearpane-p0-cards-20261120/build/verification/secondary-route-followup/23a59096-2c28-4eeb-bcf6-9959c6ca0ea5/provision", "operation": "3bf7c52f-abe2-4c4f-bcb6-8f907f8c0f20"}
+{"event": "system-fixture-intent", "monotonic": 243087.110957416, "operation": "add", "current": 4, "target": null, "other": null}
+{"event": "system-fixture-result", "monotonic": 243088.723945791, "operation": "add", "target": null, "issued": false, "reason": "Mission Control was already open", "acknowledged": false}
+{"event": "stopped", "monotonic": 243088.749690583, "reason": "add: Mission Control was already open"}
+{"event": "recovery-protected-order", "monotonic": 243089.211214875, "ids": [4, 2000, 6], "originalOrderMatches": true}
+{"event": "cleanup-host-bound", "monotonic": 243089.238391916, "original": {"codeHash": "4fc08dca1df42c083c6ee926dac4597f3b928eaa", "launch": 1795169690.6109571, "pid": 55743}, "current": {"codeHash": "4fc08dca1df42c083c6ee926dac4597f3b928eaa", "launch": 1795169690.6109571, "pid": 55743}}
+{"event": "recovery-protected-order", "monotonic": 243090.096094541, "ids": [4, 2000, 6], "originalOrderMatches": true}

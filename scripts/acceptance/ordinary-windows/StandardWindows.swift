@@ -1,0 +1,192 @@
+// Standalone sample app. Only the acceptance runner reads stdout or owns its stdin.
+// Its NSWindows expose standard AppKit accessibility, with no custom attributes.
+import AppKit
+import Darwin
+
+private final class PreviewSwatches: NSView {
+    override func draw(_ dirtyRect: NSRect) {
+        NSColor(srgbRed: 0.12, green: 0.75, blue: 0.30, alpha: 1).setFill()
+        bounds.fill()
+        NSColor(srgbRed: 0.80, green: 0.12, blue: 0.60, alpha: 1).setFill()
+        NSRect(x: bounds.midX, y: bounds.minY, width: bounds.width / 2, height: bounds.height).fill()
+    }
+}
+
+func emit(_ object: [String: Any]) {
+    guard let data = try? JSONSerialization.data(withJSONObject: object) else { exit(2) }
+    FileHandle.standardOutput.write(data + Data([10]))
+}
+func bounds(_ r: CGRect) -> [Double] { [r.minX, r.minY, r.width, r.height] }
+// LaunchServices on this build can omit arguments of a GUI-only application.
+// The runner places only its disposable pipe path beside the separately signed app.
+let ticket = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("sample-pipes")
+guard let pipe = try? String(contentsOf:ticket, encoding:.utf8),
+      pipe.hasPrefix("/private/tmp/np-window-pipes-"),
+      pipe.split(separator:"/").count == 3 else { exit(2) }
+let io = URL(fileURLWithPath:pipe)
+var st = stat()
+guard lstat(io.path,&st) == 0, st.st_uid == getuid(), st.st_mode & 0o777 == 0o700,
+      st.st_mode & S_IFMT == S_IFDIR else { exit(2) }
+for (name, target, flags) in [("requests", STDIN_FILENO,O_RDONLY),("reports",STDOUT_FILENO,O_WRONLY)] {
+    let path = io.appendingPathComponent(name).path
+    guard lstat(path,&st) == 0, st.st_uid == getuid(), st.st_mode & S_IFMT == S_IFIFO else { exit(2) }
+    let fd=open(path,flags | O_NOFOLLOW)
+    guard fd>=0, dup2(fd,target)>=0 else { exit(2) }; if fd != target { close(fd) }
+}
+let app = NSApplication.shared
+#if PALETTE_FIXTURE
+let regular = Bundle.main.bundleIdentifier == "net.example.standard-palette"
+#else
+let regular = Bundle.main.bundleIdentifier == "net.example.standard-documents"
+#endif
+let single = FileManager.default.fileExists(atPath: io.appendingPathComponent("single-display").path)
+let expectedCount = single ? 1 : 2
+guard regular,
+      let front = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+      front != getpid(), !app.isActive, NSScreen.screens.count == expectedCount,
+      let secondary = NSScreen.screens.last, let primary = NSScreen.screens.first,
+      single || !secondary.frame.intersects(primary.frame) else { emit(["refused":"isolated secondary required"]); exit(2) }
+let safeSecondaryFrame = secondary.frame
+let primaryTop = primary.frame.maxY
+let policy: NSApplication.ActivationPolicy = .regular
+guard app.activationPolicy() == policy else { emit(["refused":"activation policy"]); exit(2) }
+NSWindow.allowsAutomaticWindowTabbing = false
+var windows = [Int: NSWindow]()
+var rightEdgeStimulus: (number: Int, frame: CGRect, deadline: TimeInterval)?
+var focusEvents = 0
+var history = [UInt32]()
+@MainActor func finish(_ reason: String, _ status: Int32) -> Never {
+    // Disconnect the sample process once. WindowServer removes its windows as a group.
+    emit(["exit":reason,"numbers":history,"focusEvents":focusEvents]); exit(status)
+}
+@MainActor func safe() -> Bool {
+    NSScreen.screens.count == expectedCount && safeSecondaryFrame == NSScreen.screens.last?.frame &&
+    NSWorkspace.shared.frontmostApplication?.processIdentifier == front && !app.isActive &&
+    windows.values.allSatisfy { window in
+        guard !window.isKeyWindow, !window.isMainWindow else { return false }
+        if safeSecondaryFrame.contains(window.frame) { return true }
+        guard single, let stimulus = rightEdgeStimulus else { return false }
+        return window.windowNumber == stimulus.number && window.frame == stimulus.frame &&
+            ProcessInfo.processInfo.systemUptime < stimulus.deadline
+    } &&
+    focusEvents == 0
+}
+@MainActor func add(_ n: Int, compact: Bool = false) {
+    let visible = secondary.visibleFrame
+    guard n > 0, n <= (compact ? 9 : 4), windows[n] == nil else { finish("invalid sample", 2) }
+    let rect: CGRect
+    if compact {
+        // A real, small initial window fits the existing four-column template without a special AX minimum.
+        rect = CGRect(x: visible.minX + 95 + CGFloat((n - 1) % 3) * 165,
+                      y: visible.minY + 110 + CGFloat((n - 1) / 3) * 180, width: 150, height: 128)
+    } else if single {
+        rect = CGRect(x: visible.minX + 80 + CGFloat((n - 1) % 2) * 260,
+                      y: visible.minY + 70 + CGFloat((n - 1) / 2) * 178, width: 240, height: 152)
+    } else {
+        rect = CGRect(x: visible.minX + 95, y: visible.minY + 110 + CGFloat(n - 1) * 205, width: 240, height: 152)
+    }
+    guard safe(), visible.contains(rect) else { finish("unsafe window geometry", 2) }
+    let w = NSWindow(contentRect: rect, styleMask: [.titled,.closable,.miniaturizable,.resizable],
+                     backing:.buffered, defer:true, screen:secondary)
+    w.isReleasedWhenClosed = false
+    w.isRestorable = false
+    w.ignoresMouseEvents = true
+    w.title = "Sample \(n)"
+    #if PALETTE_FIXTURE
+    // An independent drawing palette is eligible to share another app's Stage Manager set.
+    // The test still requires a standard layer-zero window and matching AX, CG and owner frames.
+    w.collectionBehavior = [.canJoinAllApplications]
+    let localChoice = NSPopUpButton()
+    localChoice.addItems(withTitles: ["Point", "Line", "Circle"])
+    let tools = NSStackView(views: [NSTextField(labelWithString: "Drawing tool"), localChoice])
+    tools.orientation = .vertical
+    w.contentView = tools
+    #else
+    w.collectionBehavior = single ? [.canJoinAllApplications] : n == 1 ? [.primary] : [.auxiliary]
+    w.contentView = NSTextField(labelWithString:"Blank sample \(n)")
+    #endif
+    w.setFrame(rect, display:false)
+    guard safe(), secondary.frame.contains(w.frame) else { finish("before display",2) }
+    if single { w.orderBack(nil) } else { w.orderFrontRegardless() }
+    windows[n] = w
+    history.append(UInt32(w.windowNumber))
+}
+@MainActor func report() {
+    let rows:[[String:Any]] = windows.sorted { $0.key < $1.key }.map { n, w in
+        let f = w.frame
+        return ["index":n,"number":w.windowNumber,"frame":[f.minX,primaryTop-f.maxY,f.width,f.height],
+                "key":w.isKeyWindow,"main":w.isMainWindow,"minSize":[w.minSize.width,w.minSize.height]]
+    }
+    emit(["pid":getpid(),"policy":"regular","windows":rows,"front":front,"focusEvents":focusEvents])
+}
+let _observers = [NSWindow.didBecomeKeyNotification,NSWindow.didBecomeMainNotification,
+                  NSApplication.didBecomeActiveNotification].map { note in
+    NotificationCenter.default.addObserver(forName:note,object:nil,queue:.main) { _ in focusEvents += 1 }
+}
+let started = ProcessInfo.processInfo.systemUptime
+let parent = getppid()
+let timer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { _ in
+    MainActor.assumeIsolated {
+        guard safe(), getppid() == parent, ProcessInfo.processInfo.systemUptime-started < 240 else { finish("deadline, focus or display changed",2) }
+    }
+}
+DispatchQueue.global().async {
+    while let line = readLine() {
+        DispatchQueue.main.sync {
+            guard safe() else { finish("scope lost",2) }
+            let fields = line.split(separator:" ")
+            switch fields.first {
+            case "add" where fields.count == 2: add(Int(fields[1]) ?? 0)
+            case "add-small" where fields.count == 2: add(Int(fields[1]) ?? 0, compact:true)
+            case "close" where fields.count == 2:
+                if let n = Int(fields[1]), let w = windows.removeValue(forKey:n) { w.close() }
+            case "edit" where fields.count == 2:
+                // The tested application simulates its own external layout edit. No AX request.
+                guard let n = Int(fields[1]), let w = windows[n] else { finish("wrong edit subject",2) }
+                let r = CGRect(x:secondary.visibleFrame.midX-110,y:secondary.visibleFrame.midY-85,width:220,height:170)
+                guard secondary.visibleFrame.contains(r) else { finish("unsafe edit",2) }
+                w.setFrame(r,display:true)
+            case "cross-right-edge" where fields.count == 1 && single:
+                // One 12 pt excursion by this window's owner. Every other frame must
+                // stay fully on the display. Closing this disposable process removes it.
+                guard rightEdgeStimulus == nil, windows.count == 2, let w = windows[1],
+                      FileManager.default.fileExists(atPath: io.appendingPathComponent("right-edge").path)
+                else { finish("ineligible edge stimulus", 2) }
+                var r = w.frame
+                r.size.width -= 48
+                r.size.height -= 40
+                r.origin = CGPoint(x: safeSecondaryFrame.maxX - r.width + 12, y: r.minY + 16)
+                let visible = r.intersection(safeSecondaryFrame)
+                guard r.width >= 240, r.height >= 152, visible.width == r.width - 12,
+                      visible.height == r.height, visible.width >= r.width * 0.95
+                else { finish("unsafe edge stimulus", 2) }
+                rightEdgeStimulus = (w.windowNumber, r, ProcessInfo.processInfo.systemUptime + 8)
+                w.setFrame(r, display: true)
+            case "cross-reservation" where fields.count == 1:
+                // Owner-side stimulus only. The product must observe the change through AX
+                // and perform any correction in its separate controller. Never post mouse events.
+                guard let w = windows[1] else { finish("missing enrolled sample", 2) }
+                var r = w.frame
+                r.origin.x -= 24
+                r.origin.y += 16
+                r.size.width -= 48
+                r.size.height -= 40
+                guard secondary.visibleFrame.contains(r), r.width >= 240, r.height >= 152 else {
+                    finish("test edit would leave the secondary or exceed its permitted size", 2)
+                }
+                w.setFrame(r, display: true)
+            case "preview-swatches" where fields.count == 1 && single && windows.count == 1:
+                guard let w = windows[1] else { finish("missing preview subject", 2) }
+                w.contentView = PreviewSwatches(frame: w.contentView!.bounds)
+                w.displayIfNeeded()
+            case "read": break
+            case "quit": finish("requested",0)
+            default: finish("bad command",2)
+            }
+            report()
+        }
+    }
+    DispatchQueue.main.async { finish("runner disconnected",0) }
+}
+emit(["ready":getpid(),"front":front])
+app.run()

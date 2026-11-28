@@ -1,0 +1,142 @@
+{
+  "candidateSource": "f7997a734e1689917cc1081d80e4e0974c990904",
+  "version": "5.22",
+  "build": 90,
+  "scope": "ordinary visible resizable fixture windows on one physical display and current user Space, canonical signed host with an isolated profile and Stage Manager off during the lease",
+  "ordinaryHost": {
+    "scopeProbeEnabled": false,
+    "focus": {
+      "attempted": 10,
+      "focusTimed": 10,
+      "inputsConfirmed": 10,
+      "notAttempted": 0,
+      "planned": 10,
+      "status": "PASS"
+    },
+    "firstPresentedFrames": {
+      "attempts": 10,
+      "observed": 10,
+      "sampled": 10
+    },
+    "halfDropOutcomes": {
+      "left": "PASS",
+      "right": "PASS",
+      "self": "PASS"
+    },
+    "firstIndependentGeometryReadAfterReleaseMS": {
+      "left": 1638.19,
+      "right": 1858.02
+    },
+    "sampleIntervalsMS": {
+      "upToFocusLowerMs": {
+        "max": 139.2008750117384,
+        "n": 10,
+        "p50": 105.47750000841916,
+        "p95": 139.2008750117384
+      },
+      "upToFocusUpperMs": {
+        "max": 165.54770834045485,
+        "n": 10,
+        "p50": 123.62318750820123,
+        "p95": 165.54770834045485
+      },
+      "upToVisibleMSLower": {
+        "max": 168.58616675017402,
+        "n": 10,
+        "p50": 139.41362500190735,
+        "p95": 168.58616675017402
+      },
+      "upToVisibleMSUpper": {
+        "max": 188.0723750218749,
+        "n": 10,
+        "p50": 158.85360416723415,
+        "p95": 188.0723750218749
+      }
+    },
+    "source": "final-installed/pair-pointer.json"
+  },
+  "independentTwoOwners": {
+    "status": "PASS",
+    "dispatches": 1,
+    "finalFrames": [
+      [
+        615,
+        33,
+        615,
+        923
+      ],
+      [
+        0,
+        33,
+        615,
+        923
+      ]
+    ],
+    "fixtureTermination": "PASS",
+    "source": "final-cross/result.json"
+  },
+  "diagnosticAdmission": {
+    "status": "CONFIRMED",
+    "readOnlyAXWrites": 0,
+    "source": "verified-scope-diagnostic/focus-scope-probe.json"
+  },
+  "media": {
+    "clipSHA256": "da8f146085e96ab3dd64d913e77e725e2720f78a1e61c475384abbd8005e6de6",
+    "seconds": 3.1,
+    "frames": 44,
+    "screenshotTimeSeconds": 3.033333333333333,
+    "screenshotSHA256": "26aa26ae854dcf0c01d48bb0b3f1bd9b49350afa3682d6d6bea2a2c44389733a"
+  },
+  "signature": {
+    "developerIDCodeObjects": 13,
+    "architectureSlices": 18,
+    "archiveSHA256": "3f6390a87815bd5bb11c647a04a5d433492500daae642ceaa4e21ff2412e2158",
+    "assetID": 773734157,
+    "independentDownload": "PASS",
+    "localPolicy": "NOT_ADMITTED",
+    "cleanHostedMacOS26": {
+      "run": 44837999301,
+      "build": "25G332",
+      "result": "NOT_ADMITTED",
+      "signatureVerifiedCodeObjects": 13,
+      "cleanInstall": "NOT_RUN",
+      "cleanLaunch": "NOT_RUN"
+    }
+  },
+  "restoration": {
+    "app": "/Applications/Nearpane.app",
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "dailyConfiguration": "MATCH",
+    "stageManagerEnabledAfter": true,
+    "launchServices": {
+      "preferred": "selected",
+      "pidSourcesAgree": true,
+      "registered": [
+        "selected"
+      ],
+      "processes": [
+        {
+          "pid": 4450,
+          "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+          "identifierMatches": true,
+          "team": "ZB9D4T66QB",
+          "location": "selected",
+          "verified": true,
+          "kernelExecutableMatches": true,
+          "birth": 1795217802279073
+        }
+      ]
+    },
+    "rollbackSource": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
+    "rollbackArchiveSHA256": "c671f70f48a4422fe86101b34bd505b6e3de9e13a524589d2c72e7fe28090052",
+    "transactions": 3
+  },
+  "stillOpen": {
+    "nativeSpacesOnMacOS27": "QUARANTINED",
+    "twoPhysicalDisplays": "NOT_RUN",
+    "fullscreenNativeSplitView": "NOT_RUN",
+    "systemMissionControlComparison": "NOT_RUN",
+    "cleanNotarizedInstall": "BLOCKED"
+  }
+}

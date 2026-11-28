@@ -1,0 +1,13 @@
+{
+  "developerIDTeam": "ZB9D4T66QB",
+  "identifier": "com.holdsnow.nearpane.spaces-launch-canary",
+  "executableSHA256": "74b203ccb4c91161c35315f738eaa0849166d7a6ff9ba1b9837f7b63f7caefbd",
+  "route": "bridged",
+  "qualificationGranted": false,
+  "productionHost": "NOT_RUN",
+  "thirdPartyWindows": "NOT_RUN",
+  "status": "UNKNOWN",
+  "reason": "missingDedicatedCanaryTerminalReceipt",
+  "launchReturn": 1,
+  "events": "events.jsonl"
+}

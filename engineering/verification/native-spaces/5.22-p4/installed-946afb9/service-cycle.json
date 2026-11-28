@@ -1,0 +1,34 @@
+{
+  "status": "UNKNOWN",
+  "requestCount": 1,
+  "restart": "NOT_RUN",
+  "wordAfterRestart": "NOT_RUN",
+  "installed": {
+    "source": "946afb9b32215de35481034d182255109528a8f9",
+    "cdhash": "dbc78e78a2f45d0203848c9a5e44e9ddda8b79c2",
+    "build": "90"
+  },
+  "registration": {
+    "exit": 0,
+    "status": "READY",
+    "result": "registration/result.json"
+  },
+  "translation": {
+    "exit": 3,
+    "status": "UNKNOWN",
+    "result": "translation/result.json"
+  },
+  "handoff": "PASS",
+  "nonactivatingPanel": "UNKNOWN",
+  "panelChecks": {
+    "anchorMatches": "ALL_SAMPLES",
+    "contentMatches": "NO_SAMPLE",
+    "hostSameGeneration": "ALL_SAMPLES",
+    "imageCaptured": "NO_SAMPLE",
+    "isBound": "ALL_SAMPLES",
+    "panelCurrent": "ALL_SAMPLES",
+    "sourceFocused": "NO_SAMPLE"
+  },
+  "translationCapability": "BLOCKED_MODEL_MISSING",
+  "reason": "No single live sample met every panel check; see panelSamples"
+}

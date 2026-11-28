@@ -1,0 +1,439 @@
+import AppKit
+import NearpaneCore
+import Observation
+import OSLog
+
+/// Switching windows may include covered, minimized or all-desktops windows.
+/// Automatic frame writes require a single ordinary desktop and a currently presented window.
+struct DesktopTilingRoster: Equatable {
+    let space: OrdinaryDesktopIdentity
+    let keys: [DesktopWindowKey]
+    let unpresented: Int
+
+    func hasSamePresentedMembers(as other: Self) -> Bool {
+        space == other.space && Set(keys) == Set(other.keys)
+    }
+
+    init?(_ sample: DesktopSnapshot?, display: String, now: Date = .now,
+          uptime: Double = ProcessInfo.processInfo.systemUptime) {
+        guard let sample, sample.isStructurallyValid, sample.nativeIsFresh(now: now, uptime: uptime),
+              sample.native?.population == .workWindows, sample.native?.spaces == .observed,
+              sample.native?.windowLimitReached == false, sample.displays.count == 1 || sample.separateSpaces == true else { return nil }
+        let scopes = sample.scopes.filter { $0.displayID == display }
+        let current = scopes.flatMap(\.records).filter(\.isCurrent)
+        guard scopes.count == 1, current.count == 1, let record = current.first, let uuid = record.ordinaryUUID,
+              sample.scopes.flatMap(\.records).filter({ $0.ordinaryUUID == uuid }).count == 1 else { return nil }
+        self.space = .init(display: display, record: record.id, uuid: uuid)
+        let members = sample.windows.filter { $0.displayID == display && $0.metadata?.overviewSpaceID == record.id }
+            .compactMap { DesktopWindowTarget.tilingCandidate($0, in: sample) }
+        self.keys = members.filter(\.visible).map(\.key).sorted { $0.number < $1.number }
+        self.unpresented = members.count - keys.count
+    }
+}
+
+/// Lives only between a single same-owner drop's second admission and its final readback.
+/// The signed worker holds both original AX objects and checks them and the Space before every write.
+@MainActor final class BoundSidebarPair {
+    enum Loss: String {
+        case feedInvalidated, intentUnavailable, topologyChanged, permissionDenied, stageEnabled
+        case spaceChanged, windowAbsent, identityChanged, membershipChanged, noLongerOrdinary
+    }
+    let pair: SidebarPairDrop
+    private(set) var loss: Loss?
+    init(_ pair: SidebarPairDrop) { self.pair = pair }
+
+    func revoke(_ reason: Loss) {
+        guard loss == nil else { return }
+        loss = reason
+        DesktopAutomaticTiling.pairLog.info("phase=pairBoundEvidenceRevoked reason=\(reason.rawValue, privacy: .public)")
+    }
+
+    /// A missing reader reply has no facts about either window. A positive contradiction,
+    /// even if followed immediately by the old card numbers reappearing, ends the gesture.
+    func observe(_ sample: DesktopSnapshot) {
+        guard loss == nil else { return }
+        let source = pair.dragged.source
+        guard sample.sessionID == source.session, sample.topologyFingerprint == source.topology,
+              sample.displays.contains(where: { $0.id == source.display }) else { return revoke(.topologyChanged) }
+        if sample.native?.accessibility == .denied { return revoke(.permissionDenied) }
+        if sample.native?.stageManagerEnabled == true { return revoke(.stageEnabled) }
+        if sample.native?.spaces == .observed {
+            let current = sample.scopes.filter { $0.displayID == source.display }.flatMap(\.records).filter(\.isCurrent)
+            guard current.count == 1, current[0].id == source.space, current[0].ordinaryUUID == source.uuid
+            else { return revoke(.spaceChanged) }
+        }
+        for key in [pair.dragged.key, pair.target.key] {
+            let matches = sample.windows.filter { $0.metadata?.number == key.number }
+            guard let window = matches.first, let m = window.metadata else {
+                if sample.native?.catalogComplete == true && sample.native?.windowLimitReached == false { return revoke(.windowAbsent) }
+                continue
+            }
+            guard matches.count == 1, m.pid == key.pid, m.launchMicroseconds == key.birth else { return revoke(.identityChanged) }
+            if window.displayID != source.display || m.activeFullscreenSpaceID != nil ||
+                m.overviewSpaceID.map({ $0 != source.space }) == true {
+                return revoke(.membershipChanged)
+            }
+            if case .known(let ids) = window.membership, ids != [source.space] { return revoke(.membershipChanged) }
+            // An AXWindows omission alone can produce role=false with no read attributes;
+            // onActiveDesktop also requires two positive AppKit enumeration results.
+            // The retained worker verifies role, visibility and membership itself.
+            let observedOtherRole = m.overviewOrdinaryRole == false && (m.minimized != nil || m.fullScreen != nil)
+            if m.isOnscreen == false || m.minimized == true || m.fullScreen == true || observedOtherRole {
+                return revoke(.noLongerOrdinary)
+            }
+        }
+    }
+}
+
+@MainActor @Observable final class DesktopAutomaticTiling {
+    static let pairLog = Logger(subsystem: "com.holdsnow.nearpane.alpha", category: "SidebarPointer")
+    typealias Resolve = @MainActor ([DesktopWindowKey], OrdinaryDesktopIdentity, WorkspacePreferences) async throws -> [any OrdinaryWindowObserving]
+    private let manager: OrdinaryWindowManager
+    private let resolve: @MainActor ([DesktopWindowKey], OrdinaryDesktopIdentity, WorkspacePreferences, Bool) async throws -> [any OrdinaryWindowObserving]
+    @ObservationIgnored private weak var feed: CurrentDesktopWindows?
+    @ObservationIgnored private var permitsOwner: (DesktopWindowKey) -> Bool = { _ in true }
+    @ObservationIgnored var nativeModeAvailable: () -> Bool = { true }
+    @ObservationIgnored var confirmDispatch: (@MainActor () async -> Bool)?
+    private var grant: UUID?
+    private var dispatchEpoch = UUID()
+    private(set) var waitingForDesktop: OrdinaryDesktopIdentity?
+    private var ending = false
+    private var exitEvidence: DesktopSnapshot?
+    private(set) var starting = false
+    private(set) var notice = ""
+    private(set) var unpresented = 0
+    var scope: OrdinaryDesktopIdentity? { manager.desktopScope }
+    @ObservationIgnored private var job: Task<Void, Never>?
+    private var jobID: UUID?
+    /// A geometry refusal is retried only on a new membership, policy or explicit user request.
+    private var previous: Set<DesktopWindowKey>?
+    private var preferences: WorkspacePreferences?
+    private var observedSpace: OrdinaryDesktopIdentity?
+    private var lastPaused = false
+    private var explicitArrivals = [DesktopWindowKey: UUID]()
+
+    init(manager: OrdinaryWindowManager, resolve: Resolve? = nil) {
+        self.manager = manager
+        if let resolve {
+            self.resolve = { keys, scope, preferences, _ in try await resolve(keys, scope, preferences) }
+        } else { self.resolve = Self.resolveWindows }
+    }
+
+    func connect(_ feed: CurrentDesktopWindows, permitsOwner: @escaping (DesktopWindowKey) -> Bool = { _ in true }) {
+        self.feed?.automaticTiling = nil
+        self.feed = feed
+        feed.automaticTiling = self
+        self.permitsOwner = permitsOwner
+        feed.didSample = { [weak self] in self?.changed() }
+        manager.desktopIsCurrent = { [weak self] in
+            guard let self, let scope else { return false }
+            let evidence = self.ending ? self.exitEvidence : self.feed?.snapshot
+            return self.nativeModeAvailable() && observedSpace == scope && evidence?.nativeIsFresh(now: .now, uptime: ProcessInfo.processInfo.systemUptime) == true
+        }
+        manager.didStopDesktop = { [weak self] in self?.end() }
+    }
+
+    func proposed(on display: String) async -> OrdinaryDesktopIdentity? {
+        guard !ending, waitingForDesktop == nil, nativeModeAvailable(), let feed, manager.liveContext?(display) != nil, !starting, scope == nil else {
+            notice = "当前无法确认本屏工作区域。"; return nil
+        }
+        feed.observeManagement(true)
+        defer { if grant == nil { feed.observeManagement(false) } }
+        guard let roster = DesktopTilingRoster(await feed.readNow(), display: display) else {
+            notice = "当前显示器的普通桌面尚未得到确认。"; return nil
+        }
+        return roster.space
+    }
+
+    func start(_ selected: OrdinaryDesktopIdentity) async {
+        let display = selected.display
+        guard !ending, nativeModeAvailable(), grant == nil, !starting, manager.activeIDs.isEmpty, !manager.blocked, !manager.busy,
+              let feed, manager.liveContext?(display) != nil else {
+            notice = "当前无法确认本屏工作区域，或已有另一项窗口管理正在运行。"; return
+        }
+        starting = true
+        let epoch = dispatchEpoch
+        defer { starting = false }
+        let token = UUID()
+        grant = token
+        feed.observeManagement(true)
+        let sample = await feed.readNow()
+        guard grant == token, !ending else { return }
+        guard dispatchEpoch == epoch else { end(); return }
+        guard nativeModeAvailable(), let roster = DesktopTilingRoster(sample, display: display), roster.space == selected, manager.liveContext?(display) != nil,
+              manager.activeIDs.isEmpty, !manager.blocked, !manager.busy else {
+            end(); notice = "尚未确认这个显示器上的普通桌面。请在普通桌面打开窗口调度。"; return
+        }
+        manager.desktopScope = roster.space
+        notice = "正在等待可平铺的普通窗口。"
+        previous = nil
+        feed.changed()
+        changed()
+    }
+
+    /// Serialize an explicit Space move with frame transactions. Frame writes remain
+    /// conditional on the destination desktop grant and a later fresh roster.
+    func transfer(_ key: DesktopWindowKey, lifetime: UUID, from source: OrdinaryDesktopIdentity,
+                  to target: OrdinaryDesktopIdentity, perform: () async throws -> Void) async throws -> String {
+        guard !ending, nativeModeAvailable() else { throw OrdinaryRefusal.stale }
+        let epoch = dispatchEpoch
+        try await manager.performUserAction {
+            try await manager.releaseForTransfer(key, from: source, perform: perform)
+        }
+        guard epoch == dispatchEpoch, nativeModeAvailable(), scope == target, let feed, grant != nil else {
+            return "窗口已移入目标桌面。该桌面未授权自动分屏。"
+        }
+        guard permitsOwner(key) else { return "窗口已移入目标桌面，未纳入自动分屏。" }
+        explicitArrivals[key] = lifetime
+        previous?.remove(key)
+        feed.changed()
+        return manager.paused || manager.blocked ? "窗口已移入目标桌面，自动分屏已暂停。" :
+            "窗口已移入目标桌面，等待核对目标桌面的布局。"
+    }
+
+    /// A drop authorizes exactly two real windows on this desktop. A whole-desktop grant is optional.
+    func place(_ pair: SidebarPairDrop, allowed: @escaping @MainActor () -> Bool) async throws {
+        let a = pair.dragged, b = pair.target, source = a.source
+        let desktop = OrdinaryDesktopIdentity(display: source.display, record: source.space, uuid: source.uuid)
+        guard let feed, !ending, nativeModeAvailable(), !starting, source.kind == .ordinary, source == b.source,
+              a.key != b.key, !a.selectionOnly, !b.selectionOnly, permitsOwner(a.key), permitsOwner(b.key),
+              scope == nil || scope == desktop else {
+            Self.pairLog.info("phase=pairScopeRefused")
+            throw OrdinaryRefusal.scope
+        }
+        let epoch = dispatchEpoch
+        func cardsMatch() -> Bool {
+            feed.lifetime(of: a.key) == pair.draggedLifetime && feed.lifetime(of: b.key) == pair.targetLifetime
+        }
+        func current() -> Bool { epoch == dispatchEpoch && allowed() && !ending && nativeModeAvailable() && cardsMatch() }
+        func membersPresent(_ snapshot: DesktopSnapshot?) -> Bool {
+            guard let snapshot, source.resolve(snapshot)?.current.ordinaryUUID == source.uuid,
+                  snapshot.native?.stageManagerEnabled == false else { return false }
+            return [a, b].allSatisfy { member in
+                guard let w = member.resolve(snapshot), w.membership == .known(recordIDs: [source.space]),
+                      snapshot.isCurrentDesktopWindow(w), let m = w.metadata else { return false }
+                return m.isOnscreen == true && m.minimized != true && m.fullScreen != true
+            }
+        }
+        try await manager.performUserAction {
+            guard current(), membersPresent(await feed.readAfterAction()), current(),
+                  let ctx = manager.liveContext?(source.display) else {
+                Self.pairLog.info("phase=pairAdmissionRefused")
+                throw OrdinaryRefusal.stale
+            }
+            Self.pairLog.info("phase=pairResolving")
+            let keys = pair.draggedOnLeft ? [a.key, b.key] : [b.key, a.key]
+            let missing = keys.filter { manager.retainedWindow($0) == nil }
+            let new = missing.isEmpty ? [] : try await resolve(missing, desktop, ctx.preferences, true)
+            let selected = keys.compactMap { key in manager.retainedWindow(key) ?? new.first { key.matches($0.id) } }
+            guard selected.count == 2 else { throw OrdinaryRefusal.ambiguous }
+            guard current() else { throw OrdinaryRefusal.stale }
+            guard membersPresent(await feed.readAfterAction()), current() else {
+                Self.pairLog.info("phase=pairScopeChangedAfterBinding")
+                throw OrdinaryRefusal.stale
+            }
+            // A shared worker has both *original* AX handles only when we just resolved both
+            // windows of this process together. Existing grants and cross-owner drops keep their card checks.
+            let sameWorker = manager.activeIDs.isEmpty && missing.count == 2 && new.count == 2 &&
+                a.key.pid == b.key.pid && a.key.birth == b.key.birth &&
+                selected.allSatisfy { handle in handle.desktopBinding == desktop && new.contains { $0 === handle } }
+            let bound = sameWorker ? BoundSidebarPair(pair) : nil
+            feed.boundSidebarPair = bound
+            defer { feed.boundSidebarPair = nil }
+            var usedBoundWindows = false
+            @MainActor func placementCurrent() -> Bool {
+                guard let bound else { return current() }
+                guard epoch == dispatchEpoch, allowed(), !ending, nativeModeAvailable() else { bound.revoke(.intentUnavailable); return false }
+                guard bound.loss == nil else { return false }
+                if !cardsMatch() && !usedBoundWindows {
+                    usedBoundWindows = true
+                    Self.pairLog.info("phase=pairUsingBoundWindows")
+                }
+                return true
+            }
+            Self.pairLog.info("phase=pairPlacing")
+            let placement = try await manager.placeSidebarPair(left: selected[0], right: selected[1], desktop: desktop,
+                                               context: ctx, current: placementCurrent)
+            guard placementCurrent(), let final = await feed.readAfterAction(), membersPresent(final), placementCurrent(),
+                  let left = (pair.draggedOnLeft ? a : b).resolve(final)?.metadata,
+                  let right = (pair.draggedOnLeft ? b : a).resolve(final)?.metadata,
+                  left.globalFrame == placement.leftFrame, right.globalFrame == placement.rightFrame else {
+                Self.pairLog.info("phase=pairFinalInventoryUnconfirmed")
+                throw OrdinaryRefusal.stale
+            }
+            Self.pairLog.info("phase=pairVerified")
+            feed.changed()
+            do {
+                try feed.join(a, b, in: final, verifiedPair: usedBoundWindows ? bound : nil)
+            } catch {
+                throw OrdinaryWindowFailure("两扇窗口的分屏位置已核对，调度组未保存。" + error.localizedDescription)
+            }
+        }
+    }
+
+    func dispatchAvailabilityChanged(_ available: Bool) {
+        dispatchEpoch = UUID()
+        previous = nil
+        if available {
+            // Only a new roster on the already authorized desktop can propose another layout.
+            feed?.changed()
+        } else {
+            job?.cancel()
+            feed?.boundSidebarPair?.revoke(.intentUnavailable)
+            manager.withdrawWindowDispatch()
+        }
+    }
+
+    func retry() { previous = nil; feed?.changed(); changed() }
+    func awaitCleanDesktop(_ desktop: OrdinaryDesktopIdentity) {
+        guard !ending, scope == nil, feed != nil, !manager.blocked else { return }
+        waitingForDesktop = desktop
+        notice = "等待核对上次允许的桌面。"
+        feed?.observeManagement(true)
+    }
+
+    func prepareForExit() async -> OrdinaryDesktopIdentity? {
+        let resume = manager.paused || manager.blocked ? nil : scope ?? waitingForDesktop
+        ending = true
+        job?.cancel()
+        await job?.value
+        if let scope, let feed {
+            exitEvidence = await feed.readNow()
+            observedSpace = DesktopTilingRoster(exitEvidence, display: scope.display)?.space
+        }
+        return resume
+    }
+
+    func end() {
+        grant = nil; jobID = nil; job?.cancel(); job = nil
+        explicitArrivals.removeAll()
+        manager.desktopScope = nil
+        waitingForDesktop = nil
+        previous = nil; preferences = nil; observedSpace = nil; unpresented = 0; lastPaused = false; notice = ""
+        feed?.observeManagement(false)
+    }
+
+    private func changed() {
+        guard !ending else { return }
+        if let waiting = waitingForDesktop, job == nil, !starting, grant == nil, nativeModeAvailable(), let feed,
+           !manager.blocked, !manager.busy, manager.activeIDs.isEmpty, manager.liveContext?(waiting.display) != nil,
+           DesktopTilingRoster(feed.snapshot, display: waiting.display)?.space == waiting {
+            let id = UUID()
+            jobID = id
+            job = Task { [weak self] in
+                guard let self, jobID == id else { return }
+                job = nil; jobID = nil
+                guard !Task.isCancelled, nativeModeAvailable(), waitingForDesktop == waiting else {
+                    feed.changed(); return
+                }
+                waitingForDesktop = nil
+                await start(waiting)
+            }
+            return
+        }
+        guard let scope, let token = grant, let feed else { return }
+        explicitArrivals = explicitArrivals.filter { feed.lifetime(of: $0.key) == $0.value }
+        let roster = DesktopTilingRoster(feed.snapshot, display: scope.display)
+        observedSpace = roster?.space
+        unpresented = roster?.space == scope ? roster?.unpresented ?? 0 : 0
+        guard !manager.paused, !manager.blocked else {
+            lastPaused = true; notice = "自动分屏已暂停。"; return
+        }
+        guard nativeModeAvailable(), let roster, roster.space == scope else {
+            notice = "等待回到获准桌面。"; previous = nil; return
+        }
+        guard job == nil, !manager.unavailableForUserAction, !manager.busy,
+              let ctx = manager.liveContext?(scope.display) else { return }
+        let presented = Set(roster.keys)
+        guard presented != previous || ctx.preferences != preferences || lastPaused else { return }
+        lastPaused = false
+        let priorMembers = previous
+        previous = presented; preferences = ctx.preferences
+        let managed = Set(manager.activeIDs.map { DesktopWindowKey(pid: $0.pid, birth: $0.launch, number: $0.number) })
+        let added = roster.keys.filter { permitsOwner($0) && !managed.contains($0) }
+        guard !added.isEmpty else {
+            notice = managed.isEmpty ? "已启用，等待本桌面出现普通窗口。" : "本桌面正在自动分屏。"; return
+        }
+        let epoch = dispatchEpoch, id = UUID()
+        jobID = id
+        job = Task { [weak self] in
+            guard let self else { return }
+            defer { if jobID == id { job = nil; jobID = nil; feed.changed() } }
+            do {
+                let handles = try await resolve(added, scope, ctx.preferences, false)
+                try Task.checkCancellation()
+                guard nativeModeAvailable(), grant == token, !manager.paused, !manager.blocked, !handles.isEmpty,
+                      let live = DesktopTilingRoster(await feed.readNow(), display: scope.display),
+                      live.hasSamePresentedMembers(as: roster), handles.allSatisfy({ handle in
+                          handle.desktopBinding == scope && added.contains(.init(pid: handle.id.pid, birth: handle.id.launch, number: handle.id.number))
+                      }) else {
+                    if grant == token, epoch == dispatchEpoch { notice = "等待可核对身份、尺寸和桌面归属的普通窗口。" }
+                    return
+                }
+                let requestedCreation = handles.enumerated().contains { index, handle in
+                    let key = DesktopWindowKey(pid: handle.id.pid, birth: handle.id.launch, number: handle.id.number)
+                    return explicitArrivals[key] == nil && priorMembers?.contains(key) == false && WorkspaceAdmissionPlanner.requestsCreation(
+                        existingCount: manager.activeIDs.count + index, source: .application, preferences: ctx.preferences)
+                }
+                if let confirmDispatch {
+                    guard await confirmDispatch(), dispatchEpoch == epoch else { return }
+                }
+                try Task.checkCancellation()
+                try await manager.performUserAction {
+                    let review = try await manager.prepare(handles, context: ctx)
+                    try Task.checkCancellation()
+                    guard nativeModeAvailable(), grant == token,
+                          DesktopTilingRoster(await feed.readNow(), display: scope.display)?.hasSamePresentedMembers(as: roster) == true else {
+                        manager.cancelPreview(); throw OrdinaryRefusal.stale
+                    }
+                    try await manager.confirm(review, context: ctx)
+                }
+                for key in added { explicitArrivals.removeValue(forKey: key) }
+                notice = requestedCreation ? "系统桌面创建尚未开放，新窗口已在本桌面分屏。" :
+                    "已核对本桌面 \(manager.activeIDs.count) 扇窗口的布局。"
+            } catch {
+                if grant == token, epoch == dispatchEpoch { notice = "本次自动分屏未完成。\(error.localizedDescription)" }
+            }
+        }
+    }
+
+    /// Only resolve AX for regular processes in the positively attributed catalogue.
+    /// One helper per owner, retained by its admitted windows, including same-app siblings.
+    static func resolveWindows(_ keys: [DesktopWindowKey], _ scope: OrdinaryDesktopIdentity,
+                               _ prefs: WorkspacePreferences, _ explicitPair: Bool) async throws -> [any OrdinaryWindowObserving] {
+        var handles = [DesktopWindowKey: OrdinaryWindowAX]()
+        var failure: Error?
+        for (pid, members) in Dictionary(grouping: keys, by: \.pid) {
+            try Task.checkCancellation()
+            guard let birth = members.first?.birth, members.allSatisfy({ $0.birth == birth }),
+                  let running = NSRunningApplication(processIdentifier: pid), !running.isTerminated,
+                  running.activationPolicy == .regular, pid != getpid(), let bundle = running.bundleIdentifier,
+                  !bundle.hasPrefix("org.nearpane."), !bundle.hasPrefix("com.holdsnow.nearpane"),
+                  AdmissionBirth.read(pid)?.start == birth else { continue }
+            let owner = AdmissionApplication(pid: pid, launch: birth, bundle: bundle, name: running.localizedName ?? bundle)
+            do {
+                let directory = try OrdinaryWindowDirectory(owner)
+                let rows = try await directory.choices(initial: true)
+                if explicitPair { pairLog.info("phase=pairListed") }
+                for key in members {
+                    let choices = rows.filter { $0.number == key.number }
+                    guard choices.count == 1, let choice = choices.first, let h = directory.handles[choice.id],
+                          (try? prefs.excluded(h.id, bundle: bundle)) == false else { continue }
+                    do {
+                        try h.bindDesktop(scope)
+                        // The explicit transaction prepares both handles together, rechecking their
+                        // memberships and original geometry before acquiring a single write lease.
+                        if !explicitPair { _ = try await h.prepare() }
+                        handles[key] = h
+                    } catch { failure = error }
+                }
+            } catch { failure = error }
+        }
+        if explicitPair && handles.count != keys.count {
+            pairLog.info("phase=pairBindingIncomplete")
+            throw failure ?? OrdinaryRefusal.ambiguous
+        }
+        if handles.isEmpty, let failure { throw failure }
+        return keys.compactMap { handles[$0] }
+    }
+}

@@ -1,0 +1,56 @@
+{
+  "audioDeviceOpens" : 0,
+  "cloudASRRequests" : 0,
+  "dictionary" : [
+    {
+      "characters" : 269,
+      "containsRequestedChineseMeaning" : true,
+      "definitionAvailable" : true,
+      "definitionSHA256" : "c96acf1162ffe4a2b309f0dacb3bd0bf34a1f9bcd2aba7771c09dc85a660ada8",
+      "fixture" : "bicycle"
+    },
+    {
+      "characters" : 38,
+      "containsRequestedChineseMeaning" : true,
+      "definitionAvailable" : true,
+      "definitionSHA256" : "ba9e2fc35064e220c50ed5a664e63672714c07066466c6828b25989bcdabfed4",
+      "fixture" : "自行车"
+    }
+  ],
+  "legacySpeechPermission" : 0,
+  "mandarinDictationPresets" : {
+    "long" : "supported",
+    "phrase" : "supported",
+    "short" : "supported"
+  },
+  "mandarinSpeechPresets" : {
+    "progressive" : "supported",
+    "timeIndexedProgressive" : "supported",
+    "transcription" : "supported"
+  },
+  "modelInstallRequests" : 0,
+  "saytileSpeechTranscriber" : {
+    "installedLocale" : true,
+    "inventory" : "supported",
+    "locale" : "zh_CN"
+  },
+  "separateDictationTranscriber" : {
+    "installedLocale" : true,
+    "inventory" : "supported",
+    "locale" : "zh_CN"
+  },
+  "translation" : [
+    {
+      "from" : "en",
+      "inputSHA256" : "92b6dfdd5fdd2e93b3f95e792c54652cc733e612d0f8e96dbbbc32b9ea5bc84a",
+      "status" : "supported",
+      "to" : "zh-Hans"
+    },
+    {
+      "from" : "zh-Hans",
+      "inputSHA256" : "466b0e1b0e29b038c813d20ce813aecbaccda438f80f1cde33f63d3572b32425",
+      "status" : "supported",
+      "to" : "en"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+combined-build-and-test   SHA256 36a3ec8894a15d4de749eb0c9c128b1ca3af99838369194dce338b0a55a3bf51
+➜ Test recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled() skipped.
+➜ Test coldFileJournalAndIndependentReopen() skipped.
+➜ Test offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord() skipped.
+✘ Test coldCaptureWaitsForActualPCMAndAcceptsSilentInput() recorded an issue at PCMPipelineTests.swift:22:17: Caught error: .message("麦克风停止提供音频，请确认设备和权限后恢复")
+✘ Test coldCaptureWaitsForActualPCMAndAcceptsSilentInput() failed after 5.773 seconds with 1 issue.
+✘ Suite PCMPipelineTests failed after 5.779 seconds with 1 issue.
+✘ Test run with 698 tests in 112 suites failed after 11.624 seconds with 1 issue.
+
+cold-pcm-isolated   SHA256 7fa1fbd4666ef3c672301fa86222c87b7077203bbead100e5f1de24425b94bbd
+✔ Test coldCaptureWaitsForActualPCMAndAcceptsSilentInput() passed after 0.323 seconds.
+✔ Test run with 1 test in 1 suite passed after 0.323 seconds.
+
+full-suite-alone   SHA256 a4afe9eb64ede4c23ad602282d2ba7a2cccd7ca987b30ae790ecabf5317ac98f
+➜ Test recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled() skipped.
+➜ Test coldFileJournalAndIndependentReopen() skipped.
+➜ Test offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord() skipped.
+✔ Test coldCaptureWaitsForActualPCMAndAcceptsSilentInput() passed after 1.855 seconds.
+✔ Test run with 698 tests in 112 suites passed after 6.685 seconds.

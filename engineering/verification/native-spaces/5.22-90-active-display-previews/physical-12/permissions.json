@@ -1,0 +1,12 @@
+{
+  "dailyConfigurationUnchanged": true,
+  "installedCDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+  "permissions": {
+    "accessibility": true,
+    "postEvent": true,
+    "request": "9F3459F5-7A1B-4369-8C7C-B12FB0CBF1DB",
+    "screen": true,
+    "source": "installed Host live preflight"
+  },
+  "runningPID": 1936
+}

@@ -1,0 +1,74 @@
+{
+  "artifactID": 15069160488,
+  "artifactSHA256": "01eb8cef1c0335eb765837491974bc0f0a66925ee0c1943f3a45b15897910a2c",
+  "candidateZIP": {
+    "bytes": 24989428,
+    "name": "Nearpane-independent-candidate.zip",
+    "sha256": "413b25f592c1d7c3840fedc1a119e5c95a9c796670d66f5e379accd6f28b6140"
+  },
+  "files": [
+    {
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "file": "candidate.json",
+      "sha256": "4bf6ac113c1a8ce15c2526509c0d8ca3ff8087de3671d1d5808326b7067e9011"
+    },
+    {
+      "artifactPath": "independent-source/source/summary.json",
+      "bytes": 1253,
+      "file": "source-summary.json",
+      "sha256": "bc33fadb396052a183cc0e498fd60f24270435a33592050370814693157f4dc6"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 3916,
+      "file": "engine-result.json",
+      "sha256": "07893529f066c6821ceb780f2cb380efaf552a122182859f759f0254b6a870f7"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 10561,
+      "file": "product-result.json",
+      "sha256": "efa2e24c59646f1a2548d87d66549a06aa6528c100c342669e11d78702f387e5"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/product/r4-baseline.png",
+      "bytes": 20465,
+      "file": "r4-baseline.png",
+      "sha256": "50d1b338e26e8047113bff6f33c7628b57499f58269cd9685e7e454e081b4ce6"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/product/r4-button-unavailable.png",
+      "bytes": 24904,
+      "file": "r4-before-input.png",
+      "sha256": "e78d6036c53bfb1ed13fef63afcdb1159503683002b047c4d81d13cd295e676e"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/product/r4-press-af02bcdd-d4c2-4848-872d-88500cc23d79.result.json",
+      "bytes": 2360,
+      "file": "r4-press-result.json",
+      "sha256": "469df57ecdde5da10acb7ca52b78d9ca14e103027092ebc9bb371f65350c547f"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "file": "fixture-cleanup.json",
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup.json",
+      "bytes": 120,
+      "file": "ci-workspace-cleanup.json",
+      "sha256": "afae4b604b5e75376d0e72f7db1fcf5996868dfd81d12950f9a491e704338b07"
+    }
+  ],
+  "jobID": 139543822996,
+  "lane": "full",
+  "profileFilesAtArtifactCapture": [
+    "Nearpane/stage-groups-v2.json"
+  ],
+  "qualificationGranted": false,
+  "revision": "3bcb0640652de28f0c9788424ed28a153895cbaa",
+  "schema": 1,
+  "workflowRun": 45710634990
+}

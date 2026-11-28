@@ -1,0 +1,68 @@
+{
+  "buildRunID": "independent-46021722114-1-full",
+  "candidate": {
+    "status": "NOT_RUN"
+  },
+  "revision": "cb95d6aa16ead25f2ac919d84896cf3d29cb9177",
+  "runtime": "NOT_RUN",
+  "schema": 1,
+  "source": {
+    "checks": {
+      "evidence": {
+        "exit": 0,
+        "log": "evidence.log",
+        "status": "PASS",
+        "stderr": "evidence.stderr.log"
+      },
+      "nativeDiagnostic": {
+        "exit": 0,
+        "log": "native-diagnostic.log",
+        "status": "PASS",
+        "stderr": "native-diagnostic.stderr.log"
+      },
+      "readOnlyContext": {
+        "exit": 0,
+        "log": "read-only-context.log",
+        "status": "PASS",
+        "stderr": "read-only-context.stderr.log"
+      },
+      "rust": {
+        "exit": 0,
+        "log": "rust.log",
+        "passed": 174,
+        "status": "PASS",
+        "stderr": "rust.stderr.log"
+      },
+      "spacesWorkerBuild": {
+        "exit": 0,
+        "log": "build-spaces-worker.log",
+        "status": "PASS",
+        "stderr": "build-spaces-worker.stderr.log"
+      },
+      "spacesWorkerProtocol": {
+        "exit": 0,
+        "log": "spaces-worker-protocol.log",
+        "status": "PASS",
+        "stderr": "spaces-worker-protocol.stderr.log"
+      },
+      "swift": {
+        "exit": 0,
+        "log": "swift.log",
+        "passed": 217,
+        "skipped": 1,
+        "status": "PASS",
+        "stderr": "swift.stderr.log"
+      }
+    },
+    "foreignWindowDispatch": "NOT_RUN",
+    "productR4": "NOT_RUN",
+    "schema": 1,
+    "status": "PASS",
+    "windowServer": "READ_ONLY_CONTEXT"
+  },
+  "toolchain": {
+    "cargo": "/opt/homebrew/opt/rustup/bin/cargo",
+    "source": "PATH",
+    "status": "AVAILABLE"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "candidate": "3be13f6",
+  "status": "FAIL",
+  "transitionsStatus": "OBSERVED",
+  "binding": {
+    "number": 52854,
+    "birth": 1795196323450392
+  },
+  "observerReportedInterval": {
+    "first": 269735.36247187504,
+    "firstPanelSequence": 1010,
+    "frames": 2,
+    "last": 269735.3791385,
+    "lastPanelSequence": 1011,
+    "observedSpanMs": 16.667
+  },
+  "eventsAroundGrey": [
+    {
+      "relativeToFirstGreyMs": -22.194,
+      "lane": "lookup",
+      "reason": "ownerUnavailable",
+      "frameSequence": 1085,
+      "streamEpoch": 0
+    },
+    {
+      "relativeToFirstGreyMs": -22.056,
+      "lane": "card",
+      "reason": "outline",
+      "frameSequence": 1085,
+      "streamEpoch": 0
+    },
+    {
+      "relativeToFirstGreyMs": 3.527,
+      "lane": "lookup",
+      "reason": "allowed",
+      "frameSequence": 1086,
+      "streamEpoch": 0
+    },
+    {
+      "relativeToFirstGreyMs": 3.546,
+      "lane": "card",
+      "reason": "liveImage",
+      "frameSequence": 1086,
+      "streamEpoch": 0
+    }
+  ],
+  "confirmedCauseOfThisTrial": "At paint time, the enrolled owner lookup declined a still-streaming window. The body selected the outline, and independent samples turned neutral. The lookup and body returned to live on the next published frame of the same stream epoch.",
+  "sameIndividualCauseAs212msHistoricalTrial": "NOT_PROVEN"
+}

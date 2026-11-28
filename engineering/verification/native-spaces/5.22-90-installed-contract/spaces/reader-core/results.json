@@ -1,0 +1,111 @@
+{
+  "allRequiredPassed": false,
+  "attemptCount": 0,
+  "cleanup": {
+    "cleanupCurrent": 6,
+    "created": 1,
+    "errors": [
+      "removal not independently confirmed"
+    ],
+    "focusRestored": false,
+    "originalCurrent": 6,
+    "originalOrderRestored": false,
+    "outstanding": [
+      4887
+    ],
+    "preservedLatestOrder": false,
+    "removed": 0,
+    "retainedUserSelectedSpace": false,
+    "topologyRestored": false
+  },
+  "failedAttempts": 0,
+  "failures": [],
+  "performancePercentiles": null,
+  "productAttempts": [],
+  "requested": [
+    "D01",
+    "N01",
+    "R01",
+    "S01",
+    "S02",
+    "S03",
+    "W01",
+    "W02"
+  ],
+  "scenarios": {
+    "C01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "D01": {
+      "inputs": 0,
+      "reason": "Installed Host move capability is false or unknown; zero drag inputs dispatched.",
+      "status": "BLOCKED"
+    },
+    "F01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "I01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "M01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "N01": {
+      "reason": "select: Mission Control was already open",
+      "status": "BLOCKED"
+    },
+    "P01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "R01": {
+      "reason": "select: Mission Control was already open",
+      "status": "BLOCKED"
+    },
+    "R02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S01": {
+      "reason": "select: Mission Control was already open",
+      "status": "BLOCKED"
+    },
+    "S02": {
+      "reason": "select: Mission Control was already open",
+      "status": "BLOCKED"
+    },
+    "S03": {
+      "reason": "select: Mission Control was already open",
+      "status": "BLOCKED"
+    },
+    "V01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W01": {
+      "reason": "select: Mission Control was already open",
+      "status": "BLOCKED"
+    },
+    "W02": {
+      "reason": "select: Mission Control was already open",
+      "status": "BLOCKED"
+    },
+    "W03": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    }
+  },
+  "unknownAttempts": 0
+}

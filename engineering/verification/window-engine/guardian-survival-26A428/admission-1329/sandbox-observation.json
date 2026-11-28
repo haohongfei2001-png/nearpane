@@ -1,0 +1,51 @@
+{
+  "consoleObserver": {
+    "build": "26A428",
+    "clockEnd": {
+      "denom": 3,
+      "machAbsolute": 11313643391731,
+      "machContinuous": 14995365192707,
+      "numer": 125,
+      "unix": 1795411722.057592,
+      "uptime": 471401.807988625
+    },
+    "clockStart": {
+      "denom": 3,
+      "machAbsolute": 11313643383820,
+      "machContinuous": 14995365184800,
+      "numer": 125,
+      "unix": 1795411722.057262,
+      "uptime": 471401.80765875004
+    },
+    "endedUTC": "2026-11-23T05:28:42Z",
+    "hostRole": "runningRegularInstalledHost",
+    "hostTelemetry": [],
+    "launchedHosts": 0,
+    "observerAXTrusted": false,
+    "observerSHA256": "50988dde5d9c89e650e267cbaf6f56580c9d40decc31cd8ecdab8fc2ab150e9e",
+    "reason": "physicalSourceUnavailable/identity",
+    "schema": 1,
+    "sip": "System Integrity Protection status: enabled.",
+    "spaceWrites": 0,
+    "stage": "passiveReadOnly",
+    "startedUTC": "2026-11-23T05:28:41Z",
+    "status": "NOT_RUN",
+    "systemVersion": "27.0",
+    "windowWrites": 0,
+    "workspaceDidActivate": [],
+    "workspaceTimeline": {
+      "clock": "ProcessInfo.systemUptime",
+      "dropped": 0,
+      "events": [],
+      "notificationTime": "callbackDelivery"
+    }
+  },
+  "permissionProbe": {
+    "status": "UNKNOWN",
+    "reason": "PermissionError",
+    "message": "[Errno 1] Operation not permitted: '/bin/ps'",
+    "windowActions": 0
+  },
+  "provenance": "restricted shell, before observation in the real login session",
+  "countsAsPhysicalAdmission": false
+}

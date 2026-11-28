@@ -1,0 +1,512 @@
+{
+  "schema": 1,
+  "status": "BLOCKED",
+  "stage": "physicalP0BeforeWrites",
+  "reason": "fullscreenType4",
+  "observerSHA256": "0f7c2d8190c4d13786d64ab8e3fbcc0461aa25eb1d562685086d0871f7be211c",
+  "host": {
+    "birth": 1795343882268848,
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team": "ZB9D4T66QB"
+  },
+  "startedUTC": "2026-11-22T16:10:53Z",
+  "endedUTC": "2026-11-22T16:16:54Z",
+  "sip": "System Integrity Protection status: enabled.",
+  "build": "26A428",
+  "systemVersion": "27.0",
+  "windowWrites": 0,
+  "spaceWrites": 0,
+  "launchedHosts": 0,
+  "hostTelemetry": [],
+  "clockStart": {
+    "denom": 3,
+    "machAbsolute": 10164809735236,
+    "numer": 125,
+    "unix": 1795363853.8585649,
+    "uptime": 423533.7389672917
+  },
+  "clockEnd": {
+    "denom": 3,
+    "machAbsolute": 10173463683693,
+    "numer": 125,
+    "unix": 1795364214.439424,
+    "uptime": 423894.3201532917
+  },
+  "scope": {
+    "reason": "fullscreenType4",
+    "status": "BLOCKED"
+  },
+  "privateReceiptSHA256": "bddde1d9d8c6e36d434c1786073a54d6f75731d17f235405f779467f50705081",
+  "projection": "Window identity, system geometry and event metadata only. Hardware UUIDs are aliased and absolute HID counts are withheld.",
+  "presentations": 0,
+  "dismissals": 0,
+  "activationNotifications": [
+    {
+      "birth": 1794944389149251,
+      "kind": "didActivate",
+      "pid": 56354,
+      "uptime": 423606.6638390417
+    },
+    {
+      "birth": 1795362119619127,
+      "kind": "didActivate",
+      "pid": 4387,
+      "uptime": 423607.7255206667
+    },
+    {
+      "birth": 1794944389149251,
+      "kind": "didActivate",
+      "pid": 56354,
+      "uptime": 423609.1763433334
+    },
+    {
+      "birth": 1795151346365238,
+      "kind": "didActivate",
+      "pid": 63480,
+      "uptime": 423610.07194366667
+    }
+  ],
+  "workspaceTimeline": {
+    "clock": "ProcessInfo.systemUptime",
+    "dropped": 0,
+    "events": [
+      {
+        "birth": 1794944389149251,
+        "kind": "didActivate",
+        "pid": 56354,
+        "uptime": 423606.6638390417
+      },
+      {
+        "birth": 1795362119619127,
+        "kind": "didActivate",
+        "pid": 4387,
+        "uptime": 423607.7255206667
+      },
+      {
+        "birth": 1794944389149251,
+        "kind": "didActivate",
+        "pid": 56354,
+        "uptime": 423609.1763433334
+      },
+      {
+        "birth": 1795151346365238,
+        "kind": "didActivate",
+        "pid": 63480,
+        "uptime": 423610.07194366667
+      },
+      {
+        "activeSpace": 5184,
+        "axFocusedApplicationError": 0,
+        "axFocusedApplicationPID": 63480,
+        "directError": 0,
+        "endUptime": 423894.31844012503,
+        "inventoryError": 0,
+        "kind": "windowSnapshot",
+        "phase": "admissionEnded",
+        "screenLocked": false,
+        "sessionOnConsole": true,
+        "subjects": [
+          {
+            "axCountError": 0,
+            "axFocusedWindowError": -25212,
+            "axFocusedWindowID": null,
+            "axFrontmost": false,
+            "axFrontmostError": 0,
+            "axListError": null,
+            "axWindowCount": 0,
+            "axWindowIDs": [],
+            "birth": 1795271950317697,
+            "cgLayerZeroCount": 5,
+            "hidden": false,
+            "pid": 48228,
+            "sameGenerationAtEnd": true,
+            "subject": "com.microsoft.edgemac",
+            "terminated": false,
+            "windows": [
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63794,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63793,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63792,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 63791,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 64,
+                  "Width": 64,
+                  "X": 0,
+                  "Y": 456
+                },
+                "id": 65126,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              }
+            ]
+          },
+          {
+            "axCountError": 0,
+            "axFocusedWindowError": 0,
+            "axFocusedWindowID": 17742,
+            "axFrontmost": false,
+            "axFrontmostError": 0,
+            "axListError": null,
+            "axWindowCount": 0,
+            "axWindowIDs": [],
+            "birth": 1794944389149251,
+            "cgLayerZeroCount": 6,
+            "hidden": false,
+            "pid": 56354,
+            "sameGenerationAtEnd": true,
+            "subject": "com.github.GitHubClient",
+            "terminated": false,
+            "windows": [
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 500,
+                  "Width": 500,
+                  "X": 0,
+                  "Y": 456
+                },
+                "id": 17744,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 660,
+                  "Width": 960,
+                  "X": 110,
+                  "Y": 151
+                },
+                "id": 17742,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": [
+                  6
+                ]
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17741,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17740,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17739,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              },
+              {
+                "activeSpaceHits": 0,
+                "alpha": 1,
+                "forwardError": 0,
+                "frame": {
+                  "Height": 33,
+                  "Width": 1470,
+                  "X": 0,
+                  "Y": 0
+                },
+                "id": 17738,
+                "layer": 0,
+                "onScreen": null,
+                "reverseError": 0,
+                "spaces": []
+              }
+            ]
+          }
+        ],
+        "uptime": 423894.28234470834,
+        "workspaceFrontPID": 63480
+      }
+    ],
+    "notificationTime": "callbackDelivery"
+  },
+  "admissionChanges": [
+    {
+      "uptime": 423533.96105708333,
+      "idleSeconds": 139.142446167,
+      "pressedButtons": 0,
+      "admissionState": "fullscreenType4",
+      "workspacePID": 49381,
+      "birth": 1794932452405415,
+      "cgWindowID": 33546,
+      "systemFocusedApplicationError": 0,
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "scope": {
+        "reason": "fullscreenType4",
+        "status": "BLOCKED"
+      },
+      "hidDeltaFromFirstState": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "uptime": 423606.8298366667,
+      "idleSeconds": 0.004259167,
+      "pressedButtons": 0,
+      "admissionState": "waitingForIdleInput",
+      "workspacePID": 56354,
+      "birth": 1794944389149251,
+      "cgWindowID": 17742,
+      "systemFocusedApplicationError": 0,
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "scope": {
+        "displayUUID": "uuid-1",
+        "nativeID": 6,
+        "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+        "spaceUUID": "uuid-2",
+        "status": "PASS"
+      },
+      "hidDeltaFromFirstState": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        235,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        749
+      ]
+    },
+    {
+      "uptime": 423608.59106808336,
+      "idleSeconds": 0.015533333,
+      "pressedButtons": 0,
+      "admissionState": "waitingForIdleInput",
+      "workspacePID": 4387,
+      "birth": 1795362119619127,
+      "cgWindowID": 69067,
+      "systemFocusedApplicationError": 0,
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "scope": {
+        "displayUUID": "uuid-1",
+        "nativeID": 4,
+        "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+        "spaceUUID": "uuid-3",
+        "status": "PASS"
+      },
+      "hidDeltaFromFirstState": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        235,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        749
+      ]
+    },
+    {
+      "uptime": 423609.47702416667,
+      "idleSeconds": 0.002483084,
+      "pressedButtons": 0,
+      "admissionState": "waitingForIdleInput",
+      "workspacePID": 56354,
+      "birth": 1794944389149251,
+      "cgWindowID": 17742,
+      "systemFocusedApplicationError": 0,
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "scope": {
+        "displayUUID": "uuid-1",
+        "nativeID": 6,
+        "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+        "spaceUUID": "uuid-2",
+        "status": "PASS"
+      },
+      "hidDeltaFromFirstState": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        235,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        749
+      ]
+    },
+    {
+      "uptime": 423610.34544450004,
+      "idleSeconds": 0.084879667,
+      "pressedButtons": 0,
+      "admissionState": "fullscreenType4",
+      "workspacePID": 63480,
+      "birth": 1795151346365238,
+      "cgWindowID": 57074,
+      "systemFocusedApplicationError": 0,
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "scope": {
+        "reason": "fullscreenType4",
+        "status": "BLOCKED"
+      },
+      "hidDeltaFromFirstState": [
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        276,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        749
+      ]
+    }
+  ]
+}

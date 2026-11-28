@@ -1,0 +1,278 @@
+import Foundation
+import Observation
+
+public enum ModuleKind: String, Sendable { case core, builtin }
+public enum ModuleState: String, Sendable {
+    case available, enabling, permissionRequired, resident, expanded, suspended, degraded, disabled
+}
+public enum ModuleAction: String, Hashable, Sendable { case refresh }
+public enum HostPermission: String, CaseIterable, Hashable, Sendable { case calendarRead, location }
+
+public struct ModuleManifest: Identifiable, Equatable, Sendable {
+    public let id: String
+    public let name: String
+    public let symbol: String
+    public let kind: ModuleKind
+    public let version: Int
+    public let minimumHostVersion: Int
+    public let permissions: Set<HostPermission>
+    public let actions: [ModuleAction: Set<HostPermission>]
+
+    public init(id: String, name: String, symbol: String, kind: ModuleKind = .builtin,
+                version: Int = 1, minimumHostVersion: Int = 1,
+                permissions: Set<HostPermission> = [], actions: [ModuleAction: Set<HostPermission>] = [.refresh: []]) {
+        self.id = id; self.name = name; self.symbol = symbol; self.kind = kind
+        self.version = version; self.minimumHostVersion = minimumHostVersion
+        self.permissions = permissions; self.actions = actions
+    }
+}
+
+public enum BuiltinCatalog {
+    public static let voice = "com.holdsnow.nearpane.saytile"
+    public static let screenshots = "com.holdsnow.nearpane.riftlet"
+    public static let desktop = "com.holdsnow.nearpane.desktop"
+    public static let memo = "com.holdsnow.nearpane.memo"
+    public static let tasks = "com.holdsnow.nearpane.tasks"
+    public static let lyrics = "com.holdsnow.nearpane.lyrictile"
+    /// Non-Spaces content that can also participate in the primary tool surface.
+    public static let sidebarTools = [voice, screenshots, lyrics, memo, tasks, clock]
+    public static let notes = "com.holdsnow.nearpane.notes-sample"
+    public static let clock = "com.holdsnow.nearpane.clock-sample"
+    public static let calendar = "com.holdsnow.nearpane.calendar-sample"
+    public static let manifests: [ModuleManifest] = [
+        .init(id: voice, name: "Saytile", symbol: "mic", kind: .core, actions: [:]),
+        .init(id: screenshots, name: "Riftlet", symbol: "photo", kind: .core, actions: [:]),
+        .init(id: desktop, name: "Spaces", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
+        .init(id: lyrics, name: "LyricTile", symbol: "music.note", actions: [:]),
+        .init(id: memo, name: "备忘录", symbol: "note.text"),
+        .init(id: tasks, name: "待办", symbol: "checklist"),
+        .init(id: notes, name: "Notes sample", symbol: "note.text"),
+        .init(id: clock, name: "时钟", symbol: "clock"),
+        .init(id: "com.holdsnow.nearpane.tasks-sample", name: "Tasks sample", symbol: "checklist"),
+        .init(id: calendar, name: "Calendar sample", symbol: "calendar", permissions: [.calendarRead], actions: [.refresh: [.calendarRead]]),
+        .init(id: "com.holdsnow.nearpane.weather-sample", name: "Weather sample", symbol: "cloud.sun")
+    ]
+
+    public static let productManifests = manifests.filter { $0.kind == .core || $0.id == clock || sidebarTools.contains($0.id) }
+}
+
+/// Trusted, bundled adapters only. Throwing failures are isolated; process crashes require a future helper/XPC boundary.
+@MainActor
+public protocol HostModule: AnyObject {
+    func start() throws
+    func stop()
+    func suspend()
+    func resume() throws
+    func perform(_ action: ModuleAction) throws
+    func snapshot() throws -> ModuleProjection
+}
+
+@MainActor
+public final class SampleModule: HostModule {
+    private let message: String
+    private var refreshCount = 0
+    public init(message: String) { self.message = message }
+    public func start() throws {}
+    public func stop() {}
+    public func suspend() {}
+    public func resume() throws {}
+    public func perform(_ action: ModuleAction) throws { refreshCount += 1 }
+    public func snapshot() throws -> ModuleProjection { ModuleProjection(message: message, refreshCount: refreshCount) }
+}
+
+public enum RegistryError: Error, Equatable {
+    case duplicateID, incompatibleManifest, unknownModule, coreOrderLocked, notRunning, unsupportedAction
+}
+
+@Observable @MainActor
+public final class ModuleRegistry {
+    public private(set) var manifests: [ModuleManifest] = []
+    public private(set) var preferences: [ModulePreference] = []
+    public private(set) var states: [String: ModuleState] = [:]
+    public private(set) var expandedID: String?
+    @ObservationIgnored private var factories: [String: () -> any HostModule] = [:]
+    @ObservationIgnored private var runtimes: [String: any HostModule] = [:]
+    @ObservationIgnored private var instances: [String: UUID] = [:]
+    @ObservationIgnored private var revisions: [String: UInt64] = [:]
+    private let bus: SnapshotBus
+    private let diagnostics: Diagnostics
+
+    public init(bus: SnapshotBus, diagnostics: Diagnostics) { self.bus = bus; self.diagnostics = diagnostics }
+
+    public func register(_ manifest: ModuleManifest, factory: @escaping () -> any HostModule) throws {
+        guard factories[manifest.id] == nil else { throw RegistryError.duplicateID }
+        guard !manifest.id.isEmpty, manifest.version > 0, manifest.minimumHostVersion <= 1,
+              manifest.actions.values.allSatisfy({ $0.isSubset(of: manifest.permissions) }) else {
+            throw RegistryError.incompatibleManifest
+        }
+        manifests.append(manifest)
+        factories[manifest.id] = factory
+        preferences.append(ModulePreference(id: manifest.id, enabled: manifest.kind == .core))
+        states[manifest.id] = .available
+    }
+
+    public func restore(_ saved: [ModulePreference]) {
+        let catalog = manifests.map { ModulePreference(id: $0.id, enabled: $0.kind == .core) }
+        let known = Set(catalog.map(\.id))
+        var seen: Set<String> = []
+        let restored = saved.filter { known.contains($0.id) && seen.insert($0.id).inserted }
+        let merged = restored + catalog.filter { !seen.contains($0.id) }
+        // Registration kind is an adapter detail, never a product ordering boundary.
+        // Upgrades retain the user's entire saved order and append only new modules.
+        preferences = merged
+        for pref in preferences { states[pref.id] = pref.enabled ? .available : .disabled }
+    }
+
+    public var pinnedModules: [ModuleManifest] {
+        preferences.filter { $0.enabled && $0.pinned && !BuiltinCatalog.sidebarTools.contains($0.id) }.compactMap { pref in
+            manifests.first { $0.id == pref.id && $0.kind == .builtin }
+        }
+    }
+
+    public func startEnabled() {
+        for pref in preferences where pref.enabled { start(pref.id) }
+    }
+
+    public func setEnabled(_ id: String, _ enabled: Bool) throws {
+        guard let index = preferences.firstIndex(where: { $0.id == id }) else { throw RegistryError.unknownModule }
+        preferences[index].enabled = enabled
+        if enabled {
+            if runtimes[id] == nil { start(id) }
+        } else {
+            stop(id)
+        }
+    }
+
+    public func setPinned(_ id: String, _ pinned: Bool) throws {
+        guard let index = preferences.firstIndex(where: { $0.id == id }) else { throw RegistryError.unknownModule }
+        preferences[index].pinned = pinned
+        if !pinned && expandedID == id { collapse() }
+    }
+
+    public func move(_ id: String, by offset: Int) throws {
+        guard let index = preferences.firstIndex(where: { $0.id == id }) else { throw RegistryError.unknownModule }
+        let next = min(preferences.count - 1, max(0, index + max(-1, min(1, offset))))
+        preferences.swapAt(index, next)
+    }
+
+    /// One persisted order for every module, including Spaces and the clock.
+    /// Moving an item never changes its enabled state, settings, or saved content.
+    public func move(_ id: String, before target: String?) throws {
+        guard let source = preferences.firstIndex(where: { $0.id == id }) else { throw RegistryError.unknownModule }
+        if let target {
+            guard preferences.contains(where: { $0.id == target }) else { throw RegistryError.unknownModule }
+            if target == id { return }
+        }
+        let moving = preferences.remove(at: source)
+        let destination = target.flatMap { target in preferences.firstIndex { $0.id == target } } ?? preferences.endIndex
+        preferences.insert(moving, at: destination)
+    }
+
+    public func expand(_ id: String) throws {
+        guard manifests.contains(where: { $0.id == id && $0.kind == .builtin }),
+              preferences.contains(where: { $0.id == id && $0.enabled && $0.pinned }),
+              states[id] == .resident || states[id] == .expanded else { throw RegistryError.notRunning }
+        collapse()
+        expandedID = id
+        states[id] = .expanded
+    }
+
+    public func collapse() {
+        if let id = expandedID, states[id] == .expanded { states[id] = .resident }
+        expandedID = nil
+    }
+
+    public func suspend(_ id: String) {
+        guard let runtime = runtimes[id], states[id] == .resident || states[id] == .expanded else { return }
+        if expandedID == id { collapse() }
+        runtime.suspend()
+        bus.deactivate(moduleID: id)
+        states[id] = .suspended
+    }
+
+    public func resume(_ id: String) {
+        guard let runtime = runtimes[id], states[id] == .suspended else { return }
+        do {
+            try runtime.resume()
+            // New publication epoch prevents late pre-suspension events from overwriting resumed state.
+            activate(id)
+            states[id] = .resident
+            try publish(id)
+        } catch { fail(id) }
+    }
+
+    public func perform(_ action: ModuleAction, on id: String) throws {
+        guard manifests.first(where: { $0.id == id })?.actions[action] != nil else { throw RegistryError.unsupportedAction }
+        guard let runtime = runtimes[id], states[id] == .resident || states[id] == .expanded || states[id] == .permissionRequired else {
+            throw RegistryError.notRunning
+        }
+        do {
+            try runtime.perform(action)
+            states[id] = expandedID == id ? .expanded : .resident
+            try publish(id)
+        } catch { fail(id); throw error }
+    }
+
+    public func permissionRequired(_ id: String) {
+        guard runtimes[id] != nil else { return }
+        if expandedID == id { collapse() }
+        states[id] = .permissionRequired
+    }
+
+    public func permissionRevoked(_ id: String) { if runtimes[id] != nil { fail(id) } }
+
+    public func reportFailure(_ id: String, from runtime: any HostModule) {
+        guard runtimes[id] === runtime else { return }
+        fail(id)
+    }
+
+    public func stopAll() {
+        collapse()
+        for id in Array(runtimes.keys) { stop(id) }
+    }
+
+    private func activate(_ id: String) {
+        let instance = UUID()
+        instances[id] = instance
+        revisions[id] = 0
+        bus.activate(moduleID: id, instanceID: instance)
+    }
+
+    private func start(_ id: String) {
+        guard let factory = factories[id] else { return }
+        states[id] = .enabling
+        let runtime = factory()
+        runtimes[id] = runtime
+        activate(id)
+        do {
+            try runtime.start()
+            states[id] = .resident
+            try publish(id)
+            diagnostics.record(.moduleStarted, moduleID: id)
+        } catch { fail(id) }
+    }
+
+    private func publish(_ id: String) throws {
+        guard let runtime = runtimes[id], let instance = instances[id] else { return }
+        let projection = try runtime.snapshot()
+        let revision = (revisions[id] ?? 0) + 1
+        revisions[id] = revision
+        bus.publish(ModuleEvent(moduleID: id, instanceID: instance, revision: revision, snapshot: projection))
+    }
+
+    private func stop(_ id: String) {
+        if expandedID == id { collapse() }
+        runtimes.removeValue(forKey: id)?.stop()
+        instances[id] = nil
+        revisions[id] = nil
+        bus.deactivate(moduleID: id)
+        states[id] = .disabled
+        diagnostics.record(.moduleStopped, moduleID: id)
+    }
+
+    private func fail(_ id: String) {
+        stop(id)
+        states[id] = .degraded
+        diagnostics.record(.moduleFailed, moduleID: id)
+    }
+}

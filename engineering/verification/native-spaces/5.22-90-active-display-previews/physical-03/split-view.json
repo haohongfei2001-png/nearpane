@@ -1,0 +1,54 @@
+{
+  "cleanup": {
+    "exit": 0,
+    "fixtureProcessExited": true,
+    "forced": false,
+    "onlyOriginalRecords": true,
+    "ordinaryLeaseIsCurrent": true,
+    "sameDisplay": true,
+    "status": "PASS",
+    "windowsGone": true
+  },
+  "fixture": {
+    "birth": 1795187931353892,
+    "cdHash": "f6f54bf6e5fb3ac5a2c910fd2f6b26ecb80387c3",
+    "numbers": [
+      52295,
+      52296
+    ],
+    "pid": 49366
+  },
+  "fixtureLaunched": true,
+  "install": {
+    "birth": 1795187905023565,
+    "build": "90",
+    "cdHash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "pid": 48609,
+    "source": "f50d6ac5394be994e657abd77e7fdca79a77b4bc"
+  },
+  "installedLayout": "NOT_RUN",
+  "lease": {
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "id": 5091,
+    "uuid": "AFCD0CD3-4147-8E26-1FA7-AD4B58564705"
+  },
+  "observations": [
+    {
+      "issued": false,
+      "reason": "enrolledSessionHostFixtureOrDisplayChanged",
+      "uptime": 261323.87172491668,
+      "verb": "read"
+    }
+  ],
+  "pair": {
+    "issued": false
+  },
+  "physicalSource": "two synthetic documents only",
+  "pixelsRead": 0,
+  "reason": "twoOrdinaryDocumentsAndNegativeControlRequired",
+  "status": "BLOCKED",
+  "systemPair": "NOT_RUN",
+  "tile": {
+    "issued": false
+  }
+}

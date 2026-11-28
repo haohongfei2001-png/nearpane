@@ -1,0 +1,133 @@
+--- a/Sources/NearpaneHost/StageCanaryOverview.swift
++++ b/Sources/NearpaneHost/StageCanaryOverview.swift
+@@ -12 +12 @@
+-    private struct Dock {
++    struct Dock {
+@@ -28 +28 @@
+-    private static func signedDock() throws -> Dock {
++    static func signedDock() throws -> Dock {
+@@ -56 +56 @@
+-    private static func root(_ dock: Dock) throws -> AXUIElement? {
++    static func root(_ dock: Dock) throws -> AXUIElement? {
+@@ -137 +137 @@
+-    private static func hid() -> [UInt32] {
++    static func hid() -> [UInt32] {
+@@ -143 +143 @@
+-    private static func inventory() throws -> [NSDictionary] {
++    static func inventory() throws -> [NSDictionary] {
+@@ -151,0 +152,15 @@
++    static func inventoryIdentity(_ rows: [NSDictionary]) throws -> NSDictionary {
++        guard rows.count == 1, let first = rows.first, let token = first["Display Identifier"] as? String,
++              let values = first["Spaces"] as? [[String:Any]], !values.isEmpty,
++              let active = first["Current Space"] as? [String:Any] else { throw Refusal("managedRosterUnavailable") }
++        func identity(_ row: [String:Any]) throws -> NSDictionary {
++            let space = StageEngineHostScope.Space(row)
++            guard !space.malformed, let id = space.number, let type = space.kind, let uuid = space.uuid
++            else { throw Refusal("managedIdentityUnavailable") }
++            return ["id":id,"type":type,"uuid":uuid.uuidString]
++        }
++        let roster = try values.map(identity), current = try identity(active)
++        guard roster.filter({ $0 == current }).count == 1 else { throw Refusal("activeRosterMismatch") }
++        return ["display":token,"current":current,"roster":roster]
++    }
++
+@@ -175 +190 @@
+-    private static func toggle() throws {
++    static func toggle() throws {
+@@ -232,0 +248 @@
++        var restoreOwnedOverview: (() async -> Void)?
+@@ -244,0 +261,2 @@
++            let baseInventory = try inventoryIdentity(rows)
++            result["nativeBefore"] = baseInventory
+@@ -269 +287,5 @@
+-                    result["nativeInventoryRestored"] = end == rows
++                    result["rawManagedDictionaryEqual"] = end == rows
++                    if let last = try? inventoryIdentity(end) {
++                        result["nativeAfter"] = last
++                        result["nativeInventoryRestored"] = last == baseInventory
++                    }
+@@ -277,3 +299,5 @@
+-                      inputUnchanged(),
+-                      try inventory() == rows, NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds
+-                else { throw Refusal("inputDesktopOrTopologyChanged") }
++                      NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds
++                else { throw Refusal("consoleOrDisplayChanged") }
++                guard inputUnchanged() else { throw Refusal("hidOrHostInterrupted") }
++                let current = try inventoryIdentity(inventory())
++                if current != baseInventory { result["changedNativeIdentity"] = current; throw Refusal("managedRosterOrActiveSpaceChanged") }
+@@ -303,0 +328,31 @@
++            restoreOwnedOverview = {
++                guard result["dismissals"] as? Int == 0, inputUnchanged(),
++                      let login = CGSessionCopyCurrentDictionary() as? [String:Any],
++                      login[kCGSessionOnConsoleKey as String] as? Bool == true,
++                      login[kCGSessionUserIDKey as String] as? uid_t == getuid(), login["CGSSessionScreenIsLocked"] as? Bool != true,
++                      let now = try? inventoryIdentity(inventory()), now["roster"] as? NSArray == baseInventory["roster"] as? NSArray,
++                      now["display"] as? String == baseInventory["display"] as? String,
++                      NSScreen.screens.count == 1, CGDisplayBounds(CGMainDisplayID()) == bounds,
++                      let rootNow = try? root(dock), CFEqual(rootNow,enrolled), inputUnchanged()
++                else { return }
++                result["dismissals"] = 1
++                do {
++                    try toggle()
++                    result["cleanupDismissalIssued"] = true
++                    for _ in 0..<12 {
++                        try await Task.sleep(for:.milliseconds(100))
++                        guard inputUnchanged() else { break }
++                        var row = [String:Any]()
++                        let closed = try root(dock) == nil
++                        let observed = try? focus(&row)
++                        row["overviewClosed"] = closed
++                        row["sameOriginalAX"] = observed.map{ CFEqual($0.window,original.window) } ?? false
++                        var reads = result["cleanupReads"] as? [[String:Any]] ?? []
++                        reads.append(row)
++                        result["cleanupReads"] = reads
++                        if closed && reads.count >= 2 && reads.suffix(2).allSatisfy({ $0["overviewClosed"] as? Bool == true && $0["sameOriginalAX"] as? Bool == true }) {
++                            result["restored"] = true; break
++                        }
++                    }
++                } catch { result["cleanupReason"] = "dismissalReadbackUnavailable" }
++            }
+@@ -370,0 +426 @@
++        await restoreOwnedOverview?()
+--- a/Sources/NearpaneHost/StageOverviewHitTest.swift
++++ b/Sources/NearpaneHost/StageOverviewHitTest.swift
+@@ -100,0 +101 @@
++        var listChildren = [AXUIElement:Set<AXUIElement>](), listReads = [Row](), parentReads = [Row]()
+@@ -114 +115,4 @@
+-            guard rc == .success, let v, CFGetTypeID(v) == AXUIElementGetTypeID() else { noParent.insert(item); return nil }
++            var record: Row = ["object":index(item),"axError":rc.rawValue]
++            guard rc == .success, let v, CFGetTypeID(v) == AXUIElementGetTypeID() else {
++                noParent.insert(item); parentReads.append(record); return nil
++            }
+@@ -116,0 +121,2 @@
++            record["parent"] = index(next)
++            parentReads.append(record)
+@@ -117,0 +124,16 @@
++        }
++        func recordList(_ item: AXUIElement) {
++            let node = nodes[index(item)]
++            guard node.id == "mc.spaces.list", owners.contains(node.pid), listChildren[item] == nil else { return }
++            var members = Set<AXUIElement>(), reads = [Row]()
++            for field in [kAXChildrenAttribute,kAXVisibleChildrenAttribute,"AXChildrenInNavigationOrder"] {
++                let (error,value) = value(item,field)
++                var row: Row = ["attribute":field,"axError":error.rawValue]
++                if error == .success, let array = value as? [AXUIElement], array.count <= 256 {
++                    row["objects"] = array.map { index($0) }
++                    members.formUnion(array)
++                }
++                reads.append(row)
++            }
++            listChildren[item] = members
++            listReads.append(["list":index(item),"attributes":reads])
+@@ -123,0 +146 @@
++                recordList(item)
+@@ -127,0 +151 @@
++                        recordList(container)
+@@ -132,0 +157,5 @@
++                    }
++                    for (list,children) in listChildren where children.contains(item) {
++                        let strip = nodes[index(list)]
++                        if strip.pid == node.pid, let area = strip.frame, area.contains(rect),
++                           !["mc.spaces.add","mc.spaces.remove"].contains(node.id ?? "") { return Tile(element:item,frame:rect) }
+@@ -176,0 +206 @@
++            "stripAttributes":listReads,"parentReads":parentReads,

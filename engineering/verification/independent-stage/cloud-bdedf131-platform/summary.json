@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "revision": "bdedf131c94a85621cd24b8969ebbb3564afe0b1",
+  "workflowRun": 45693479951,
+  "job": 139485867520,
+  "artifact": 15058004983,
+  "lane": "diagnostics",
+  "workflowJobConclusion": "failure",
+  "platformForeignMechanism": "PASS",
+  "mechanism": "production np_stage_* classic hidden-Space bridge atoms",
+  "scope": "controlled platform-only foreign-window round trips",
+  "targetEnvironment": {
+    "exactTarget": false,
+    "kernelBuild": "26A434",
+    "sipEnabled": false
+  },
+  "ordinaryNumericHome": 12,
+  "createdHiddenSpace": 13,
+  "foreignWindowWrites": 4,
+  "completedForeignCycles": 2,
+  "windowIDs": [
+    53,
+    55,
+    56
+  ],
+  "foreignPIDs": [
+    2477,
+    2511
+  ],
+  "readbackStages": 8,
+  "eachStageHasTwoPhysicalSamples": true,
+  "platformCleanup": true,
+  "productionEngine": "BLOCKED controlledFixtureFocusUnavailable",
+  "productionEngineForeignWrites": 0,
+  "R4ProductPath": "NOT_RUN",
+  "sourceChecks": "NOT_RUN",
+  "completeCandidate": "NOT_RUN",
+  "ciNativeDesktopCleanup": false,
+  "wholeRuntime": "UNKNOWN ciOwnedWorkspaceCleanupUnconfirmed",
+  "qualificationGranted": false,
+  "originalReceiptSHA256": {
+    "entry-summary.json": "090e1b6fc2d99bcfee5dd7d91a892fe9bbddbe85da33d0885bd9a1a2558aa609",
+    "runtime-summary.json": "5bb8526d36cb9caaf78d42e694e1d0d29301000b49c08f9cb394faad5e837b11",
+    "platform-result.json": "da9934b307d1315b4b8e2101e9e34830721bd9e0110e397af5b103346539b3b4",
+    "platform.log": "4c55222c80983ee889117d3fa0eabf3f8b1a4d27cf19309de7a2550dd734be38",
+    "platform.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "engine-result.json": "60fb1fda405857f845c8ade2417d6c0dc6d3224e068058eefaa82b24b23542b9",
+    "engine.log": "9d80f337b07117d89c43495fbff10683f4e7301c067ffaecc33ebaa907ea3d6d",
+    "config.json": "fb6f8e7ead31340b5ff0fee8eb84b23e28a3b8a2374641b58b28c24a6224e673",
+    "fixture-cleanup.json": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198",
+    "ci-workspace-prepare-receipt.json": "c35bc17b5ebce0bf5d2bba5f2d49b87218a0906b8aaeac85b83ee59a4a6bf275",
+    "ci-workspace-cleanup-receipt.json": "22e49a2ec053a945cce5e0bf7d8a0b2e6dd5e7d9fbbc5c07cf1a644744db6fa4",
+    "build.json": "ef8f2abaa6c158e8d5a2f1f6c20d451732f5d7842aabb812c5e009e456c4a17b"
+  }
+}

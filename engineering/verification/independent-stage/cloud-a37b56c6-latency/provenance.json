@@ -1,0 +1,402 @@
+{
+  "schema": 1,
+  "revision": "a37b56c6ac7ad2240405d23a33f02459dffb9a7a",
+  "workflowRun": 46026731386,
+  "recorded": "2026-11-27",
+  "fullRuntimeAtRecord": "COMPLETE_FAIL_CLEANUP_CONFIRMED",
+  "purpose": "Exact cloud source failure, fast partial physical HIDE and confirmed restoration, full initial witness refusal before HIDE, diagnostics candidate engine evidence; no target-Mac or later-patch qualification",
+  "artifacts": {
+    "context": {
+      "id": 15212419563,
+      "job": 140599937445,
+      "bytes": 25050,
+      "sha256": "41027c5603c89ff26cbf8648783b8c010169968d2bd17f9a77d41fbfffd00c83"
+    },
+    "fast": {
+      "id": 15210994424,
+      "job": 140599936962,
+      "bytes": 24676397,
+      "sha256": "a20840d71b625119512f22e7f69c53656a587eaca1662ef0a817730c5ea48d70"
+    },
+    "diagnostics": {
+      "id": 15212656234,
+      "job": 140599937266,
+      "bytes": 1460676,
+      "sha256": "af4d43cc00bfd9f1f487573068671ea367006a0487e0e2359261e946f90859c0"
+    },
+    "full": {
+      "id": 15213392016,
+      "job": 140599937445,
+      "bytes": 53298105,
+      "sha256": "4a98902cd0a4a16a47c38e0a83ca7ac40b95f2c52d40623d795d8c0e1862d39a"
+    }
+  },
+  "files": [
+    {
+      "file": "source/summary.json",
+      "artifact": 15212419563,
+      "artifactPath": "source/summary.json",
+      "bytes": 1193,
+      "sha256": "f3878e3f17625efc40bbe6ab749baa9f8d47069ad2e73fc35a36d301f32b1a5b"
+    },
+    {
+      "file": "source/swift.log",
+      "artifact": 15212419563,
+      "artifactPath": "source/swift.log",
+      "bytes": 53497,
+      "sha256": "d4c534b1bf06cf98da2812046fb79be7042e15fd7029c59ef151e561e18ee709"
+    },
+    {
+      "file": "source/context-summary.json",
+      "artifact": 15212419563,
+      "artifactPath": "summary.json",
+      "bytes": 1623,
+      "sha256": "09bcdf17fb2bc0d0cf8d868a09fb0b9e1f07e606f1ff3a10cdec76025123c07d"
+    },
+    {
+      "file": "fast/runtime-summary.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 29269,
+      "sha256": "99fd9fc53effecf84e7bbabb1ce8753a054d4247df6f79b3b1ffeef2c79d42fd"
+    },
+    {
+      "file": "fast/engine-result.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4450,
+      "sha256": "344bd81e3200674c23b2f9ccc516fca5d4533e680ddb69130a4f21c14df2cf39"
+    },
+    {
+      "file": "fast/engine.stderr.log",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 22720,
+      "sha256": "cc3e73e3945f2d42b596b39583da0251ee594f88504659fc8ca9a12bee5bfb19"
+    },
+    {
+      "file": "fast/ci-workspace-prepare-receipt.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "518dbff7cae01e26158909c8abe0d129952b44a5335c577d94e6b78200ba7ec7"
+    },
+    {
+      "file": "fast/ci-workspace-cleanup-receipt.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "35e9ff105ac87aeeb0b8f15fbff66652982c74b81595ad42c21e6ab5b5f5f003"
+    },
+    {
+      "file": "fast/fixture-cleanup.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "fast/product.stderr.log",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 84978,
+      "sha256": "390ccc011d5cfcaf8ce099a5db5f3963838abbb947003d2c081c587a11ba6585"
+    },
+    {
+      "file": "fast/product-result.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 21406,
+      "sha256": "9e2b42beae73312d386024db6d7b65dd4ef42a706cf02771dc4c6ce7f8066636"
+    },
+    {
+      "file": "fast/host-main-thread-sample.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 776,
+      "sha256": "1355b2aaaa05f9d8fb4918fbabe9fedf93672ae9b7c10e65232e80991e1b71e1"
+    },
+    {
+      "file": "fast/host-selection-preparation-main-thread-sample.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 954,
+      "sha256": "01d12f7817129431086c8f53d3c8c695dfc77b1b1d44af3955d088a0d2b38814"
+    },
+    {
+      "file": "fast/host-startup-main-thread-sample.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 384,
+      "sha256": "b90f088b896dc8616df7a4a2397b5e372bf2e3a68be21ded5c572de2700f560d"
+    },
+    {
+      "file": "fast/r4-press-c8e34eda-c813-46cd-9cf8-e65a29763605.request.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-c8e34eda-c813-46cd-9cf8-e65a29763605.request.json",
+      "bytes": 661,
+      "sha256": "27393a89bac5b04154ec5ee89c674c49c4ff4fb12c423eefb3c83ee9963e47c2"
+    },
+    {
+      "file": "fast/r4-press-c8e34eda-c813-46cd-9cf8-e65a29763605.result.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-c8e34eda-c813-46cd-9cf8-e65a29763605.result.json",
+      "bytes": 3669,
+      "sha256": "afe56613aaffd006f941147b623e54e19c5924a65fa9964b23e065a51026a132"
+    },
+    {
+      "file": "fast/spaces-lifecycle-9ccf3604-4b25-41ed-b43a-58dbaadd6593.json",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-9ccf3604-4b25-41ed-b43a-58dbaadd6593.json",
+      "bytes": 1083,
+      "sha256": "d6bc6ea223b1aacb92d2547efd9e0c0f79511a2843bb71bbc6dc3132e70a93e8"
+    },
+    {
+      "file": "fast/spaces-worker-6138d6a2-5025-4502-af70-c277f755ebb7.jsonl",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-6138d6a2-5025-4502-af70-c277f755ebb7.jsonl",
+      "bytes": 30452,
+      "sha256": "88e0c5aee1c6b63171dec90f3e8039733e07166a53930d4ac83ebcbfb576ea9a"
+    },
+    {
+      "file": "diagnostics/runtime-summary.json",
+      "artifact": 15212656234,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 6847,
+      "sha256": "371d2b6afb9db7f2dac4702a49cd6eb9db0752466dcf961aa59f1726518775a5"
+    },
+    {
+      "file": "diagnostics/engine-result.json",
+      "artifact": 15212656234,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4450,
+      "sha256": "3346649300af55a8d4878e1c046fcae6dddaf80ffe3d0082b836b2b0b4e35866"
+    },
+    {
+      "file": "diagnostics/engine.stderr.log",
+      "artifact": 15212656234,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 22844,
+      "sha256": "77c1f2d87ae1a27e4e513bb10c306942066cf1bbcd1c104ac8f57b4c12855dd2"
+    },
+    {
+      "file": "diagnostics/ci-workspace-prepare-receipt.json",
+      "artifact": 15212656234,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "caebbd31be3fba09b2c6506446124f245b422256f742ef337c83a4444c85d83d"
+    },
+    {
+      "file": "diagnostics/ci-workspace-cleanup-receipt.json",
+      "artifact": 15212656234,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "e1d5d27b709850d1ff279d8ed23a3e79c41b22f69638bbe4bdb6d768628eaf10"
+    },
+    {
+      "file": "diagnostics/fixture-cleanup.json",
+      "artifact": 15212656234,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "source/rust.log",
+      "artifact": 15213392016,
+      "artifactPath": "independent-source/source/rust.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "source/rust.stderr.log",
+      "artifact": 15213392016,
+      "artifactPath": "independent-source/source/rust.stderr.log",
+      "bytes": 10198,
+      "sha256": "347368a4a474d7069309cc618713630fd337cd5355af20565b268c99cf32a1cf"
+    },
+    {
+      "file": "source/rust.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-source/source/rust.json",
+      "bytes": 90,
+      "sha256": "d21155bae0ae9c499cf7a0de09e555360c7f99dd95dfd08a0def05bbc128d1b8"
+    },
+    {
+      "file": "full/runtime-summary.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 28825,
+      "sha256": "7a6c3485ce7c08fce78e895872c5bf09278a6ea59250f976c945dfd963e5017c"
+    },
+    {
+      "file": "full/engine-result.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "bbc8623e712b4383ca2306707ce0eef8cbb23cfe0089b3c3032649a6ed7586b8"
+    },
+    {
+      "file": "full/engine.stderr.log",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 21996,
+      "sha256": "ecb2fd27a77a1a419266920fb3fb3b7c1e1c51814f144fa1ebb44d79e3a05bb2"
+    },
+    {
+      "file": "full/ci-workspace-prepare-receipt.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "12d319a4156c96b092a6ecab67658ecc995d6f6d547a980dd55939d534f73537"
+    },
+    {
+      "file": "full/ci-workspace-cleanup-receipt.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "87b08f5b2750bac95b67fadf6ea3d12a7ea3737315835c02d636b2ead8939935"
+    },
+    {
+      "file": "full/fixture-cleanup.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "full/product.stderr.log",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 44291,
+      "sha256": "40062be748d9dec90ae9299e6dd1e2ddfc0e9307dbb603cb5fbe25071c2d3d6e"
+    },
+    {
+      "file": "full/product-result.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 20930,
+      "sha256": "f01a08451ffd7183c2c3c6d0baea94e11e95913d96346f429f3547058f2efdc4"
+    },
+    {
+      "file": "full/host-main-thread-sample.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 788,
+      "sha256": "716758396ceacaf1402febf579432be803d4792509d800eda812d56e8d348c5a"
+    },
+    {
+      "file": "full/host-selection-preparation-main-thread-sample.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 970,
+      "sha256": "0fff1c0ea648ae29cebafd5202b6fa35cb450f14313cd867489a24c9d2854eb4"
+    },
+    {
+      "file": "full/host-startup-main-thread-sample.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 390,
+      "sha256": "841c59658551fcd12f72176e12a8a202b8929553380c4c296b59e1d5fc93b04d"
+    },
+    {
+      "file": "full/r4-press-9427792f-8cc8-4f31-8ccc-5fe9bb2db179.request.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-9427792f-8cc8-4f31-8ccc-5fe9bb2db179.request.json",
+      "bytes": 663,
+      "sha256": "c90dccdd8404b58dfeb5b1f58e058f2b5851a16ee45474c9e36e952aafc64fcb"
+    },
+    {
+      "file": "full/r4-press-9427792f-8cc8-4f31-8ccc-5fe9bb2db179.result.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-9427792f-8cc8-4f31-8ccc-5fe9bb2db179.result.json",
+      "bytes": 3682,
+      "sha256": "18a89f92476d1a13904bf3dc77d907ba2be4e877cff7e456757fd2413329e472"
+    },
+    {
+      "file": "full/spaces-lifecycle-a6387998-9490-4142-b840-6280b1698f5a.json",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-a6387998-9490-4142-b840-6280b1698f5a.json",
+      "bytes": 1085,
+      "sha256": "970dfff5104f6e68da80bbb1a42c59cebd30b8a5eff69f56b0554e18a4d193fd"
+    },
+    {
+      "file": "full/spaces-worker-096dfa2e-b0ce-4614-8121-f4c61eda1087.jsonl",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-096dfa2e-b0ce-4614-8121-f4c61eda1087.jsonl",
+      "bytes": 570,
+      "sha256": "b04e0ef8763d5c7044adcee8b6e96d3031c34b6cd998fdef8bc0d609cc890bb3"
+    },
+    {
+      "file": "full/candidate.json",
+      "artifact": 15213392016,
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "dfa4f63f878df99cbe8352f7ec14efc97acbf09752bb0d87c1c9ad8c39bc61db"
+    },
+    {
+      "file": "full/host-main-thread.sample.txt",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 230757,
+      "sha256": "f5cc24e7fdc0fca88a56f920253178d9882df66fd1441612e124fa69dedceebb"
+    }
+  ],
+  "omittedSampleText": [
+    {
+      "lane": "fast",
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 195614,
+      "sha256": "f6764bb46217c09502f7d18bf0279fcf3252293d622694e52dab7f1555c30421",
+      "reason": "Keep compact evidence; original remains in exact-SHA artifact. Corresponding raw sampler metadata is retained."
+    },
+    {
+      "lane": "full",
+      "artifact": 15213392016,
+      "artifactPath": "independent-runtime/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 218876,
+      "sha256": "40ee622b766eac062ca5d5e3462ab6e3dd0f1561e1c6a421361802c75a907c15",
+      "reason": "Compact evidence; complete text remains in exact-SHA artifact. Corresponding raw sampler metadata is retained; sample cannot be reconstructed from process reaping time."
+    },
+    {
+      "artifact": 15210994424,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 253567,
+      "sha256": "739018726c2d3ea84add4b634f259a1e5415f190a75f7a5371d8379dd2332011",
+      "lane": "fast",
+      "reason": "Nominal three-second duration and reaping metadata do not establish full coverage of the observed 1.499-second task-queue wait; exact artifact retained. Keep the more diagnostic full-lane sample in compact repository evidence."
+    }
+  ],
+  "derivedFiles": [
+    {
+      "file": "fast/timing-analysis.json",
+      "bytes": 113163,
+      "sha256": "0ef1854e362a00e7d7497fe3288c7ddf740caf84a8e895b77baa5dec2ec65322",
+      "source": "fast/product.stderr.log, fast/product-result.json, fast/r4-press-*.result.json, fast/spaces-worker-*.jsonl, fast/host-*-sample.json",
+      "method": "Independent trace extraction and arithmetic, original records retained in arrays; scratch paths normalized to copied relative paths; original source hashes retained. No native operations or qualification generated."
+    },
+    {
+      "file": "full/timing-analysis.json",
+      "bytes": 34331,
+      "sha256": "6e7bee40c1b4563fc6c5aae9510f0c3e820896c1fc70a336f9ec4cda15f7e8fb",
+      "source": "full/product.stderr.log, full/product-result.json, full/r4-press-*.result.json, full/spaces-worker-*.jsonl, full/host-*-sample.json",
+      "method": "Independent trace extraction and arithmetic with original source hashes. Scratch paths normalized to copied relative paths. Includes rejected witness; it is not a completed witness or a passing switch."
+    }
+  ],
+  "omittedBuildLogs": [
+    {
+      "artifact": 15212419563,
+      "artifactPath": "source/swift.stderr.log",
+      "bytes": 183621,
+      "sha256": "7357d267bef5193fc5435f2c88e029ad146c2c2a9dd4ec2a749b7c231b7c0cdb",
+      "reason": "Verbose successful compilation output; actual test failure and complete test outcome remain in source/swift.log."
+    }
+  ],
+  "fullCandidateArchive": {
+    "artifact": 15213392016,
+    "artifactPath": "Nearpane-independent-candidate.zip",
+    "bytes": 25694048,
+    "sha256": "e55ca42b9e544201f696eef4f0a9b5258360fcb2f11a9a2ea4adc670fb9af14e",
+    "storedInRepository": false
+  }
+}

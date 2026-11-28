@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "revision": "85762ae0acca965528dcdddcc1177698927abea0",
+  "workflowRun": 45682515823,
+  "artifact": 15053873438,
+  "source": {
+    "status": "PASS",
+    "rustPassed": 147,
+    "swiftPassed": 140,
+    "swiftSkipped": 1,
+    "pythonPassed": 8,
+    "spacesWorkerBuild": "PASS",
+    "spacesWorkerProtocol": "PASS",
+    "contextProbe": "PASS"
+  },
+  "windowWrites": 0,
+  "observedRejection": "np_stage_desktops/current-record-identity: current and matching ordinary roster Space 1 have an empty UUID",
+  "windowServer": "connection 23875; native AppKit application running; one active/online 1024x768 display; Dock and WindowManager observed",
+  "ordinaryDesktop": "raw type 0 / numeric id 1 exists, but stable native UUID is unavailable",
+  "sessionLimitation": "This revision used C constant names for two dictionary keys; omitted session fields do not imply logged-out or off-console. A following patch uses the CF constant values.",
+  "qualificationGranted": false,
+  "originalReceiptSHA256": {
+    "entry-summary.json": "335726f8f331be6fa5b9949fe8a920ff797cc2114af0b089b0d75b8bcdd14a1a",
+    "source-summary.json": "17d3a92fbd6916d0d9fc6b3f5589178982d6d4b5fa9982e184006e9a848436d9",
+    "windowserver-context.json": "9d3ee669dd6a9e7ce36e3a99e04e58a50b151e5b79709b7a0b92f717e60fd1dd",
+    "read-only-context.stderr.log": "6bd34058637225d1498df435e7358927b213259742b7fb0679a6bbcfd7ff99a8",
+    "candidate.json": "a6edca3940c1bd5cdd0d37d2599344273f773e830a56674bbd8849710f5cfefd",
+    "candidate.sha256": "92fae44db93db9f2440eaaaaa3366b1dc153f478f12aa08d5c4599e983105ecc",
+    "engine-result.json": "1a12e38708abf5d1fea6ccc4e36a6873bc4edced7f7250c7e00011ee0cbf712f",
+    "product-result.json": "789c901ca07e15c7abb4a1e7e94defc661a4ec1d692b5525f48ccf894b81b27c",
+    "fixture-cleanup.json": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+  },
+  "finalWorkflowConclusion": "success",
+  "completeCandidateArtifact": 15055383988,
+  "candidateZipSHA256": "3c0affb49a1d1e285a26a08f90c54c9f006f3ed5571d1d868581282ef4ea0de9",
+  "completeCandidateBuild": "PASS",
+  "bundleSignature": "PASS",
+  "foreignEngine": "BLOCKED ordinaryCurrentDesktopCountNotOne",
+  "foreignWindowWrites": 0,
+  "productR4": "BLOCKED fixtureGroupsNotReady",
+  "actualR4Inputs": 0,
+  "productCleanup": true
+}

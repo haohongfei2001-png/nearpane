@@ -1,0 +1,10 @@
+✘ Test profileProjectionReadsBothEmbeddedWritersAndPreservesRetiredMedia() recorded an issue at IntegratedHostTests.swift:81:6: Caught error: .unsupportedImage
+✘ Test sharedHostKeepsDomainDataSeparateAndRestoresOnlyDurableState() recorded an issue at IntegratedHostTests.swift:126:6: Caught error: .unsupportedImage
+✘ Test desktopReaderFailureDoesNotInterruptRealIsolatedVoiceAndTray() recorded an issue at IntegratedHostTests.swift:181:6: Caught error: .unsupportedImage
+✘ Test liveReaderChildCannotKeepIsolatedDomainWriterLocksAfterClose() recorded an issue at IntegratedHostTests.swift:202:6: Caught error: .unsupportedImage
+✘ Test repeatedHostAndDomainShutdownReleaseFixtureDescriptorsAndBothLocks() recorded an issue at IntegratedHostTests.swift:241:6: Caught error: .unsupportedImage
+✘ Test failingVoiceStoreCanRetryWithoutTakingDownConnectedTray() recorded an issue at IntegratedHostTests.swift:311:6: Caught error: .unsupportedImage
+✘ Test realHiddenPanelCanMountBothDomainsAndReflowWithoutOrderingFront() recorded an issue at IntegratedHostTests.swift:334:6: Caught error: .unsupportedImage
+✘ Test residentDisplayLossAndReturnRetainTheLiveStoreWatcherAndUnsentQueue() recorded an issue at IntegratedHostTests.swift:407:6: Caught error: .unsupportedImage
+✘ Test foldedAndExpandedPanelPreservesExistingDomainSessionAndQueue() recorded an issue at IntegratedHostTests.swift:475:6: Caught error: .unsupportedImage
+sandbox-exec: sandbox_apply: Operation not permitted

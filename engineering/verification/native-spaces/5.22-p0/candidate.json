@@ -1,0 +1,11 @@
+{
+  "draft": true,
+  "source": "f9e981c3ac8d472d362247bbb9e1ce7c539afdcd",
+  "name": "Nearpane-5.22-90-f9e981c-macOS-arm64.zip",
+  "bytes": 24544049,
+  "sha256": "759eb432b4db7ccab1391c3770c30584cb48466583e62af998d93fefc4888d6e",
+  "assetID": 771322251,
+  "releaseURL": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f",
+  "notarized": false,
+  "rollbackAssetID": 771142523
+}

@@ -1,0 +1,43 @@
+[
+  {
+    "backgroundControls": 4,
+    "currentControls": 0,
+    "id": "current-desktop-window:44781:49922",
+    "matches": 0,
+    "present": false,
+    "scanComplete": true,
+    "space": 5012,
+    "uptime": 249509.42991954167,
+    "visited": 27
+  },
+  {
+    "backgroundControls": 4,
+    "currentControls": 1,
+    "enabled": true,
+    "id": "current-desktop-window:44781:49922",
+    "matches": 1,
+    "present": true,
+    "pressAction": true,
+    "role": "AXButton",
+    "scanComplete": true,
+    "space": 5012,
+    "uptime": 249509.66051958335,
+    "visibleHitVerified": true,
+    "visited": 29
+  },
+  {
+    "backgroundControls": 4,
+    "currentControls": 1,
+    "enabled": true,
+    "id": "current-desktop-window:44781:49922",
+    "matches": 1,
+    "present": true,
+    "pressAction": true,
+    "role": "AXButton",
+    "scanComplete": true,
+    "space": 5012,
+    "uptime": 249509.89329291668,
+    "visibleHitVerified": true,
+    "visited": 29
+  }
+]

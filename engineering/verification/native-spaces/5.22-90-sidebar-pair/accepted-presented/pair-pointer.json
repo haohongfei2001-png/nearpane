@@ -1,0 +1,1272 @@
+{
+  "attempts": [
+    {
+      "hostButton": {
+        "clickUptime": 290028.343435,
+        "downToCallbackMs": 61.144041654188186,
+        "operation": "1ba1bee7-fcfd-45de-91bf-c88c2cf64cfc",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "1ba1bee7-fcfd-45de-91bf-c88c2cf64cfc",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290028.343435
+          },
+          {
+            "action": "none",
+            "operation": "1ba1bee7-fcfd-45de-91bf-c88c2cf64cfc",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290028.483199
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "a6316f01-7cf7-41a4-a867-3441298a29e8",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290028.00267975003,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290028.00266395835,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290028.0014296667
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290028.28229095833,
+        290028.481223125
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 197.76829157490283,
+          "upper": 227.39304165588692
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-01.json",
+        "firstTargetDisplayUptime": 290028.50628295826,
+        "firstTargetPresentationMachTicks": 6960684150713,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 159.54579156823456,
+          "upper": 179.62495831307024
+        }
+      },
+      "sibling": 54428,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54430,
+      "timing": {
+        "downToFocusLowerMs": 143.77883332781494,
+        "downToFocusUpperMs": 180.4558333242312,
+        "secondPositiveAfterUpMs": 151.16408333415166,
+        "upToFocusLowerMs": 105.55633332114667,
+        "upToFocusUpperMs": 132.68774998141453
+      },
+      "trial": 1
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290031.506395,
+        "downToCallbackMs": 53.753791609779,
+        "operation": "2bd40e6c-3582-4b48-80ce-4ca9c73a7b74",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "2bd40e6c-3582-4b48-80ce-4ca9c73a7b74",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290031.506395
+          },
+          {
+            "action": "none",
+            "operation": "2bd40e6c-3582-4b48-80ce-4ca9c73a7b74",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290031.785088
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "f9423687-ff1c-4c23-bf99-2012819a1999",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290031.1053764584,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290031.10536937503,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290031.1049719583
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290031.45264120837,
+        290031.7807976667
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 330.05483326269314,
+          "upper": 356.8212916725315
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-02.json",
+        "firstTargetDisplayUptime": 290031.8062871666,
+        "firstTargetPresentationMachTicks": 6960763350779,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 289.0241249697283,
+          "upper": 308.87933337362483
+        }
+      },
+      "sibling": 54430,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54428,
+      "timing": {
+        "downToFocusLowerMs": 280.1010833354667,
+        "downToFocusUpperMs": 312.5737916561775,
+        "secondPositiveAfterUpMs": 280.214500031434,
+        "upToFocusLowerMs": 239.07037504250184,
+        "upToFocusUpperMs": 264.6318333572708
+      },
+      "trial": 2
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290034.343122,
+        "downToCallbackMs": 63.57391661731526,
+        "operation": "fc656263-5503-49ba-a9c1-97e60a408f6b",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "fc656263-5503-49ba-a9c1-97e60a408f6b",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290034.343122
+          },
+          {
+            "action": "none",
+            "operation": "fc656263-5503-49ba-a9c1-97e60a408f6b",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290034.580659
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "7e3483c2-e16d-4186-9220-8a738cc59866",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290033.90547187504,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290033.90546516667,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290033.90510104166
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290034.2795480834,
+        290034.57815870835
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 302.4655833141878,
+          "upper": 331.5469999797642
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-03.json",
+        "firstTargetDisplayUptime": 290034.6062886042,
+        "firstTargetPresentationMachTicks": 6960830550849,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 261.82679168414325,
+          "upper": 283.3129999926314
+        }
+      },
+      "sibling": 54428,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54430,
+      "timing": {
+        "downToFocusLowerMs": 258.05216666776687,
+        "downToFocusUpperMs": 289.1625416232273,
+        "secondPositiveAfterUpMs": 250.37662498652935,
+        "upToFocusLowerMs": 217.4133750377223,
+        "upToFocusUpperMs": 240.92854163609445
+      },
+      "trial": 3
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290037.073107,
+        "downToCallbackMs": 50.07699993439019,
+        "operation": "a85c6919-b6b9-44be-8dcd-4cbd2510a5d8",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "a85c6919-b6b9-44be-8dcd-4cbd2510a5d8",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290037.073107
+          },
+          {
+            "action": "none",
+            "operation": "a85c6919-b6b9-44be-8dcd-4cbd2510a5d8",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290037.352032
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "71eb307b-1508-4522-a0f2-8e3cd69acdb9",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290036.7458385417,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290036.7458309167,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290036.74491470837
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290037.02303000004,
+        290037.348312625
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 324.07687505474314,
+          "upper": 352.9119999730028
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-04.json",
+        "firstTargetDisplayUptime": 290037.3729587918,
+        "firstTargetPresentationMachTicks": 6960896950921,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 286.5185417467728,
+          "upper": 306.18112499359995
+        }
+      },
+      "sibling": 54430,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54428,
+      "timing": {
+        "downToFocusLowerMs": 276.6481666476466,
+        "downToFocusUpperMs": 310.14512496767566,
+        "secondPositiveAfterUpMs": 278.55175000149757,
+        "upToFocusLowerMs": 239.08983333967626,
+        "upToFocusUpperMs": 263.4142499882728
+      },
+      "trial": 4
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290039.925622,
+        "downToCallbackMs": 64.01541666127741,
+        "operation": "9a07c288-c286-4f50-af1e-dbb03680b286",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "9a07c288-c286-4f50-af1e-dbb03680b286",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290039.925622
+          },
+          {
+            "action": "none",
+            "operation": "9a07c288-c286-4f50-af1e-dbb03680b286",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290040.229777
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "d2cf25fa-6bc0-4a69-8ea0-2d0a08b5b9a5",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290039.5810506667,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290039.5810431667,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290039.58064633334
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290039.86160658335,
+        290040.22849420836
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 370.43666664976627,
+          "upper": 398.0218750075437
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-05.json",
+        "firstTargetDisplayUptime": 290040.2562943334,
+        "firstTargetPresentationMachTicks": 6960966150996,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 324.9121666303836,
+          "upper": 344.92499998304993
+        }
+      },
+      "sibling": 54428,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54430,
+      "timing": {
+        "downToFocusLowerMs": 320.7632916746661,
+        "downToFocusUpperMs": 358.71549998410046,
+        "secondPositiveAfterUpMs": 313.7907499913126,
+        "upToFocusLowerMs": 275.2387916552834,
+        "upToFocusUpperMs": 305.6186249596067
+      },
+      "trial": 5
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290042.826447,
+        "downToCallbackMs": 66.92866666708142,
+        "operation": "7f94a9c1-78c3-4d62-9661-5690ea7bf967",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "7f94a9c1-78c3-4d62-9661-5690ea7bf967",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290042.826447
+          },
+          {
+            "action": "none",
+            "operation": "7f94a9c1-78c3-4d62-9661-5690ea7bf967",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290043.110576
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "5705342e-efaa-415d-bcc2-794f330bdf19",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290042.4466125417,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290042.44660487503,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290042.44609820837
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290042.75951833336,
+        290043.1103340417
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 339.3648333149031,
+          "upper": 366.1605833331123
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-06.json",
+        "firstTargetDisplayUptime": 290043.1229650209,
+        "firstTargetPresentationMachTicks": 6961034951063,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 292.26445831591263,
+          "upper": 311.65991665329784
+        }
+      },
+      "sibling": 54430,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54428,
+      "timing": {
+        "downToFocusLowerMs": 312.0893333107233,
+        "downToFocusUpperMs": 343.02624996053055,
+        "secondPositiveAfterUpMs": 296.3150416617282,
+        "upToFocusLowerMs": 264.98895831173286,
+        "upToFocusUpperMs": 288.5255832807161
+      },
+      "trial": 6
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290045.543207,
+        "downToCallbackMs": 61.234124994371086,
+        "operation": "c16ab59a-550c-4ee6-b7a6-f2062d163a12",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "c16ab59a-550c-4ee6-b7a6-f2062d163a12",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290045.543207
+          },
+          {
+            "action": "none",
+            "operation": "c16ab59a-550c-4ee6-b7a6-f2062d163a12",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290045.851456
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "33497af0-14dd-4ded-8f08-6d12789f2dde",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290045.1794271667,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290045.17942008335,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290045.17904408334
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290045.481972875,
+        290045.8450512917
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 366.7597082676366,
+          "upper": 394.1532916505821
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-07.json",
+        "firstTargetDisplayUptime": 290045.8729668958,
+        "firstTargetPresentationMachTicks": 6961100951126,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 323.1024165870622,
+          "upper": 342.9410416283645
+        }
+      },
+      "sibling": 54428,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54430,
+      "timing": {
+        "downToFocusLowerMs": 317.69491668092087,
+        "downToFocusUpperMs": 352.3249583085999,
+        "secondPositiveAfterUpMs": 311.86616665218025,
+        "upToFocusLowerMs": 274.03762500034645,
+        "upToFocusUpperMs": 301.11270828638226
+      },
+      "trial": 7
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290048.373092,
+        "downToCallbackMs": 49.01504167355597,
+        "operation": "7d7aa9ec-d702-4fc6-b868-6394e22d933c",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "7d7aa9ec-d702-4fc6-b868-6394e22d933c",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290048.373092
+          },
+          {
+            "action": "none",
+            "operation": "7d7aa9ec-d702-4fc6-b868-6394e22d933c",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290048.700902
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "8df3cf15-1466-43de-88d1-e221eed0fa79",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290047.9950964167,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290047.99509000004,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290047.99473008333
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290048.32407695835,
+        290048.69919408334
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 374.5479167555459,
+          "upper": 402.6679166709073
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-08.json",
+        "firstTargetDisplayUptime": 290048.7229701459,
+        "firstTargetPresentationMachTicks": 6961169351187,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 335.7272084103897,
+          "upper": 356.1815000139177
+        }
+      },
+      "sibling": 54430,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54428,
+      "timing": {
+        "downToFocusLowerMs": 310.4660833487287,
+        "downToFocusUpperMs": 354.5415416592732,
+        "secondPositiveAfterUpMs": 328.6307083326392,
+        "upToFocusLowerMs": 271.64537500357255,
+        "upToFocusUpperMs": 308.0551250022836
+      },
+      "trial": 8
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290051.256446,
+        "downToCallbackMs": 49.51154167065397,
+        "operation": "e0728a2e-5700-4564-8264-1178a3175996",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "e0728a2e-5700-4564-8264-1178a3175996",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290051.256446
+          },
+          {
+            "action": "none",
+            "operation": "e0728a2e-5700-4564-8264-1178a3175996",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290051.566498
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "2e25ea11-2d09-4d4e-a93f-a0378c3deed9",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290050.9297530833,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290050.92974558333,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290050.9292434167
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290051.20693445834,
+        290051.5650535
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 358.1609583343379,
+          "upper": 385.81370835890993
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-09.json",
+        "firstTargetDisplayUptime": 290051.58963845833,
+        "firstTargetPresentationMachTicks": 6961238151248,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 318.7941249925643,
+          "upper": 338.60054169781506
+        }
+      },
+      "sibling": 54428,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54430,
+      "timing": {
+        "downToFocusLowerMs": 302.02912498498335,
+        "downToFocusUpperMs": 338.3062083157711,
+        "secondPositiveAfterUpMs": 310.90587499784306,
+        "upToFocusLowerMs": 262.66229164320976,
+        "upToFocusUpperMs": 291.0930416546762
+      },
+      "trial": 9
+    },
+    {
+      "hostButton": {
+        "clickUptime": 290054.176089,
+        "downToCallbackMs": 60.495875019114465,
+        "operation": "6093fd6b-8588-48f7-88d1-668d8d27c009",
+        "phases": [
+          {
+            "action": "none",
+            "operation": "6093fd6b-8588-48f7-88d1-668d8d27c009",
+            "phase": "click",
+            "route": "sidebar",
+            "uptime": 290054.176089
+          },
+          {
+            "action": "none",
+            "operation": "6093fd6b-8588-48f7-88d1-668d8d27c009",
+            "phase": "returned",
+            "route": "worker",
+            "uptime": 290054.466812
+          }
+        ],
+        "status": "OBSERVED"
+      },
+      "hostRouting": {
+        "AppKitCallback": "NOT_OBSERVED",
+        "receiver": "OBSERVED",
+        "reportedWindow": [
+          "boundPanel",
+          "boundPanel"
+        ],
+        "status": "HOST_PANEL",
+        "taggedDragSamples": 0,
+        "timestampPreserved": [
+          true,
+          true
+        ]
+      },
+      "id": "5c99dfbf-2646-43ad-80ae-ae07a5bb258e",
+      "kind": "window",
+      "lsReadiness": {
+        "ended": 290053.79679937504,
+        "firstRefusal": null,
+        "issued": false,
+        "reads": [
+          {
+            "at": 290053.79679216666,
+            "state": "regularExactBundleAndExecutable"
+          }
+        ],
+        "reason": "ready",
+        "started": 290053.7963679167
+      },
+      "markerGateReason": "acknowledged",
+      "markerIssued": true,
+      "pointerIssued": true,
+      "pointerObservationRange": [
+        290054.115593125,
+        290054.46323083335
+      ],
+      "pointerReason": null,
+      "pointerStatus": "FOCUSED",
+      "presentation": {
+        "downToVisibleMS": {
+          "lower": 349.6844999608584,
+          "upper": 377.64233333291486
+        },
+        "evidenceKind": "firstObservedNativeFrame",
+        "file": "window-presentation-10.json",
+        "firstTargetDisplayUptime": 290054.48964089586,
+        "firstTargetPresentationMachTicks": 6961307751307,
+        "retainedPixelBytes": 0,
+        "status": "OBSERVED",
+        "targetFrameObserved": true,
+        "upToVisibleMS": {
+          "lower": 307.3503749910742,
+          "upper": 327.62599998386577
+        }
+      },
+      "sibling": 54430,
+      "siblingUnchanged": true,
+      "status": "PASS",
+      "target": 54428,
+      "timing": {
+        "downToFocusLowerMs": 295.3292916645296,
+        "downToFocusUpperMs": 331.3543749973178,
+        "secondPositiveAfterUpMs": 297.62137500802055,
+        "upToFocusLowerMs": 252.99516669474542,
+        "upToFocusUpperMs": 281.3380416482687
+      },
+      "trial": 10
+    }
+  ],
+  "cleanup": {
+    "launcherExit": 0,
+    "ownedSessionRemoved": true,
+    "readback": {
+      "frontIsFixture": false,
+      "generationGone": true,
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "status": "EXITED",
+      "windowsGone": true
+    },
+    "signal": "close",
+    "status": "PASS"
+  },
+  "drags": {
+    "left": {
+      "status": "NOT_RUN"
+    },
+    "right": {
+      "status": "NOT_RUN"
+    },
+    "self": {
+      "status": "NOT_RUN"
+    }
+  },
+  "firstDocumentCapture": {
+    "after": {
+      "birth": 1795216635151809,
+      "clock": 290030.52435945836,
+      "fileSHA256": [
+        "4554a1586bd8f69ee52601b951d9d32dda0f4f50f4d24deaa0bf13f54021c93c",
+        "c0aea48a7f4483d54fd71182de83c0903099e12bec53346fb90fceec5b9eb681"
+      ],
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795216621304365,
+      "pid": 87414,
+      "window": 54430
+    },
+    "before": {
+      "birth": 1795216635151809,
+      "clock": 290030.204602,
+      "fileSHA256": [
+        "4554a1586bd8f69ee52601b951d9d32dda0f4f50f4d24deaa0bf13f54021c93c",
+        "c0aea48a7f4483d54fd71182de83c0903099e12bec53346fb90fceec5b9eb681"
+      ],
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        3049,
+        109,
+        5759,
+        70,
+        0,
+        19137,
+        35,
+        0
+      ],
+      "hostBirth": 1795216621304365,
+      "pid": 87414,
+      "window": 54430
+    },
+    "file": "first-registered-document.png",
+    "height": 386,
+    "scope": "sole enrolled document window",
+    "sha256": "cea85717638ee6fb546226fcef4ba24fae8ba0ad45bf43f72254e4f74f4da816",
+    "status": "CAPTURED",
+    "target": 54430,
+    "width": 640
+  },
+  "fixturePreparation": {
+    "checkedAt": 290026.3389822917,
+    "emptyLeaseReads": [
+      {
+        "extraOwners": [
+          "com.holdsnow.nearpane.alpha"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 290025.549091
+      },
+      {
+        "extraOwners": [
+          "com.holdsnow.nearpane.alpha"
+        ],
+        "inactiveStageSurfaces": [
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1355,
+              446,
+              99,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 117,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          },
+          {
+            "admitted": true,
+            "appKitListed": false,
+            "bounds": [
+              1352,
+              446,
+              103,
+              97
+            ],
+            "category": "offscreenSignedWindowManagerSurface",
+            "cgOnscreenListed": false,
+            "forwardAndReverse": true,
+            "listedAsOwnDocument": false,
+            "number": 19015,
+            "ownerBirth": 1794786957077193,
+            "pid": 647,
+            "pixels": 0,
+            "publicOnscreen": false
+          }
+        ],
+        "ordinary": 0,
+        "unresolved": 0,
+        "uptime": 290025.9588241667
+      }
+    ],
+    "focused": 54428,
+    "id": "0b94dead-2bdd-4950-82aa-c04ac738986c",
+    "issued": true,
+    "launcherPID": 87412,
+    "method": "singleForegroundLaunchServicesOpen",
+    "originalForegroundBirth": 1795216621304365,
+    "productAction": false,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+    "status": "VERIFIED"
+  },
+  "fixtureSigning": {
+    "CDHash": "13733373d81504d5768a27cf484589a4b7fdf538",
+    "Identifier": "net.example.spaces-document",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "focusRestoreRequested": false,
+  "hostButtonTelemetry": {
+    "matched": 10,
+    "readerStatus": "OBSERVED",
+    "scope": "installed Host WindowFocusLatency category"
+  },
+  "launch": "foreground Launch Services open -n -W -a",
+  "layoutCapture": {
+    "reason": "twoVerifiedOrdinaryWindowFramesUnavailable",
+    "status": "NOT_RUN"
+  },
+  "measurement": {
+    "boundedStaticScreenshots": {
+      "count": 0,
+      "downToConfirmedByUpperMs": {
+        "n": 0
+      },
+      "upToConfirmedByUpperMs": {
+        "n": 0
+      }
+    },
+    "clock": "ProcessInfo.systemUptime",
+    "displayPresentation": "OBSERVED",
+    "endpoint": "foreground application + focused and main AX window + both focused editor reads",
+    "nativeComparison": "NOT_MEASURED",
+    "origin": "WindowServer session mouse posting",
+    "percentiles": "sample only, median p50, nearest-rank p95",
+    "presentationCounts": {
+      "attempts": 10,
+      "observed": 10,
+      "sampled": 10
+    },
+    "statistics": {
+      "downToFocusLowerMs": {
+        "max": 320.7632916746661,
+        "n": 10,
+        "p50": 298.6792083247565,
+        "p95": 320.7632916746661
+      },
+      "downToFocusUpperMs": {
+        "max": 358.71549998410046,
+        "n": 10,
+        "p50": 334.83029165654443,
+        "p95": 358.71549998410046
+      },
+      "downToHostButtonMs": {
+        "max": 66.92866666708142,
+        "n": 10,
+        "p50": 60.819958336651325,
+        "p95": 66.92866666708142
+      },
+      "downToVisibleMSLower": {
+        "max": 374.5479167555459,
+        "n": 10,
+        "p50": 344.5246666378807,
+        "p95": 374.5479167555459
+      },
+      "downToVisibleMSUpper": {
+        "max": 402.6679166709073,
+        "n": 10,
+        "p50": 371.9014583330136,
+        "p95": 402.6679166709073
+      },
+      "secondPositiveAfterUpMs": {
+        "max": 328.6307083326392,
+        "n": 10,
+        "p50": 296.96820833487436,
+        "p95": 328.6307083326392
+      },
+      "upToFocusLowerMs": {
+        "max": 275.2387916552834,
+        "n": 10,
+        "p50": 257.8287291689776,
+        "p95": 275.2387916552834
+      },
+      "upToFocusUpperMs": {
+        "max": 308.0551250022836,
+        "n": 10,
+        "p50": 284.9318124644924,
+        "p95": 308.0551250022836
+      },
+      "upToVisibleMSLower": {
+        "max": 335.7272084103897,
+        "n": 10,
+        "p50": 299.8074166534934,
+        "p95": 335.7272084103897
+      },
+      "upToVisibleMSUpper": {
+        "max": 356.1815000139177,
+        "n": 10,
+        "p50": 319.6429583185818,
+        "p95": 356.1815000139177
+      }
+    },
+    "unit": "ms"
+  },
+  "observerSigning": {
+    "CDHash": "748fe46aa8421afe691696f5e796f033f6622d39",
+    "Identifier": "net.example.nearpane.p2-observer",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "operationStatus": "PASS",
+  "passes": 10,
+  "reason": "tenExactAlternatingPointerSelectionsAndInputs",
+  "registration": {
+    "birth": 1795216635151809,
+    "bundle": "net.example.spaces-document",
+    "bundleURL": "/private/tmp/nearpane-d01.pair-compositor.sASF4gr2/Field Notes.app",
+    "cdHash": "13733373d81504d5768a27cf484589a4b7fdf538",
+    "executable": "/private/tmp/nearpane-d01.pair-compositor.sASF4gr2/Field Notes.app/Contents/MacOS/FieldNotes",
+    "kernelExecutableConfirmed": true,
+    "launch": 1795216635.1479158,
+    "pid": 87414,
+    "regular": true,
+    "team": "ZB9D4T66QB"
+  },
+  "scenario": "pair-focus",
+  "scope": {
+    "allowedFront": 86772,
+    "allowedFrontBirth": 1795216621304365,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "hostBirth": 1795216621304365,
+    "hostHash": "b15861c87c61b38f02339d121a60437995d6aecb",
+    "hostPID": 86772,
+    "leaseHardwareCounters": [
+      5759,
+      70,
+      0,
+      3049,
+      136752
+    ],
+    "space": 5095,
+    "spaceUUID": "745BC7CD-E201-1B68-D003-AB00E5D30C9D"
+  },
+  "selection": {
+    "attempted": 10,
+    "focusTimed": 10,
+    "inputsConfirmed": 10,
+    "notAttempted": 0,
+    "planned": 10,
+    "status": "PASS"
+  },
+  "status": "PASS",
+  "superseded": false
+}

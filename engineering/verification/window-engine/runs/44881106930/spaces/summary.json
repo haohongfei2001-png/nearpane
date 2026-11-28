@@ -1,0 +1,14 @@
+{
+  "gate": "Gate 2",
+  "status": "UNKNOWN",
+  "hostedOwnWindowTrial": "NOT_RUN",
+  "physicalInstalledHost": "NOT_RUN",
+  "foreignAppAcceptance": "NOT_RUN",
+  "qualificationGranted": false,
+  "requestedRoutes": [
+    "bridged",
+    "classic"
+  ],
+  "routes": {},
+  "reason": "CalledProcessError"
+}

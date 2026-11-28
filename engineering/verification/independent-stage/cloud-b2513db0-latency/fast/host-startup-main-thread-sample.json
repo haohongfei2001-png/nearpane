@@ -1,0 +1,14 @@
+{
+  "diagnosticOnly": true,
+  "durationSeconds": 1,
+  "exit": 0,
+  "intervalMilliseconds": 10,
+  "pid": 9539,
+  "reapedMonotonic": 434.077445708,
+  "sampleFile": "host-startup-main-thread.sample.txt",
+  "sampleLaunchMonotonic": 422.123596958,
+  "startedAfterHostSeconds": 0.6494305420000046,
+  "status": "COMPLETE",
+  "trigger": "startup",
+  "triggerObservedMonotonic": 422.123596958
+}

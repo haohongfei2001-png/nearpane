@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "scope": "Hidden capture budget and autonomous restoration only",
+  "source": "96a3e3d1e74ea490dee798385cbef207a6013609",
+  "signedHostPID": 72095,
+  "productionStatusMenu": [
+    "hide",
+    "show"
+  ],
+  "screenPermission": true,
+  "sampleCount": 7,
+  "nominalHiddenObservationSeconds": 60,
+  "firstToLastSampleSeconds": 59.986256,
+  "newCaptureRequests": 0,
+  "maximumCounters": {
+    "visibleDisplays": 0,
+    "gallerySessions": 0,
+    "activeStreams": 0,
+    "capturesInFlight": 0,
+    "cacheEntries": 0,
+    "chargedPixelBytes": 0
+  },
+  "sidebarReadBackVisible": true,
+  "dailyConfigurationUnchanged": true,
+  "originalFocusConfirmed": true
+}

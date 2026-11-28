@@ -1,0 +1,337 @@
+import AppKit
+import Darwin
+import os
+import Foundation
+import NearpaneCore
+import Testing
+@testable import NearpaneUI
+
+private func sample(_ request: DesktopReadRequest, status: SpaceReadStatus) -> DesktopSnapshot {
+    let area = SurfaceRect(width: 800, height: 1200), now = Date(), t = ProcessInfo.processInfo.systemUptime
+    return .observed(request, from: now, to: now, build: "test", topology: "one", consistent: true,
+        separateSpaces: true, displays: [.init(id: "secondary", frame: area, rotationDegrees: 90, backingScale: 2, usable: area)],
+        scopes: status == .observed ? [.init(id: "scope", displayID: "secondary", records: [.init(id: "8", isCurrent: true)])] : [],
+        windows: [], evidence: .init(population: request.fixtureWindows == nil ? .workWindows : .markedFixture,
+            accessibility: .denied, spaces: status, rows: [], windowLimitReached: false, beganUptime: t, endedUptime: t))
+}
+
+private actor Attempts {
+    var modes: [Bool] = []
+    func call(_ request: DesktopReadRequest) throws -> DesktopSnapshot {
+        modes.append(request.experimentalSpaces)
+        if request.experimentalSpaces { throw ReaderFailure.unavailable }
+        return sample(request, status: .disabled)
+    }
+}
+
+@MainActor private final class DelayedRead: LiveDesktopObservationProvider {
+    let capabilities = DesktopCapabilities(observation: .readOnly)
+    private(set) var waiting: CheckedContinuation<DesktopSnapshot, Never>?
+    func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot {
+        await withCheckedContinuation { waiting = $0 }
+    }
+    func finish(revision: UInt64 = 1) {
+        let request = DesktopReadRequest(session: UUID(), revision: revision, parentPID: getpid(), fixtureWindows: nil, anchors: [], experimentalSpaces: false)
+        waiting?.resume(returning: sample(request, status: .disabled)); waiting = nil
+    }
+}
+
+@MainActor private final class CountingRead: LiveDesktopObservationProvider {
+    let capabilities = DesktopCapabilities(observation: .readOnly)
+    private(set) var reads = 0
+    private(set) var discards = 0
+    func discardVisitedSpaces() { discards += 1 }
+    func snapshot(experimentalSpaces: Bool) async throws -> DesktopSnapshot {
+        reads += 1
+        return sample(.init(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: nil,
+                            anchors: [], experimentalSpaces: experimentalSpaces), status: .disabled)
+    }
+}
+
+@MainActor struct NativeDesktopProviderTests {
+    @Test func packagedReaderAcceptsSystemPathAliasButRejectsLinkInsideBundle() throws {
+        let root = URL(fileURLWithPath: "/private/tmp").appendingPathComponent(UUID().uuidString)
+        let bundle = root.appendingPathComponent("Trial.app")
+        let helper = bundle.appendingPathComponent("Contents/Helpers/NearpaneDesktopReader")
+        let fm = FileManager.default
+        try fm.createDirectory(at: helper.deletingLastPathComponent(), withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: root) }
+        try Data().write(to: helper)
+        #expect(NativeDesktopProvider.readerURL(in: bundle)?.path == helper.resolvingSymlinksInPath().path)
+        let outside = root.appendingPathComponent("outside")
+        try fm.moveItem(at: helper, to: outside)
+        try fm.createSymbolicLink(at: helper, withDestinationURL: outside)
+        #expect(NativeDesktopProvider.readerURL(in: bundle) == nil)
+    }
+    @Test func accessibleWindowPositionUsesTheClippedDrawingWithinItsDisplay() {
+        let desktop = SurfaceRect(x: 18, y: 56, width: 80, height: 120)
+        let visible = SurfaceRect(x: 58, y: 86, width: 40, height: 90)
+        #expect(DesktopSurface.windowDescription(index: 1, frame: visible, within: desktop) ==
+                "窗口 2，左距 50%，上距 25%，宽 50%，高 75%")
+    }
+
+    @Test func privateCrashFallsBackToPublicAndStaysLatchedUntilOptInChanges() async throws {
+        let attempts = Attempts()
+        let provider = NativeDesktopProvider(fixtureWindows: { nil }, anchors: { [] }) { try await attempts.call($0) }
+        let first = try await provider.snapshot(experimentalSpaces: true)
+        let second = try await provider.snapshot(experimentalSpaces: true)
+        #expect(first.native?.spaces == .unavailable && first.native?.accessibility == .denied)
+        #expect(first.sessionID == second.sessionID && second.revision == first.revision+1)
+        #expect(await attempts.modes == [true,false,false])
+        let plain = try await provider.snapshot(experimentalSpaces: false)
+        #expect(plain.native?.spaces == .disabled)
+        _ = try await provider.snapshot(experimentalSpaces: true)
+        #expect(await attempts.modes == [true,false,false,false,true,false])
+    }
+
+    @Test func onlyHardwareChangeCanRetryUnavailableInventoryWithoutOptInChurn() async throws {
+        actor TopologyReads {
+            var modes = [Bool]()
+            let refusal: SpaceReadStatus
+            init(_ refusal: SpaceReadStatus) { self.refusal = refusal }
+            func read(_ request: DesktopReadRequest) -> DesktopSnapshot {
+                modes.append(request.experimentalSpaces)
+                let rotated = modes.count >= 3
+                var s = sample(request, status: request.experimentalSpaces ? refusal : .disabled)
+                var usable = s.displays[0].frame
+                if modes.count > 1 { usable.height -= 28 }
+                s.displays = [.init(id: "secondary", frame: s.displays[0].frame, rotationDegrees: rotated ? 0 : 90,
+                                    backingScale: 2, usable: usable)]
+                s.topologyFingerprint = String(modes.count)
+                return s
+            }
+        }
+        for refusal in [SpaceReadStatus.unavailable, .unsupportedBuild] {
+            let reader = TopologyReads(refusal)
+            let provider = NativeDesktopProvider(fixtureWindows: { nil }, anchors: { [] }) { await reader.read($0) }
+            for _ in 0..<5 {
+                let result = try await provider.snapshot(experimentalSpaces: true)
+                #expect(result.native?.spaces == refusal && result.native?.rows.isEmpty == true)
+            }
+            #expect(await reader.modes == [true, false, false, refusal == .unavailable, false])
+        }
+    }
+
+    @Test func rejectsUnrequestedSpaceProofAndExpiredOwnerWitness() async throws {
+        let anchor = ActiveSpaceAnchor(number: 15, displayID: "secondary", globalFrame: .init(x: 1, y: 4, width: 60, height: 40))
+        var count = 0
+        let provider = NativeDesktopProvider(fixtureWindows: { nil }, anchors: {
+            count += 1; return count == 1 ? [anchor] : []
+        }) { r in
+            var s = sample(r, status: .observed)
+            s.native?.rows = [.init(displayID: "secondary", scopeID: "scope", recordID: "8", anchor: anchor)]
+            s.userSpaceSemantics = .witnessedCurrent
+            return s
+        }
+        let expired = try await provider.snapshot(experimentalSpaces: true)
+        #expect(expired.freshness == .transient && expired.native?.rows.isEmpty == true && expired.userSpaceSemantics == .unknown)
+        await #expect(throws: ReaderFailure.self) { try await provider.snapshot(experimentalSpaces: false) }
+    }
+
+    @Test func foreignActiveListWitnessMustStillBePubliclyActiveAtDelivery() async throws {
+        let provider = NativeDesktopProvider(fixtureWindows: { nil }, anchors: { [] }, activeNumbers: { [] }) { request in
+            var s = sample(request, status: .observed)
+            let frame = SurfaceRect(x: 4, y: 5, width: 100, height: 90)
+            let anchor = ActiveSpaceAnchor(number: 44, displayID: "secondary", globalFrame: frame, witness: .appKitActiveList)
+            s.windows = [.init(id: "w", displayID: "secondary", bounds: frame, membership: .known(recordIDs: ["8"]),
+                               confidence: .corroboratedMetadata, metadata: .init(number: 44, pid: 721, launchMicroseconds: 123,
+                                   element: UUID(), globalFrame: frame, frontToBack: 0, minimized: false, fullScreen: false, axFrame: frame, isOnscreen: true,
+                                   axStandardWindowNumber: 44))]
+            s.native?.rows = [.init(displayID: "secondary", scopeID: "scope", recordID: "8", anchor: anchor)]
+            s.userSpaceSemantics = .witnessedCurrent
+            return s
+        }
+        let s = try await provider.snapshot(experimentalSpaces: true)
+        #expect(s.freshness == .transient && s.native?.rows.isEmpty == true)
+    }
+
+    @Test func cancellationResistantReadCannotPublishAfterDisableHideOrShutdown() async throws {
+        for operation in 0..<3 {
+            let read = DelayedRead(), host = HostSession(store: MemoryConfigurationStore(), provider: read)
+            await host.start()
+            for _ in 0..<100 where read.waiting == nil { try await Task.sleep(for: .milliseconds(2)) }
+            try #require(read.waiting != nil)
+            switch operation {
+            case 0: #expect(host.handle(.setEnabled(BuiltinCatalog.desktop, false)) == .accepted)
+            case 1: host.setSurfaceHidden(true)
+            default: host.stop()
+            }
+            read.finish()
+            try await Task.sleep(for: .milliseconds(10))
+            #expect(host.bus.desktop == nil)
+            host.stop()
+        }
+    }
+
+    @Test func privacyBoundariesClearRememberedDesktopsWhileSpaceChangeMayRetainWitnesses() async {
+        let reader = CountingRead(), host = HostSession(store: MemoryConfigurationStore(), provider: reader)
+        await host.start()
+        host.invalidateDesktop()
+        #expect(reader.discards == 0)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        #expect(reader.discards == 1)
+        host.setExperimentalSpaceObservation(true)
+        host.setExperimentalSpaceObservation(false)
+        host.setSurfaceHidden(true)
+        #expect(host.handle(.setEnabled(BuiltinCatalog.desktop, false)) == .accepted)
+        host.stop()
+        #expect(reader.discards == 5)
+    }
+
+    @Test func openingAProfileWhileLockedDoesNotStartObservationUntilWakeAndUnlock() async throws {
+        let reader = CountingRead()
+        let host = HostSession(store: MemoryConfigurationStore(), provider: reader)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.screensAsleep, paused: true)
+        await host.start()
+        let modules = host.registry.states
+        await host.refreshDesktop()
+        #expect(reader.reads == 0 && host.bus.desktop == nil)
+        host.setDesktopPause(.screensAsleep, paused: false)
+        await host.refreshDesktop()
+        #expect(reader.reads == 0 && host.bus.desktop == nil)
+        host.setDesktopPause(.inactiveSession, paused: false)
+        for _ in 0..<100 where host.bus.desktop == nil { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(reader.reads == 1 && host.bus.desktop != nil && host.registry.states == modules)
+        host.stop()
+    }
+
+    @Test func sleepAndInactiveSessionRequireBothReasonsToClearBeforeASingleFreshRead() async throws {
+        let gate = DelayedRead(), host = HostSession(store: MemoryConfigurationStore(), provider: gate)
+        await host.start()
+        for _ in 0..<100 where gate.waiting == nil { try await Task.sleep(for: .milliseconds(2)) }
+        try #require(gate.waiting != nil)
+        host.setDesktopPause(.screensAsleep, paused: true)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.screensAsleep, paused: false)
+        gate.finish()
+        await host.refreshDesktop()
+        try await Task.sleep(for: .milliseconds(8))
+        #expect(host.bus.desktop == nil && gate.waiting == nil)
+        host.setDesktopPause(.inactiveSession, paused: false)
+        for _ in 0..<100 where gate.waiting == nil { try await Task.sleep(for: .milliseconds(2)) }
+        try #require(gate.waiting != nil)
+        host.stop()
+        var drained = false
+        let shutdown = Task { await host.waitForDesktopStop(); drained = true }
+        try await Task.sleep(for: .milliseconds(8))
+        #expect(!drained)
+        gate.finish()
+        await shutdown.value
+        #expect(drained && host.bus.desktop == nil)
+    }
+
+    @Test func aRelockDuringWakeRejectsBothOldGenerationsBeforePublishingTheFreshInventory() async throws {
+        let provider = DelayedRead()
+        let host = HostSession(store: MemoryConfigurationStore(), provider: provider)
+        func awaitRead() async throws {
+            for _ in 0..<100 where provider.waiting == nil { try await Task.sleep(for: .milliseconds(2)) }
+            try #require(provider.waiting != nil)
+        }
+        await host.start()
+        defer { host.stop(); provider.finish() }
+        try await awaitRead()
+        host.setDesktopPause(.screensAsleep, paused: true)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.screensAsleep, paused: false)
+        host.setDesktopPause(.inactiveSession, paused: false)
+        provider.finish(revision: 1)  // The pre-sleep request returned after unlock.
+        try await awaitRead()
+        #expect(host.bus.desktop == nil)
+        host.setDesktopPause(.inactiveSession, paused: true)
+        host.setDesktopPause(.inactiveSession, paused: false)
+        provider.finish(revision: 2)  // The first wake request crossed the second lock.
+        try await awaitRead()
+        #expect(host.bus.desktop == nil)
+        provider.finish(revision: 3)
+        for _ in 0..<100 where host.bus.desktop == nil { try await Task.sleep(for: .milliseconds(2)) }
+        #expect(host.bus.desktop?.revision == 3)
+    }
+
+    @Test func hangingProcessTimesOutAndIsReapedBeforeReturning() async throws {
+        let fm = FileManager.default, root = fm.temporaryDirectory.appendingPathComponent("np-reader-" + UUID().uuidString)
+        try fm.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? fm.removeItem(at: root) }
+        let executable = root.appendingPathComponent("reader")
+        try "#!/bin/sh\nexec /bin/sleep 15\n".write(to: executable, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let req = DesktopReadRequest(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: [], anchors: [], experimentalSpaces: false)
+        let launched = OSAllocatedUnfairLock<pid_t?>(initialState: nil)
+        await #expect(throws: ReaderFailure.timeout) {
+            try await DesktopReaderProcess.read(executable: executable, request: req, timeout: 0.3) { pid in
+                launched.withLock { $0 = pid }
+            }
+        }
+        let pid = try #require(launched.withLock { $0 })
+        var status: Int32 = 0
+        #expect(waitpid(pid, &status, WNOHANG) == -1 && errno == ECHILD)
+        #expect(kill(pid, 0) == -1 && errno == ESRCH)
+    }
+
+    @Test func closedOutputWhileChildIsAliveStillHonorsCancellationAndReaps() async throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("np-early-eof-" + UUID().uuidString)
+        try fm.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? fm.removeItem(at: root) }
+        let executable = root.appendingPathComponent("reader")
+        let ready = executable.appendingPathExtension("closed")
+        try "#!/bin/sh\nexec >/dev/null\n: > \"$0.closed\"\nexec /bin/sleep 15\n"
+            .write(to: executable, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let request = DesktopReadRequest(session: UUID(), revision: 1, parentPID: getpid(),
+                                         fixtureWindows: [], anchors: [], experimentalSpaces: false)
+        // Observe the child's post-EOF marker before launching it. Its actual startup
+        // is bounded by the production reader timeout, independently of cancellation.
+        let directory = open(root.path, O_EVTONLY)
+        try #require(directory >= 0)
+        let writes = DispatchSource.makeFileSystemObjectSource(fileDescriptor: directory, eventMask: .write,
+                                                               queue: .main)
+        let (changes, notifier) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        writes.setEventHandler { notifier.yield(()) }
+        writes.setCancelHandler { close(directory) }
+        writes.activate()
+        defer { writes.cancel() }
+        let (spawned, producer) = AsyncStream<pid_t>.makeStream()
+        let task = Task {
+            defer { producer.finish(); notifier.finish() }
+            return try await DesktopReaderProcess.read(executable: executable, request: request) { pid in
+                producer.yield(pid)
+            }
+        }
+        defer { task.cancel() }
+        var iterator = spawned.makeAsyncIterator()
+        let pid = try #require(await iterator.next())
+        if !fm.fileExists(atPath: ready.path) {
+            for await _ in changes where fm.fileExists(atPath: ready.path) { break }
+        }
+        try #require(fm.fileExists(atPath: ready.path))
+        try #require(kill(pid, 0) == 0)
+        let cancelledAt = ContinuousClock.now
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(ContinuousClock.now - cancelledAt < .seconds(1))
+        var status: Int32 = 0
+        #expect(waitpid(pid, &status, WNOHANG) == -1 && errno == ECHILD)
+    }
+
+    @Test func malformedOrMismatchedSubprocessResponseNeverPublishes() async throws {
+        let fm = FileManager.default, root = fm.temporaryDirectory.appendingPathComponent("np-result-" + UUID().uuidString)
+        try fm.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? fm.removeItem(at: root) }
+        let executable = root.appendingPathComponent("reader"), output = root.appendingPathComponent("reader.output")
+        try "#!/bin/sh\nexec /bin/cat \"$0.output\"\n".write(to: executable, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let req = DesktopReadRequest(session: UUID(), revision: 1, parentPID: getpid(), fixtureWindows: [], anchors: [], experimentalSpaces: false)
+        let good = sample(req, status: .disabled)
+        try JSONEncoder().encode(good).write(to: output)
+        #expect(try await DesktopReaderProcess.read(executable: executable, request: req) == good)
+        var wrong = good; wrong.revision += 1
+        try JSONEncoder().encode(wrong).write(to: output)
+        await #expect(throws: ReaderFailure.invalidResponse) { try await DesktopReaderProcess.read(executable: executable, request: req) }
+        try Data("{".utf8).write(to: output)
+        await #expect(throws: DecodingError.self) { try await DesktopReaderProcess.read(executable: executable, request: req) }
+        try Data(repeating: 32, count: 1_049_000).write(to: output)
+        await #expect(throws: ReaderFailure.outputLimit) { try await DesktopReaderProcess.read(executable: executable, request: req) }
+    }
+}

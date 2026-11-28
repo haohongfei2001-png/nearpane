@@ -1,0 +1,7 @@
+{
+  "version": "3.14.10",
+  "release": "https://www.python.org/downloads/release/python-31410/",
+  "source": "https://www.python.org/ftp/python/3.14.10/Python-3.14.10.tar.xz",
+  "sha256": "de414a57119abef52784d8993e341d53aed635fc2b05c2607d9f98a2c5b72032",
+  "sourceDateEpoch": 1792886400
+}

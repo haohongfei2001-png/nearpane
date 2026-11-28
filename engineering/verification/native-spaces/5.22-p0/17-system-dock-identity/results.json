@@ -1,0 +1,111 @@
+{
+  "blankScreen": "UNKNOWN",
+  "cleanup": {
+    "errors": [],
+    "independentFocusReadbacks": [
+      {
+        "number": 50525,
+        "pid": 69905
+      },
+      {
+        "number": 50525,
+        "pid": 69905
+      }
+    ],
+    "newerHumanInput": false,
+    "ordinary": {
+      "cleanupCurrent": 4,
+      "created": 0,
+      "errors": [],
+      "focusRestored": true,
+      "originalCurrent": 4,
+      "originalOrderRestored": true,
+      "outstanding": [],
+      "preservedLatestOrder": true,
+      "removed": 0,
+      "retainedUserSelectedSpace": false,
+      "topologyRestored": true
+    },
+    "originalCurrentRestored": true,
+    "originalFocusRestoration": {
+      "actions": [
+        "activation accepted"
+      ],
+      "issued": true,
+      "observations": [
+        {
+          "systemFocus": {
+            "number": 33546,
+            "pid": 49381
+          },
+          "uptime": 252192.41072904167
+        },
+        {
+          "systemFocus": {
+            "number": 50525,
+            "pid": 69905
+          },
+          "uptime": 252192.44205591668
+        },
+        {
+          "systemFocus": {
+            "number": 50525,
+            "pid": 69905
+          },
+          "uptime": 252192.460201125
+        },
+        {
+          "systemFocus": {
+            "number": 50525,
+            "pid": 69905
+          },
+          "uptime": 252192.46222908335
+        },
+        {
+          "systemFocus": {
+            "number": 50525,
+            "pid": 69905
+          },
+          "uptime": 252192.58565870835
+        }
+      ],
+      "restored": true
+    },
+    "originalFocusedWindowRestored": true,
+    "originalForegroundRestored": true,
+    "originalOrderAndUUIDsRestored": true,
+    "ownedAppsExited": true,
+    "ownedWindowsGone": true,
+    "retainedFocusConfirmedTwice": true,
+    "status": "PASS"
+  },
+  "dynamicFixtureMarkerRequested": true,
+  "privateContentCaptured": false,
+  "reason": "add: unique running system Dock unavailable",
+  "setupRoute": "ordinary",
+  "stages": {
+    "fifty": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "requested": 50,
+      "samples": [],
+      "status": "NOT_RUN"
+    },
+    "roundTrip": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "reason": "add: unique running system Dock unavailable",
+      "requested": 2,
+      "samples": [],
+      "status": "BLOCKED"
+    },
+    "ten": {
+      "blankScreen": "UNKNOWN",
+      "navigationStatus": "NOT_RUN",
+      "requested": 10,
+      "samples": [],
+      "status": "NOT_RUN"
+    }
+  },
+  "status": "BLOCKED"
+}

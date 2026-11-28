@@ -1,0 +1,49 @@
+{
+  "attempts": [
+    {
+      "application": "com.apple.TextEdit",
+      "axError": 0,
+      "axIssued": true,
+      "control": "current-desktop-window:89835:50896",
+      "exitCode": 0,
+      "inputAcknowledged": true,
+      "pressDisposition": "ISSUED",
+      "reason": "enrolled TextEdit is not registered with Launch Services",
+      "scenario": "W01",
+      "stage": "marker",
+      "status": "UNKNOWN",
+      "target": 50896,
+      "trial": 1
+    }
+  ],
+  "cleanup": {
+    "birth": 1795180515391508,
+    "closeReply": {
+      "pid": 89835,
+      "quitRequested": true
+    },
+    "elapsedSeconds": 0.2714,
+    "kernelChecks": 1,
+    "observationDeadlineSeconds": 4,
+    "observations": [
+      {
+        "afterSeconds": 0.2714,
+        "state": "ABSENT"
+      }
+    ],
+    "pid": 89835,
+    "status": "PASS",
+    "terminated": true
+  },
+  "issued": 1,
+  "operationStage": "marker",
+  "operationStatus": "UNKNOWN",
+  "passes": 0,
+  "pressCounts": {
+    "ISSUED": 1,
+    "REFUSED": 0,
+    "UNKNOWN": 0
+  },
+  "reason": "enrolled TextEdit is not registered with Launch Services",
+  "status": "UNKNOWN"
+}

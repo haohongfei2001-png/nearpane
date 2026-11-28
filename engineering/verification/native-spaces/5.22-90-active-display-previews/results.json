@@ -1,0 +1,326 @@
+{
+  "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "version": "5.22",
+  "build": 90,
+  "OS": "macOS 27.0 (26A428)",
+  "architecture": "arm64",
+  "physicalDisplays": 1,
+  "draftPR": 15,
+  "aggregate": "PARTIAL",
+  "candidate": "physical-12/candidate.json",
+  "rollBack": "32b9f92",
+  "preview": {
+    "currentInstalledTwoDocuments": "PASS",
+    "tests": [
+      {
+        "evidence": "physical-12/result.json",
+        "action": "isolated Formal Host with opt-in transitions",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4305,
+        "eligiblePanelFrames": 1421,
+        "p50ms": 26.2,
+        "p95ms": 51.31,
+        "p95UpperMs": 69.13,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-12/continuity.json"
+      },
+      {
+        "evidence": "physical-13/result.json",
+        "action": "ordinary signed Host with isolated user data",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4336,
+        "eligiblePanelFrames": 1429,
+        "p50ms": 34.03,
+        "p95ms": 38.72,
+        "p95UpperMs": 56.25,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-13/continuity.json"
+      },
+      {
+        "evidence": "physical-14/result.json",
+        "action": "ordinary signed Host with isolated user data",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4331,
+        "eligiblePanelFrames": 1430,
+        "p50ms": 29.45,
+        "p95ms": 46.41,
+        "p95UpperMs": 63.33,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-14/continuity.json"
+      },
+      {
+        "evidence": "physical-15/result.json",
+        "action": "ordinary signed Host with isolated user data",
+        "status": "PASS",
+        "leaseStatus": "PASS",
+        "transitionReadback": "PASS",
+        "matchedChanges": 12,
+        "presentationRecords": 4323,
+        "eligiblePanelFrames": 1428,
+        "p50ms": 29.19,
+        "p95ms": 61.2,
+        "p95UpperMs": 78.66,
+        "simultaneousStates": 7,
+        "unknownCardPatches": 0,
+        "wrongWindowPatches": 0,
+        "blankPatches": 0,
+        "neutralIntervals": 0,
+        "neutralSingletons": 0,
+        "neutralWithoutSourceBracket": 0,
+        "continuousNeutralCheck": "NO_CONFIRMED_INTERVAL",
+        "neutralEvidence": "physical-15/continuity.json"
+      }
+    ],
+    "totalConfirmedChanges": 48,
+    "totalPresentationsRecorded": 17295,
+    "eligiblePanelFrames": 5708,
+    "pooledConfirmedPresentationDifferenceMs": {
+      "method": "nearest-rank across the current installed candidate trials",
+      "count": 48,
+      "p50": 32.503,
+      "p95": 48.942,
+      "p99": 61.2,
+      "max": 61.2,
+      "p95UpperMs": 66.461
+    },
+    "uninterruptedAccuratePictureEveryFrame": {
+      "status": "PASS_WITHIN_SAMPLED_FIXTURES",
+      "scope": "Qualified 8x8 center pixels for two isolated windows on one actual physical display. Unobserved frames and unsupported windows have no outcome."
+    },
+    "previousCandidate": "physical-08/candidate-summary.json",
+    "ownerFailureCorrelated": "physical-11/diagnosis.json",
+    "liveOwnerFallback": "physical-12/owner-readback.json",
+    "appleNativeReference": "NOT_MEASURED",
+    "appleNativeEvidence": "physical-13/apple-reference.json",
+    "trackpadSwipeAnimation": "NOT_RUN",
+    "displayScope": {
+      "physicalDisplays": 1,
+      "source": "f50d6ac",
+      "verifiedOrdinaryCardCounts": [
+        2,
+        0,
+        2
+      ],
+      "independentPhysicalDisplays": "BLOCKED"
+    },
+    "readableCurrentCandidatePhoto": "physical-15/media/paired-overview.png",
+    "qualifiedFilm": "physical-15/media/paired-cards.apng",
+    "filmDecoderVerification": "physical-15/media/lossless-pixel-replay.json",
+    "fullCardMovie": {
+      "status": "CAPTURED",
+      "evidence": "physical-15/media/receipt.json",
+      "durationSeconds": 2.54705,
+      "frames": 30,
+      "audioTracks": 0,
+      "bothCardsChange": true,
+      "losslessIndependentDecoder": "physical-15/media/lossless-pixel-replay.json",
+      "historicalLossyFilm": "physical-13/media/paired-cards.mp4",
+      "historicalLossyMarkerReadback": "physical-13/media/decoded-cards.json",
+      "historicalLossyMarkerMismatchCount": 8
+    },
+    "qualifiedLosslessFilm": "physical-15/media/paired-cards.apng",
+    "fiveApplicationScope": {
+      "status": "PASS",
+      "applications": 5,
+      "allCardPhaseComparisonsPassed": 30,
+      "evidence": "five-window/installed/replay.json",
+      "scope": "One enrolled ordinary Space, one physical display, five individually enrolled signed ordinary applications, five separate native windows. No private pixels persisted."
+    }
+  },
+  "permissions": {
+    "installed": "PASS",
+    "readback": "physical-12/permissions.json",
+    "registeredApps": 1,
+    "TCCReset": false,
+    "registrationEvidence": "physical-12/launch-services.json"
+  },
+  "stageManager": {
+    "currentInstalledOnlyToolsWhenEnabled": "PASS",
+    "evidence": "physical-12/installed-stage-manager.json",
+    "OFFToOnRestored": "PASS",
+    "priorToolPicture": "physical-03/compact-tools.png",
+    "hidden60s": {
+      "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+      "status": "PASS",
+      "seconds": 60,
+      "samples": 7,
+      "zeroNewRequests": true,
+      "visibleAndDeliveringTwoStreamsAfter": true,
+      "evidence": "installed-hidden-minute/result.json",
+      "previousCandidate": {
+        "source": "f50d6ac",
+        "status": "PASS",
+        "evidence": "physical-05/hidden-minute.json"
+      }
+    },
+    "missionControlOverviewOverlayDuringActualAnimation": "NOT_RUN"
+  },
+  "P0": {
+    "status": "BLOCKED",
+    "adapterProductionEnabled": false,
+    "actualFiftyActions": 0,
+    "buildQualified": false,
+    "historicalAdjacentLandings": 2,
+    "historicalTenLandings": 10,
+    "historicalTenVisualContract": "NOT_PASSED",
+    "reason": "Late focus and Space drift; independent causal attribution unavailable.",
+    "observerEvidence": "../5.22-p0/persistent-drift-observer/README.md"
+  },
+  "P1": {
+    "status": "BLOCKED",
+    "route": "Bridged Window Management",
+    "preparationCommit": "5217dbf4847ef7737cf23d4e6ff3d15b8ea475e6",
+    "installedMoves": 0
+  },
+  "P2": {
+    "status": "PARTIAL",
+    "qualifiedTwoWindowIdentity": "PASS",
+    "installedTypingMarkerCount": 2,
+    "mostRecentFormalAXPresses": 1,
+    "mostRecentPressAccepted": true,
+    "focusReadback": "UNKNOWN",
+    "evidence": "same-space-focus/W01-system-documents.json",
+    "fixtureTerminationIndependent": "same-space-focus/recovery-kernel.json",
+    "distinctControlAttempt": {
+      "status": "BLOCKED",
+      "pressIssued": false,
+      "inputMarkers": 0,
+      "evidence": "same-space-focus/distinct-read-attempt/W01-system-documents.json"
+    },
+    "exactFocusAfterAcceptedPress": "OBSERVED on one test before a synthetic marker was allowed",
+    "markerReadback": "See realTextEditMarkers and controlledFixture for their respective input and sibling readbacks.",
+    "mostRecentWitnessedExtraDialog": "same-space-focus/bounded-enrollment/diagnosis.json",
+    "readyMarkerAttempt": "same-space-focus/ready-marker-attempt/W01-system-documents.json",
+    "latestRealDocument": {
+      "presses": 0,
+      "confirmedMarkers": 0,
+      "status": "BLOCKED",
+      "expandedAXWindowCount": 4,
+      "unrelatedDialogInFreshTestTextEdit": true,
+      "cleanupIndependent": "same-space-focus/bounded-enrollment/recovery-kernel.json"
+    },
+    "controlledFixture": {
+      "confirmedCorrectWithUnchangedSibling": 1,
+      "attempted": 2,
+      "expectedTrials": 10,
+      "reason": "Second target became key/main and received a PID-directed event request. Its document remained empty.",
+      "status": "FAIL",
+      "evidence": "same-space-focus/marker-delivery/result.json",
+      "previousTrial": "same-space-focus/owned-two-editor/keyboard-readback.json",
+      "latestAttributedInput": [
+        "AppKit editor and document A",
+        "no attributed AppKit key event or document edit in B"
+      ],
+      "acrossTwoRuns": {
+        "requests": 4,
+        "confirmed": 2,
+        "realDocumentApplication": "NOT_COVERED"
+      }
+    },
+    "realTextEditMarkers": 0,
+    "installedTypingMarkerScope": "Two successful A-document inputs across two separately scored controlled trials. No passing B-document or TextEdit marker."
+  },
+  "P3": {
+    "status": "BLOCKED",
+    "isolatedChromeAndEdgeCases": 96,
+    "isolatedSends": 0,
+    "authenticatedRealCasesPassed": 0,
+    "realBackend": "No isolated authenticated provider account accepted the real draft."
+  },
+  "P4": {
+    "status": "BLOCKED",
+    "realTranslationLanguageAssets": "supported but not installed for test runner",
+    "wordbookFilePersistence": "Offline storage checks are independent. Installed real-translation relaunch comparison BLOCKED while no translated row was available.",
+    "hardwareColdUtterances": 0,
+    "requiredUtterances": 60,
+    "installedWordbookEvidence": "../5.22-90-installed-contract/runs/tools-final/wordbook/result.json"
+  },
+  "P5": {
+    "status": "PARTIAL",
+    "systemFullscreenRoundtrip": {
+      "status": "PASS",
+      "candidate": "f50d6ac",
+      "evidence": [
+        "physical-07/native-round-trip.json",
+        "physical-07/normal-exit.json"
+      ]
+    },
+    "twoMemberNativeSplitView": "BLOCKED",
+    "twoPhysicalDisplays": "BLOCKED",
+    "sleepAndUnlock": "NOT_RUN",
+    "warmedProductFiveByTwenty": "NOT_RUN",
+    "warmedProductFiveByTwentyPrerequisite": "Three independently verified ordinary desktops and the production sidebar Space switch. P0 is disabled on this OS build."
+  },
+  "P6": {
+    "status": "BLOCKED",
+    "installedDeveloperID": "PASS",
+    "timestampedSeparateDistributionBinaryCount": 13,
+    "staging": "physical-12/distribution-staging/result.json",
+    "notarization": "NOT_RUN",
+    "stapling": "NOT_RUN",
+    "cleanInstall26And27": "NOT_RUN",
+    "sparklePublic": "NOT_RUN",
+    "publicRelease": false,
+    "archiveMatch": "physical-12/archive-installed.json"
+  },
+  "offline": {
+    "swift": {
+      "testCount": 560,
+      "suiteCount": 86,
+      "status": "PASS",
+      "runner": "scripts/test.sh"
+    },
+    "plainSwiftTestWithoutProjectFlags": "BLOCKED Swift Testing macro plug-in unavailable",
+    "nativePython": {
+      "ran": 184,
+      "skipped": 6,
+      "failed": 0,
+      "evidence": "installed-final/native-harness.json"
+    },
+    "signingPythonPassed": 8,
+    "p0NarrowRegressionPassed": 27,
+    "CI": {
+      "candidateRun": 44786730117,
+      "status": "success"
+    }
+  },
+  "cleanup": {
+    "profileRestored": true,
+    "stageManagerRestored": true,
+    "exactPreviousFocusedWindow": "UNKNOWN",
+    "desktopRecovery": "physical-05/recovery.json",
+    "dailyTextEditFixtureClosed": true,
+    "currentOwnership": "installed-final/desktops.json",
+    "finalDailyStageManager": "installed-final/stage-manager.json"
+  }
+}

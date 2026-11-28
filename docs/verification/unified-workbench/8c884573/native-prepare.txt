@@ -1,0 +1,2 @@
+Packaged Saytile and Riftlet resources verified.
+/Users/runner/work/nearpane/nearpane/build/native-acceptance/343a7c3b-c810-4d4d-828a-761d49416b88

@@ -1,0 +1,56 @@
+name: Embedded tool integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/r4-native-candidate-20261120]
+    paths:
+      - '.github/workflows/embedded-tools.yml'
+      - 'Dependencies/*.json'
+      - 'Dependencies/*.patch'
+      - 'Package.swift'
+      - 'Resources/AcceptanceTargetGuard.js'
+      - 'Sources/NearpaneTray/**'
+      - 'Sources/NearpaneVoice/**'
+      - 'Sources/NearpaneSaytileBridge/**'
+      - 'Sources/NearpaneHost/CandidateProfile.swift'
+      - 'Sources/NearpaneUI/SettingsView.swift'
+      - 'Sources/NearpaneUI/SidebarNotebook.swift'
+      - 'Sources/NearpaneUI/SelectionTranslation.swift'
+      - 'Sources/NearpaneCore/LocalToolStage.swift'
+      - 'Tests/NearpaneTrayTests/**'
+      - 'Tests/NearpaneVoiceTests/**'
+      - 'Tests/NearpaneUITests/IntegratedHostTests.swift'
+      - 'Tests/NearpaneUITests/TranslationHandoffTests.swift'
+      - 'scripts/acceptance/*browser*'
+      - 'scripts/acceptance/test-composed-target.js'
+      - 'scripts/build-app.sh'
+      - 'scripts/domain_resources.py'
+      - 'scripts/prepare-domains.py'
+      - 'scripts/profile_domains.py'
+      - 'scripts/test-dependencies.py'
+      - 'scripts/test.sh'
+      - 'scripts/verify-packages.py'
+permissions:
+  contents: read
+concurrency:
+  group: embedded-tools-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  embedded-tools:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Verify locked inputs and embedded Host regressions
+        run: |
+          python3 -B scripts/test-dependencies.py
+          # These integration suites share AppKit's main run loop and time real notification delivery.
+          bash scripts/test.sh --no-parallel --filter 'NearpaneTrayTests|NearpaneVoiceTests|IntegratedHostTests|TranslationHandoffTests'
+      - name: Build the development Host and verify its bundled resources offline
+        env:
+          NEARPANE_OFFLINE: '1'
+        run: |
+          bash scripts/build-app.sh debug
+          python3 -B scripts/verify-packages.py build/debug/Nearpane.app

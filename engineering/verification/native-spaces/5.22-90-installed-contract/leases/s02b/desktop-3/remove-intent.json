@@ -1,0 +1,37 @@
+{
+  "boot": "DFC3B445-9E60-441D-8A05-A39C3D3A07A8",
+  "expected": [
+    {
+      "id": 4,
+      "type": 0,
+      "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+    },
+    {
+      "id": 2000,
+      "type": 4,
+      "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+    },
+    {
+      "id": 6,
+      "type": 0,
+      "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+    },
+    {
+      "id": 5,
+      "type": 0,
+      "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+    },
+    {
+      "id": 4863,
+      "type": 0,
+      "uuid": "3B86B2FA-B73A-0FD8-7EA5-DEBB7872AFA7"
+    },
+    {
+      "id": 4864,
+      "type": 0,
+      "uuid": "297F219A-F260-BD37-ECCE-ACAB1F12D9CA"
+    }
+  ],
+  "operation": "b6f47c52-706f-46e3-ae38-75be20e33ca2",
+  "target": 4865
+}

@@ -1,0 +1,15 @@
+{
+  "scope": "packagedGuardianFromNonHostPrivateEmptyDirectory",
+  "source": "b77111458e18d354d456304efd5c8317e1277104",
+  "build": "26A428",
+  "executableSHA256": "3fd71788d5e7b17a3665b24c9369356999f583c8ca3bcdd9d065f233e73a2468",
+  "canonicalParent": false,
+  "exitCode": 3,
+  "ackBytes": 0,
+  "stderr": "",
+  "filesCreated": [],
+  "positiveRecoveryLease": "NOT_RUN",
+  "parkedWindow": "NOT_RUN",
+  "crashTakeover": "NOT_RUN",
+  "status": "PASS"
+}

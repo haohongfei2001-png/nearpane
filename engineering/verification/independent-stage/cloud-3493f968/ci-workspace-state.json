@@ -1,0 +1,75 @@
+{
+  "attempt" : "1",
+  "boot" : "E425BC85-C7EB-4032-888E-3A8D88B45B81",
+  "events" : [
+    {
+      "operation" : "intent:launchFinder",
+      "uptime" : 735.12040575
+    },
+    {
+      "operation" : "issued:launchFinder",
+      "uptime" : 735.240760625
+    },
+    {
+      "operation" : "intent:openMissionControl",
+      "uptime" : 735.43069325
+    },
+    {
+      "operation" : "issued:openMissionControl",
+      "uptime" : 735.8288363333334
+    },
+    {
+      "operation" : "intent:closeMissionControl",
+      "uptime" : 736.2391980833333
+    },
+    {
+      "operation" : "issued:closeMissionControl",
+      "uptime" : 736.4464852916667
+    },
+    {
+      "operation" : "intent:openMissionControl",
+      "uptime" : 736.6312558750001
+    },
+    {
+      "operation" : "issued:openMissionControl",
+      "uptime" : 736.8086155000001
+    },
+    {
+      "operation" : "intent:closeMissionControl",
+      "uptime" : 741.2385049166667
+    },
+    {
+      "operation" : "issued:closeMissionControl",
+      "uptime" : 741.2919123333334
+    }
+  ],
+  "latest" : {
+    "current" : 1,
+    "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+    "rawInventoryJSON" : "[{\"Current Space\":{\"id64\":1,\"ManagedSpaceID\":1,\"type\":0,\"uuid\":\"\"},\"Display Identifier\":\"2109FE05-700B-4D86-963C-08B091DE5E60\",\"Spaces\":[{\"id64\":1,\"ManagedSpaceID\":1,\"type\":0,\"uuid\":\"\"}]}]",
+    "records" : [
+      {
+        "id" : 1,
+        "type" : 0,
+        "uuid" : ""
+      }
+    ]
+  },
+  "original" : {
+    "current" : 1,
+    "display" : "2109FE05-700B-4D86-963C-08B091DE5E60",
+    "rawInventoryJSON" : "[{\"Current Space\":{\"id64\":1,\"ManagedSpaceID\":1,\"type\":0,\"uuid\":\"\"},\"Display Identifier\":\"2109FE05-700B-4D86-963C-08B091DE5E60\",\"Spaces\":[{\"id64\":1,\"ManagedSpaceID\":1,\"type\":0,\"uuid\":\"\"}]}]",
+    "records" : [
+      {
+        "id" : 1,
+        "type" : 0,
+        "uuid" : ""
+      }
+    ]
+  },
+  "pendingAdd" : false,
+  "phase" : "cleaned",
+  "repository" : "haohongfei2001-png\/nearpane",
+  "runID" : "45686497133",
+  "schema" : 1
+}

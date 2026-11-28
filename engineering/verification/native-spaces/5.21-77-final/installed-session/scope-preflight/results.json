@@ -1,0 +1,10 @@
+{
+  "S02": "BLOCKED",
+  "S03": "NOT_RUN",
+  "R01": "BLOCKED",
+  "sent": 0,
+  "prepared": 0,
+  "unknown": 0,
+  "reason": "No fresh creation manifest for three owned ordinary test Spaces. Installed Host lacks a current positive canSwitch probe.",
+  "S03Reason": "An independent system-initiated switch and a controlled native reorder are still required."
+}

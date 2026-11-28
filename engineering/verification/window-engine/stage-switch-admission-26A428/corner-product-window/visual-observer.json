@@ -1,0 +1,17 @@
+{
+  "framesCaptured": 0,
+  "pid": 8848,
+  "screenCapturePreflight": true,
+  "uptimeNS": 503048992744625,
+  "scope": "observerOwnNonpromptVisualPermission",
+  "signing": {
+    "Identifier": "net.example.nearpane.p2-observer",
+    "CDHash": "ed28fac0a61c69aba1be452bf7c2fec361a946f2",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "osBuild": "26A428",
+  "sourceSHA256": "c2f446e6fd6d3581fb994037ddf9f08566e244b9748c72832285c8541f5b1677",
+  "privacy": "process exited before any window enumeration",
+  "windowPixelRead": "NOT_RUN",
+  "parkOrInput": "NOT_RUN"
+}

@@ -1,0 +1,60 @@
+{
+  "scope": "one installed sidebar card drag between two distinct Developer ID app owners",
+  "physicalResult": "NOT_RUN_BY_BUILDER",
+  "pixelsReadOrSaved": 0,
+  "priorPhysicalAttempt": {
+    "candidate": "d277a1c",
+    "status": "BLOCKED",
+    "reason": "unsafe receipt owner, mode or length",
+    "issued": false,
+    "fixtureLaunches": 0,
+    "actualFailedFile": "profile-index.json",
+    "failedInodeMetadata": "not retained after isolated generation cleanup"
+  },
+  "offline": {
+    "crossAppSuite": 8,
+    "existingProtectedInstallationSuite": 19,
+    "existingPointerSuite": 14,
+    "existingPostReadSuite": 6,
+    "covered": [
+      "two exact fixture process generations",
+      "two independent AX and CG right-drop samples",
+      "wrong same-app or restarted owner",
+      "missing or changed scope, receiver, physical geometry",
+      "single dispatch after uncertain transport",
+      "normal exact-generation cleanup",
+      "per-file owner/permissions/size and links"
+    ],
+    "foundationReplay": {
+      "source": "Foundation Data.write in a new user-owned 0700 root with umask 022",
+      "operation": "withoutOverwriting/atomic",
+      "privateReceiptCheck": "unsafe receipt owner, mode or length",
+      "hostFiles": [
+        {
+          "document": "synthetic profile index",
+          "permissions": "0644",
+          "uid": 501,
+          "bytes": 61,
+          "links": 1
+        },
+        {
+          "document": "synthetic config",
+          "permissions": "0644",
+          "uid": 501,
+          "bytes": 16,
+          "links": 1
+        }
+      ],
+      "reader": "PASS"
+    }
+  },
+  "developerIDTeam": "ZB9D4T66QB",
+  "builtFixtureCDHashes": {
+    "cross-pointer": "11dc455db1f47a43cf1a501dd79348916259dd69",
+    "process-generation": "c34524ee4efcf509abba0d5a7c2fb4e0adba6558",
+    "Five Notes 1.app": "cc065cc04943099904207c8e0eb52157e4cbd1aa",
+    "Five Notes 2.app": "f41e36d70264965544b0f4e8b37b416880b226c1"
+  },
+  "physicalFeaturesExercised": [],
+  "rollback": "The normal outer protected installation exchanges back the original bundle, verifies daily configuration and restores Stage/Space. Fixture cleanup closes only its two private session markers and checks kernel generation retirement. The fixture kit is temporary."
+}

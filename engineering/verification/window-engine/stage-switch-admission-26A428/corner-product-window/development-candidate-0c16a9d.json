@@ -1,0 +1,46 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "revision": "0c16a9d090e006b8795d6eddc56115c7f430ab0b",
+  "sourceState": "clean",
+  "engineABI": 1,
+  "architecture": "arm64",
+  "identity": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "687ef90aee9b5ee14a0b1e5430140f743de757f5",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "verifiedMachO": 14,
+  "deepStrictAllArchitectures": "PASS",
+  "archiveRoundTrip": "PASS",
+  "permissionIdentity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "archive": "Nearpane-5.22-90-arm64.zip",
+  "archiveBytes": 33347641,
+  "sha256": "7cd9964553b009d3d7843d2147cd50cebbf51823b44e9d20213f2a23157be697",
+  "previousCandidate": "3384cf1db366a719b26fc5706a6f640d8988450f",
+  "signingMode": "local Developer ID, without distribution timestamps",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_RUN",
+  "candidateExecutions": 0,
+  "dailyInstallReplaced": false,
+  "stageGroupProductionQualified": false,
+  "publicRelease": "NOT_ADMITTED"
+}

@@ -1,0 +1,13 @@
+{
+  "run": 44814511651,
+  "head": "2d3ba05cbe995c853daf6457fed17a6110f33c8b",
+  "protocolTests": "PASS",
+  "candidate": "02422473f8cb897baa60db82604a7400c9e9ea00",
+  "assetID": 773282549,
+  "hostedIntake": "BLOCKED",
+  "response": "Resource not accessible by integration (HTTP 403)",
+  "systemPolicy": "NOT_RUN",
+  "cause": "Read-only GitHub Actions installation could not read the existing Draft release. The initial shell pipeline did not propagate the failed archive read.",
+  "binaryReceived": false,
+  "publicRelease": false
+}

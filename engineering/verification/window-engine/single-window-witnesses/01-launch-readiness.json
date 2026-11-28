@@ -1,0 +1,78 @@
+{
+  "schema": 2,
+  "scope": "readOnlyFormalHostLaunchReadiness",
+  "osBuild": "26A428",
+  "observedUTC": "2026-11-21T17:11:11.997974+00:00",
+  "runnerSource": "e4d11b8e9ff0bb0407d0a7483126c9a98c399bee",
+  "status": "BLOCKED",
+  "scopeWindowWrites": 0,
+  "scopeSpaceWrites": 0,
+  "scopePostedInput": 0,
+  "requestedSpacesCycle": false,
+  "requestedOwnCanary": false,
+  "permissionPrompts": 0,
+  "singleWindowHideRestore": "NOT_RUN",
+  "productionQualified": false,
+  "launchReadiness": {
+    "status": "BLOCKED",
+    "blockers": [
+      "installedHostIsNotPinnedEngineCandidate",
+      "sameProductInstanceRunning"
+    ],
+    "target": {
+      "os": "27.0",
+      "build": "26A428",
+      "architecture": "arm64",
+      "sip": "System Integrity Protection status: enabled."
+    },
+    "candidate": {
+      "Identifier": "com.holdsnow.nearpane.alpha",
+      "CDHash": "2b0c9de3724f0639ab5d44761df108584886e5c2",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "version": "5.22",
+      "build": "90",
+      "source": "0cc4714c6cde1cf0e70bba8d430ec9de6f36d3be",
+      "sourceState": "clean",
+      "engineABI": 1,
+      "multipleInstancesProhibited": true
+    },
+    "installed": {
+      "Identifier": "com.holdsnow.nearpane.alpha",
+      "CDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+      "TeamIdentifier": "ZB9D4T66QB",
+      "version": "5.22",
+      "build": "90",
+      "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+      "sourceState": null,
+      "engineABI": null,
+      "multipleInstancesProhibited": true
+    },
+    "roster": {
+      "complete": true,
+      "pids": [
+        59938
+      ],
+      "session": {
+        "qualified": true,
+        "securitySessionID": 100022
+      }
+    },
+    "scope": "readOnlyLaunchReadiness",
+    "hostLaunches": 0,
+    "windowWrites": 0,
+    "spaceWrites": 0,
+    "hostPermissions": "NOT_RUN",
+    "singleWindowHideRestore": "NOT_RUN",
+    "productionQualified": false
+  },
+  "reason": "formalHostLaunchReadiness",
+  "membershipStatus": "NOT_RUN",
+  "probeResources": {
+    "candidateExit": "NOT_RUN",
+    "registeredWindowExit": "NOT_RUN",
+    "backendCleanup": "NOT_RUN",
+    "clear": true
+  },
+  "probeResourcesClear": true,
+  "safeToRollback": true
+}

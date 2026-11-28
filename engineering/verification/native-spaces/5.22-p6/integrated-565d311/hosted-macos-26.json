@@ -1,0 +1,62 @@
+{
+  "architectures": 18,
+  "assetID": 774290005,
+  "canonicalPath": "/Applications/Nearpane.app",
+  "checks": {
+    "distribution": {
+      "exit": 70,
+      "messages": [
+        "Notary Ticket Missing"
+      ]
+    },
+    "gatekeeper": {
+      "exit": 3,
+      "messages": [
+        "Unnotarized Developer ID"
+      ]
+    },
+    "staple": {
+      "exit": 65,
+      "messages": [
+        "does not have a ticket"
+      ]
+    }
+  },
+  "fixtureInstallationRemoved": true,
+  "installation": "PASS",
+  "installedChecks": {
+    "distribution": {
+      "exit": 70,
+      "messages": [
+        "Notary Ticket Missing"
+      ]
+    },
+    "gatekeeper": {
+      "exit": 3,
+      "messages": [
+        "Unnotarized Developer ID"
+      ]
+    },
+    "staple": {
+      "exit": 65,
+      "messages": [
+        "does not have a ticket"
+      ]
+    }
+  },
+  "installedHostInteraction": "NOT_RUN",
+  "installedSystemPolicy": "NOT_ADMITTED",
+  "launch": "BLOCKED",
+  "osBuild": "25G332",
+  "publicRelease": false,
+  "reason": "macOSDistributionPolicy",
+  "settingWrites": 0,
+  "sha256": "7e9703bcbfcda7eacba29ef82c4e0dbeb98c864f3a10d5d8b3a85add505141aa",
+  "signedObjects": 13,
+  "source": "565d311076ca20d23f63567172ea244571cf1276",
+  "systemPolicy": "NOT_ADMITTED",
+  "verifiedBinaries": 13,
+  "run": 44861706918,
+  "hostedAssetRead": "PASS",
+  "temporarySecretRemoved": true
+}

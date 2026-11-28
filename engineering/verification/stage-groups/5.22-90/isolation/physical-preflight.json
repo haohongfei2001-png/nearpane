@@ -1,0 +1,14 @@
+{
+  "captureOfPersonalSession" : false,
+  "dailyInstalledSource" : "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "displayCount" : 1,
+  "dockMinimizesIntoApplicationIcon" : true,
+  "foregroundBelongsToIsolatedFixtures" : false,
+  "hardwareGroupSwitch" : "NOT_RUN",
+  "macOS" : "Version 27.0 (Build 26A428)",
+  "preferenceWrites" : 0,
+  "scope" : "read-only physical preflight",
+  "systemStageManager" : false,
+  "typedInput" : 0,
+  "windowWrites" : 0
+}

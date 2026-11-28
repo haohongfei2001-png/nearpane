@@ -1,0 +1,50 @@
+{
+  "scope": "offlineSwiftProductStageGroupSidebarAndCoordinator",
+  "currentPhysicalAcceptance": "NOT_RUN",
+  "base": "609469a",
+  "checkedUTC": "2026-11-22T17:13:39.150935+00:00",
+  "versionChanged": false,
+  "qualificationsChanged": false,
+  "testMode": "native SwiftPM + project CLT Testing plugin; Foundation configuration; in-memory window system",
+  "passed": 70,
+  "failed": 0,
+  "skipped": 0,
+  "suites": {
+    "StageWindowEngineTests": 13,
+    "StageGroupCoordinatorTests": 11,
+    "StageWindowArrivalTests": 5,
+    "StageGroupStoreTests": 12,
+    "NativeSidebarNavigationTests": 13,
+    "StageWindowOwnershipTests": 3,
+    "StageGroupWindowLifetimesTests": 2,
+    "StageHostGroupProjectionTests": 5,
+    "StageWindowEngineWitnessTests": 6
+  },
+  "regressions": [
+    "namesSurviveReopenAndGrouping",
+    "switchAwayAndBackPreservesBothManuallyMovedFrames",
+    "anUnconfirmedHideNeverPublishes",
+    "selectingTheAlreadyVisibleSingleton",
+    "groupNameReadCannotCommitAcrossASidebarIntent"
+  ],
+  "xunit": {
+    "file": "stage-groups.xml",
+    "sha256": "c3a6f811486d34dc092b8b7f743628df2062fd685d7dc89b27fad19b3b121995"
+  },
+  "diagnostics": {
+    "firstCLTBuild": "default build system intermittently reported TestingMacros missing before executing tests",
+    "preservedLog": "final.log"
+  },
+  "sources": {
+    "Sources/NearpaneCore/StageGroupStore.swift": "63050c67a2de88f9b10bf005ca84ad7c82d8846588048956dcd4f2f048738663",
+    "Sources/NearpaneCore/StageGroupCoordinator.swift": "2dd844406900b6c192c9386bb36a5950c13461272ae0632f5bc236750aad5774",
+    "Sources/NearpaneUI/CurrentDesktopWindows.swift": "cf465e11104d713564c11a4bdcbcbdd8a73b12dc3f63d20ccb1dcc9b5800f3ee",
+    "Sources/NearpaneUI/DesktopSurface.swift": "f3d8b2ebf918217b85dc3288718b269d7174fdf56b1d56421f193d9d32ac6817",
+    "Sources/NearpaneUI/NativeSidebarNavigation.swift": "761747de566589bb5a73c99dcfc2cd58b2a157f034a858b4765d623bcd976266",
+    "Sources/NearpaneUI/NativeSpaceNavigator.swift": "e0ccc76eafe06f9b5e931eb803bc84728eeb3ad93ea90d64a6166689f53f0742",
+    "Sources/NearpaneUI/StageWindowEngineWitness.swift": "648d19d3b875f5c304dab01cedaebcabdbaa2bbdf5fa9e807f2afee089c906fa",
+    "Tests/NearpaneCoreTests/StageGroupStoreTests.swift": "ca672c146d7d4e17998ab469c391faa2e301eb9b867cc1a8499136dadd8c0dc9",
+    "Tests/NearpaneCoreTests/StageGroupCoordinatorTests.swift": "3ec5755333d5cd9cffc43e41838cbb537a997e05b6717225d32a3f477d4a375b",
+    "Tests/NearpaneUITests/NativeSidebarNavigationTests.swift": "299d0fe9387b0a1034fbeac11aaba9748f352518033c4db1f26202d007bf9ec4"
+  }
+}

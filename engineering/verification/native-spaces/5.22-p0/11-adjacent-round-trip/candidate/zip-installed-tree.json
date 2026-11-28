@@ -1,0 +1,17 @@
+{
+  "source": "96a3e3d1e74ea490dee798385cbef207a6013609",
+  "archive": "Nearpane-5.22-90-96a3e3d-macOS-arm64.zip",
+  "draftAssetID": 771566926,
+  "zipSHA256": "5c019c20effbc81e4e7733b5b21ac6d0d1af9160305f628e0c0095680853871e",
+  "installed": "/Applications/Nearpane.app",
+  "totalNodes": 248,
+  "byKind": {
+    "file": 141,
+    "symlink": 11,
+    "directory": 96
+  },
+  "mismatches": [],
+  "identicalTreeContentTypesSymlinkTargetsAndPOSIXModes": true,
+  "deepSignature": "PASS",
+  "scope": "Exact bundle paths, regular-file contents, symlink targets and POSIX modes. Extended attributes, update service, Gatekeeper on a clean system and notarization were not evaluated by this check."
+}

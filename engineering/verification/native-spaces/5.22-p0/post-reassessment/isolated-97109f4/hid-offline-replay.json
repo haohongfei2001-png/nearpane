@@ -1,0 +1,81 @@
+{
+  "actualSystemActions": 0,
+  "freshPhysicalRead": false,
+  "originalResult": "physical input changed before Stage setup",
+  "replay": {
+    "after": {
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        19137,
+        35,
+        0
+      ],
+      "uptime": 281688.0120485417
+    },
+    "before": {
+      "hid": [
+        5759,
+        70,
+        0,
+        3049,
+        136752,
+        19137,
+        35,
+        0
+      ],
+      "uptime": 281684.6605901667
+    },
+    "original": [
+      5759,
+      70,
+      0,
+      3049,
+      136752,
+      19137,
+      35,
+      0
+    ],
+    "p0Changed": [],
+    "p0Fields": [
+      "leftMouseDown",
+      "rightMouseDown",
+      "otherMouseDown",
+      "keyDown",
+      "scrollWheel",
+      "leftMouseDragged",
+      "rightMouseDragged",
+      "otherMouseDragged"
+    ],
+    "phase": "archived",
+    "stage": [
+      5759,
+      70,
+      0,
+      3049,
+      136752
+    ],
+    "stageChanged": [],
+    "stageFields": [
+      "leftMouseDown",
+      "rightMouseDown",
+      "otherMouseDown",
+      "keyDown",
+      "scrollWheel"
+    ],
+    "stageFrom": 281878.993227541,
+    "stageTo": 281878.993237041,
+    "status": "CONFIRMED"
+  },
+  "scope": "OFFLINE_REPLAY",
+  "sourceFiles": {
+    "final.json": "2da2868d504503ef45c7f57900d1a91b26d2d4c65c5120476424ddad4fa9dc69",
+    "original-focus.json": "4ba924be6aae9f072776e398e0685e76f0dcee758c84765ce2f69f35fefb2399",
+    "original.json": "5b70aa7dde649a2e25aa56ec0a4d8334bb3439f78ce11db64c71305ed0cc1fed",
+    "results.json": "2406619c2764461e180639511f57cf4544607fad078a7aac3ab19e96977d51c9"
+  },
+  "stageInput": "Projected from original eight counters using the five system-workspace event types. A distinct Stage sample was not recorded in this old run."
+}

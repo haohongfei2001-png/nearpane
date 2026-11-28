@@ -1,0 +1,8 @@
+{
+  "status": "BLOCKED",
+  "reason": "The original exported test directory had no local Git revision for the acceptance manifest.",
+  "productActions": 0,
+  "fixtureLaunched": false,
+  "initialStageRestored": "PASS",
+  "remedy": "A private copy of the exact committed fixture checkout provided a verifiable commit and dependency lock."
+}

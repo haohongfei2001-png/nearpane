@@ -1,0 +1,74 @@
+{
+  "status": "INCOMPLETE",
+  "method": "timestamped ScreenCaptureKit sidebar samples with pre/post authorization",
+  "windowsPerRun": [
+    0,
+    2
+  ],
+  "samples": [
+    {
+      "begin": 244113.867062958,
+      "saved": true,
+      "windows": [],
+      "filename": "0000.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 244114.815298208
+    },
+    {
+      "begin": 244114.895342541,
+      "saved": true,
+      "windows": [],
+      "filename": "0001.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 244115.575283208
+    },
+    {
+      "begin": 244115.655313291,
+      "saved": true,
+      "windows": [],
+      "filename": "0002.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 244116.321586875
+    },
+    {
+      "begin": 244116.401617791,
+      "saved": true,
+      "windows": [],
+      "filename": "0003.png",
+      "sha256": "dbad8c46cf5b7a8450b61924aff1051c609c6df2ebe1911f79f8416d33e6a656",
+      "end": 244117.075581291
+    },
+    {
+      "begin": 244117.155606416,
+      "saved": false,
+      "reason": "could not bind crop to visible installed window",
+      "end": 244117.562827708
+    },
+    {
+      "begin": 244117.639079875,
+      "saved": true,
+      "windows": [
+        48640,
+        48641
+      ],
+      "filename": "0005.png",
+      "sha256": "dbdb77e9637e28d6b4d0c18b68688fe93d368c439416df432fb05cb49f82ba9a",
+      "end": 244118.279689625
+    },
+    {
+      "begin": 244118.359775916,
+      "saved": false,
+      "reason": "TimeoutExpired",
+      "end": 244126.363924791
+    }
+  ],
+  "inputFrames": 5,
+  "continuousSpaceTransition": false,
+  "tracks": {
+    "inputFrames": 5,
+    "videoTracks": 1,
+    "seconds": 3.5633333333333335,
+    "audioTracks": 0
+  },
+  "sha256": "214be0ca7052a661c2e82fa7b981af1c7e23b4ef026e8b9cf371092a9f4f6791"
+}

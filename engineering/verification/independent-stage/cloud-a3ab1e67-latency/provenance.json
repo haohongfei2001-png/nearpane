@@ -1,0 +1,221 @@
+{
+  "schema": 1,
+  "revision": "a3ab1e675e9250f7b5f5f56b12d28c0facfbfd0d",
+  "workflowRun": 46012254457,
+  "recorded": "2026-11-27",
+  "fullRuntimeAtRecord": "COMPLETE_UNKNOWN_PRODUCT_CLEANUP_UNCONFIRMED",
+  "purpose": "Exact second-fix fast/source/diagnostic evidence; no later fix qualification",
+  "files": [
+    {
+      "file": "fast/runtime-summary.json",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 10417,
+      "sha256": "df59cd8757b3d07dd8dcba058f82003a382b1e77f70ee3f361e30d50c519fa24"
+    },
+    {
+      "file": "fast/engine-result.json",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4450,
+      "sha256": "de0abadba1723f127ebfc645d82f272067d5402d0eb47639cf54335aeac294b5"
+    },
+    {
+      "file": "fast/engine.log",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 44302,
+      "sha256": "a99a9d6c40bb8fdbbe834fa2448b7a12885654f1c91ccc91ec628b1b6febb86d"
+    },
+    {
+      "file": "fast/engine.stderr.log",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 17662,
+      "sha256": "f47cc0d87e8cc030b016ec3fb7e0d0d373faf480cc37bcb1855f407ed7200f33"
+    },
+    {
+      "file": "fast/fixture-cleanup.json",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "fast/ci-workspace-cleanup-receipt.json",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "c3105ae8e7aa80f969f00e0c4167c2624efc475bf40c2eda7c7830b973fff9fd"
+    },
+    {
+      "file": "fast/product-result.json",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 3307,
+      "sha256": "1464dc3baa8af8e6af484730d30f77cc239e77c144c85cae49cdfc238b664889"
+    },
+    {
+      "file": "fast/product.stderr.log",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 1346,
+      "sha256": "f39a6bca21fe1f057342b20f147e7006a6b96cc255c2e00f11081708dbc3e307"
+    },
+    {
+      "file": "fast/host-main-thread-sample.json",
+      "artifact": 15203979492,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 93,
+      "sha256": "369a17bc81f0e07e1e94c4a625f30ff63a38e9634ee808667dd9cce8e979c807"
+    },
+    {
+      "file": "diagnostics/runtime-summary.json",
+      "artifact": 15203859213,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 6579,
+      "sha256": "60d4b62184d09e6a57b6dc716eefe900af4d87013d7b8945fbbc152ce7387cb6"
+    },
+    {
+      "file": "diagnostics/engine-result.json",
+      "artifact": 15203859213,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4194,
+      "sha256": "da6a465a6cb07e186b316a65534f301b5fb354786b5f66fe14af8b83450470c7"
+    },
+    {
+      "file": "diagnostics/engine.log",
+      "artifact": 15203859213,
+      "artifactPath": "independent-runtime/runtime/engine.log",
+      "bytes": 19933,
+      "sha256": "a1c1826e17369ce22ef918c97e987e6bc55a6e5059394a9b9ea1ea3dfeb73494"
+    },
+    {
+      "file": "diagnostics/engine.stderr.log",
+      "artifact": 15203859213,
+      "artifactPath": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 15173,
+      "sha256": "d6743b8785838960aa485e05cbae2f64228d6bf70c101d13907c5c7962fb679a"
+    },
+    {
+      "file": "diagnostics/fixture-cleanup.json",
+      "artifact": 15203859213,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "diagnostics/ci-workspace-cleanup-receipt.json",
+      "artifact": 15203859213,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "271dbd6bddc15b0dcce80ad7d650d09a089fa11714346ee5061d83a08c5e0537"
+    },
+    {
+      "file": "full-source/summary.json",
+      "artifact": 15203444688,
+      "artifactPath": "source/summary.json",
+      "bytes": 1212,
+      "sha256": "a11b30ff40ab7a5aa72b239e4eaf7804ea0dc5eb111c298855576d8b9fc8829e"
+    },
+    {
+      "file": "full-source/swift.log",
+      "artifact": 15203444688,
+      "artifactPath": "source/swift.log",
+      "bytes": 47472,
+      "sha256": "42245168171381479a50cf13b4f88fb55bdc82ebea1d8392ee09d5ea22a7ab7b"
+    },
+    {
+      "file": "full-source/swift.stderr.log",
+      "artifact": 15203444688,
+      "artifactPath": "source/swift.stderr.log",
+      "bytes": 175182,
+      "sha256": "f2c2dc1f6b771eb6b9f5a496e06a6d5ead95bc00dab0d8978a7def6a8a92e6d5"
+    },
+    {
+      "file": "full-source/windowserver-context.json",
+      "artifact": 15203444688,
+      "artifactPath": "source/windowserver-context.json",
+      "bytes": 1990,
+      "sha256": "9a60fc6589d38f478de1f9cd0cf4a5a2eedb1188822c8f7f1977d394917c64a7"
+    },
+    {
+      "file": "full/runtime-summary.json",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/summary.json",
+      "bytes": 22508,
+      "sha256": "d3a01282b665655ca37d610cc939a7e46802111422cc96149ff6051d7a58ca47"
+    },
+    {
+      "file": "full/engine-result.json",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "b1d133d97112db1ad38a876752dbcce896ad5e93f28973c4b5fa44c8d168ed0d"
+    },
+    {
+      "file": "full/product-result.json",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 14885,
+      "sha256": "600aecfb733dc14564da9ee62c0857eae4b95cf428d86fc2bfe40a4af3261b01"
+    },
+    {
+      "file": "full/product.stderr.log",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 28166,
+      "sha256": "f20e04dd4349f353f364becd8e5a39017629abd7967824175fcfab9c07f49696"
+    },
+    {
+      "file": "full/host-main-thread.sample.txt",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/product/host-main-thread.sample.txt",
+      "bytes": 270455,
+      "sha256": "309c57c208b1372493f9ef9c9461c3c10e786fb7c544fcd930f8f30c76a070d0"
+    },
+    {
+      "file": "full/fixture-cleanup.json",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "file": "full/ci-workspace-cleanup-receipt.json",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "f3e654abfcb051cb27a3bff659d27ceb04f59ad454497b986553df88091156e6"
+    },
+    {
+      "file": "full/r4-press-result.json",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/product/r4-press-ac42f646-c460-4ef2-a6fb-6f4effa702da.result.json",
+      "bytes": 3622,
+      "sha256": "d162827a8af8d087d1f1026f6203357090831f009b43feed279ed4c49afabdff"
+    },
+    {
+      "file": "full/candidate.json",
+      "artifact": 15206345777,
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "282f527a44c53a09b807c29c0d6c351df7bf08ba4f92dd1275f39e88da8cd7b8"
+    },
+    {
+      "file": "full/worker.jsonl",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-1401f832-cc87-4269-b383-851793bea409.jsonl",
+      "bytes": 30670,
+      "sha256": "544d7b1ebf7341ba32c2698e71d3579320d942340211d744af7f5da54978bb1b"
+    },
+    {
+      "file": "full/worker-lifecycle.json",
+      "artifact": 15206345777,
+      "artifactPath": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-7bb84421-8cdf-4d9b-a6df-49797d0946cf.json",
+      "bytes": 1085,
+      "sha256": "4fd31f503e302fb5f8f6b323c28ce4ecbc26e4f3985b53c6e35c29395f7115e9"
+    }
+  ],
+  "fullArtifact": 15206345777
+}

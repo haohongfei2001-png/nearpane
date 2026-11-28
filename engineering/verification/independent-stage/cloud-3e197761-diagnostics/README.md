@@ -1,0 +1,13 @@
+# First-current-window enrollment passes; the actual minimized subrole is AXDialog
+
+[Run 45718652560, diagnostics job 139571076972](https://github.com/haohongfei2001-png/nearpane/actions/runs/45718652560/job/139571076972), revision `3e197761d961f1e66689269888e542995ae05550`, [artifact 15070623080](https://github.com/haohongfei2001-png/nearpane/actions/runs/45718652560/artifacts/15070623080). The three files are original receipt/log bytes; hashes are in `provenance.json`.
+
+The normal own-panel launch passed. Before any foreign HIDE/SHOW, all three foreign windows completed **two NP_READBACK receipts each** with flags 45 (VISIBLE/AX/CG/MEMBERSHIP), original home 12, original frame and owned count zero. Thus read-only enrollment actually retained the initially current window, without relying on a prior SHOW or claiming hidden ownership.
+
+The fixture then invoked its real AppKit yellow-button action on A0 / window 51 / PID 4917. The engine used the registered original AX object and positively confirmed the original process/window identity and AXMinimized=true. Its subrole read returned **AXDialog**, with AXError=0. The previous revision allowed only the unknown-subrole alternative, so it rejected this actual state before creating a foreign window's hidden Space or sending its move. NP_HIDE_MINIMIZED returned 209, owned count zero. The report's `windowWrites=1` is one hide request attempt, not a confirmed Space move.
+
+Cleanup succeeded on the first release request; engine destruction returned zero, and two independent readbacks confirmed the three windows on their original home with preserved frames and the original complete Space inventory. **initialVisibleBindings=PASS, initialYellowButton=FAIL, cleanup=true.** The later group tests and second yellow-button check did not execute in this run and are not assigned results from an earlier VM.
+
+The follow-up adds this **observed AXDialog transition** to the already bounded original-window path. It still requires a previously standard visible window's retained object, the same lifetime/generation/home and PID/birth/CGID, real AXMinimized=true, AXFullScreen=false, original geometry and valid membership. A newly enumerated dialog, a non-minimized dialog, or an unregistered Dock item remains ineligible. No property is fabricated, no new writer is reconstructed, and no native or Corner fallback is added. The next run must establish whether the actual minimized-window bridge and deminiaturization remain hidden.
+
+The host is macOS 27 build 26A434 with SIP disabled. This record grants no target-host or R4 product qualification.

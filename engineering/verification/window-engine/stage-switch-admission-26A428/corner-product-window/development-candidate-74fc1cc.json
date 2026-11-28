@@ -1,0 +1,159 @@
+{
+  "version": "5.22",
+  "build": "90",
+  "revision": "74fc1cc2bbb929c60bcbc2db45a7305467c0f633",
+  "sourceState": "clean",
+  "engineABI": 1,
+  "architecture": "arm64",
+  "identity": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "d146fa1a4b6c6c0f6282602ed1ec93d7ad627aac",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "verifiedMachO": 14,
+  "deepStrictAllArchitectures": "PASS",
+  "archiveRoundTrip": "PASS",
+  "permissionIdentity": {
+    "subjects": 9,
+    "team": "ZB9D4T66QB"
+  },
+  "archive": "Nearpane-5.22-90-arm64.zip",
+  "archiveBytes": 33485044,
+  "sha256": "8ec8c82c0337a2050d982c7844a72b92aa250f6e5366eaf4271e2243bd62db6b",
+  "previousCandidate": "fa59777a8142537b8e077bac1d9f943a6a9805f9",
+  "signingMode": "local Developer ID, without distribution timestamps",
+  "missingDistributionSignatures": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ],
+  "notarization": "NOT_RUN",
+  "candidateExecutions": 0,
+  "dailyInstallReplaced": false,
+  "stageGroupProductionQualified": false,
+  "publicRelease": "NOT_ADMITTED",
+  "githubInternalDelivery": {
+    "draftReleaseID": 452393835,
+    "releaseStillDraft": true,
+    "publishedAt": null,
+    "releasePage": "https://github.com/haohongfei2001-png/nearpane/releases/tag/untagged-0d613209d89c24e3816f",
+    "publicRelease": false,
+    "previousAssetsPreserved": true,
+    "assetCountBefore": 25,
+    "assetCountAfter": 25,
+    "items": [
+      {
+        "revision": "74fc1cc2bbb929c60bcbc2db45a7305467c0f633",
+        "role": "development candidate",
+        "name": "Nearpane-5.22-90-arm64-74fc1cc.zip",
+        "assetID": 785755734,
+        "bytes": 33485044,
+        "sha256": "8ec8c82c0337a2050d982c7844a72b92aa250f6e5366eaf4271e2243bd62db6b",
+        "downloadSHA256": "8ec8c82c0337a2050d982c7844a72b92aa250f6e5366eaf4271e2243bd62db6b",
+        "independentDownload": "PASS",
+        "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/785755734",
+        "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-74fc1cc.zip"
+      },
+      {
+        "revision": "fa59777a8142537b8e077bac1d9f943a6a9805f9",
+        "role": "rollback",
+        "name": "Nearpane-5.22-90-arm64-fa59777.zip",
+        "assetID": 785755735,
+        "bytes": 33484925,
+        "sha256": "f7f3fae51151947704ba328862b68b60472409b717d2fba1fa096942e9f6410d",
+        "downloadSHA256": "f7f3fae51151947704ba328862b68b60472409b717d2fba1fa096942e9f6410d",
+        "independentDownload": "PASS",
+        "assetAPI": "https://api.github.com/repos/haohongfei2001-png/nearpane/releases/assets/785755735",
+        "browserDownloadURL": "https://github.com/haohongfei2001-png/nearpane/releases/download/untagged-0d613209d89c24e3816f/Nearpane-5.22-90-arm64-fa59777.zip"
+      }
+    ],
+    "transfer": {
+      "initialCandidateDownload": "TIMEOUT",
+      "timeoutSeconds": 150,
+      "candidatePrefixRetainedBytes": 8789434,
+      "resume": "HTTP 206 partial content",
+      "completeAuthenticatedDownloadsVerified": 2
+    }
+  },
+  "sourceCI": [
+    {
+      "headSha": "74fc1cc2bbb929c60bcbc2db45a7305467c0f633",
+      "name": "StageGroup window engine",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45329279105",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Rust, Swift and production C ABI",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Read-only hosted desktop preflight",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "nativeProtocolOnRustOnlyCommit": "NOT_TRIGGERED_BY_PATH_FILTER",
+  "regression": {
+    "scope": "Rust WindowEngine corner input callback; simulated gestures and unposted Quartz events",
+    "expected": "Preserve the down, drag and release when the only identified target PID conflicts with the owner of the geometric candidate",
+    "originalSource": "fa59777a8142537b8e077bac1d9f943a6a9805f9",
+    "fixedSource": "74fc1cc2bbb929c60bcbc2db45a7305467c0f633",
+    "localEventsPosted": 0,
+    "local": {
+      "before": {
+        "result": "test result: FAILED. 82 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s",
+        "case": "test corner::tap::tests::process_only_down_cannot_be_claimed_by_a_window_from_another_process ... FAILED",
+        "originalLogSHA256": "307b2f8b198b70eb84f4a5188f16016fec0b439c4761b91e6da0a9164f41fe92",
+        "rawFailure": "---- corner::tap::tests::process_only_down_cannot_be_claimed_by_a_window_from_another_process stdout ----\n\nthread 'corner::tap::tests::process_only_down_cannot_be_claimed_by_a_window_from_another_process' panicked at scripts/acceptance/window-engine/corner/../../../../Engine/nearpane-window-engine/src/corner/tap.rs:575:13:\nassertion `left == right` failed\n  left: 1\n right: 0"
+      },
+      "after": {
+        "result": "test result: ok. 83 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s",
+        "case": "test corner::tap::tests::process_only_down_cannot_be_claimed_by_a_window_from_another_process ... ok",
+        "originalLogSHA256": "b15e155a588d0d371d36b9f4a0ac9ffa54ca268664caedee33af99d3b7b76c46"
+      },
+      "rustAll": {
+        "result": "test result: ok. 124 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s",
+        "case": "test corner::tap::tests::process_only_down_cannot_be_claimed_by_a_window_from_another_process ... ok",
+        "originalLogSHA256": "1014673a4dba1c309896b3ab3e9bf8e1bbc0ee4bf59a9260cd9730a356ac799f"
+      }
+    }
+  },
+  "swiftSuite": {
+    "sameSwiftSource": "ccea020dd0f17cb1c7a0f72d064698d92d833cc1",
+    "passed": 812,
+    "skipped": 3,
+    "failed": 0,
+    "reference": "workset-input-ownership.zip#swift-final.xml"
+  },
+  "physicalReference": {
+    "archive": "workset-input-ownership.zip",
+    "sha256": "60c8e2e02b85f1d9aaceb019fbeaf995ea9d5b6d5179a33c1ae762aba8e84cf2",
+    "source": "physical-hit.json",
+    "newPhysicalGestures": 0,
+    "newPhysicalWindowMoves": 0
+  },
+  "privateDailyApplication": "not replaced",
+  "singleWindowAdmission": "BLOCKED",
+  "singleWindowHideRestore": "NOT_RUN",
+  "parkedWindowRealInput": "NOT_RUN",
+  "r4ABCA": "NOT_RUN",
+  "ten": "NOT_RUN",
+  "fifty": "NOT_RUN",
+  "multiplePhysicalDisplays": "NOT_RUN",
+  "pairedApplePerformance": "NOT_RUN"
+}

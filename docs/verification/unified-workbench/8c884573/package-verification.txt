@@ -1,0 +1,1 @@
+/Users/runner/work/nearpane/nearpane/build/debug/Nearpane.app: 50 resources, SHA-256 20b45ae75ff138afeeb915592ae20011db84784590a626d26b3a65de26c23abe; executable 34816cf4c116a1e7f85c09bf48669e25ceed32068a7dec7140ce9ca384415101

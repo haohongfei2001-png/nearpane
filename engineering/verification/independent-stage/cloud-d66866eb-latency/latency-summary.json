@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "derivedFrom": "full/product.stderr.log",
+  "sourceSHA256": "5cd7fa8f3ee3ac279a9b51435d3ecc2d42810cdef581c1f60fbd59ff93596643",
+  "witness": [
+    {
+      "bindingMS": 1755.0385833333166,
+      "closingDirectoryMS": 369.4404583332016,
+      "durationMS": 3551.2272916666916,
+      "event": "independentStageProduct",
+      "focusLocal": false,
+      "focusPID": 0,
+      "focusWindow": 0,
+      "foreignFocus": false,
+      "managed": 3,
+      "openingDirectoryMS": 1136.095583333372,
+      "phase": "witness-read-completed",
+      "physicalWindowsMS": 290.65283333329717,
+      "roster": 3,
+      "sequence": 1,
+      "uptime": 1257.6689899166668,
+      "windows": 3
+    },
+    {
+      "bindingMS": 2.445874999921216,
+      "closingDirectoryMS": 147.15141666670206,
+      "durationMS": 474.50195833334874,
+      "event": "independentStageProduct",
+      "focusLocal": false,
+      "focusPID": 0,
+      "focusWindow": 0,
+      "foreignFocus": false,
+      "managed": 3,
+      "openingDirectoryMS": 252.9944583334327,
+      "phase": "witness-read-completed",
+      "physicalWindowsMS": 71.91045833337739,
+      "roster": 3,
+      "sequence": 2,
+      "uptime": 1258.6884261666667,
+      "windows": 3
+    },
+    {
+      "bindingMS": 4.358333333357223,
+      "closingDirectoryMS": 128.6465833334205,
+      "durationMS": 531.0087916666362,
+      "event": "independentStageProduct",
+      "focusLocal": false,
+      "focusPID": 0,
+      "focusWindow": 0,
+      "foreignFocus": false,
+      "managed": 3,
+      "openingDirectoryMS": 321.37424999996256,
+      "phase": "witness-read-completed",
+      "physicalWindowsMS": 76.62983333329976,
+      "roster": 3,
+      "sequence": 3,
+      "uptime": 1259.3311712083334,
+      "windows": 3
+    },
+    {
+      "bindingMS": 1.6508333333149494,
+      "closingDirectoryMS": 149.3774583332197,
+      "durationMS": 327.23262500007877,
+      "event": "independentStageProduct",
+      "focusLocal": false,
+      "focusPID": 0,
+      "focusWindow": 0,
+      "foreignFocus": false,
+      "managed": 3,
+      "openingDirectoryMS": 110.71516666675052,
+      "phase": "witness-read-completed",
+      "physicalWindowsMS": 65.48929166660855,
+      "roster": 3,
+      "sequence": 4,
+      "uptime": 1259.686039875,
+      "windows": 3
+    },
+    {
+      "bindingMS": 1.727875000142376,
+      "closingDirectoryMS": 219.26154166681044,
+      "durationMS": 385.21424999999,
+      "event": "independentStageProduct",
+      "focusLocal": true,
+      "focusPID": 44063,
+      "focusWindow": 54,
+      "foreignFocus": false,
+      "managed": 3,
+      "openingDirectoryMS": 117.6841249998688,
+      "phase": "witness-read-completed",
+      "physicalWindowsMS": 46.54079166652991,
+      "roster": 3,
+      "sequence": 5,
+      "uptime": 1260.3548427916667,
+      "windows": 3
+    }
+  ],
+  "attestationByRead": {
+    "bundle-path": {
+      "count": 6,
+      "minimumMS": 0.20091666669941333,
+      "medianMS": 0.26116666674624867,
+      "maximumMS": 0.33650000000307045,
+      "sumMS": 1.5470000003006135
+    },
+    "display-topology": {
+      "count": 6,
+      "minimumMS": 0.20595833325387503,
+      "medianMS": 0.3238333334820709,
+      "maximumMS": 0.5052083333794144,
+      "sumMS": 2.0466250000481523
+    },
+    "hardware": {
+      "count": 6,
+      "minimumMS": 0.08612499982518784,
+      "medianMS": 0.1009374999512147,
+      "maximumMS": 0.27162499986843613,
+      "sumMS": 0.7640416663434735
+    },
+    "installed-environment": {
+      "count": 6,
+      "minimumMS": 13.152291666756355,
+      "medianMS": 18.867062500135034,
+      "maximumMS": 21.736000000146305,
+      "sumMS": 109.15808333379573
+    },
+    "os-build": {
+      "count": 6,
+      "minimumMS": 0.09370833322464023,
+      "medianMS": 0.12225000000398722,
+      "maximumMS": 0.3107083332452021,
+      "sumMS": 0.9152083332537586
+    },
+    "permission-accessibility": {
+      "count": 6,
+      "minimumMS": 0.08479166672259453,
+      "medianMS": 0.11047916666484525,
+      "maximumMS": 0.33125000004474714,
+      "sumMS": 0.8776250001574226
+    },
+    "permission-listen-event": {
+      "count": 6,
+      "minimumMS": 1.5618333331985923,
+      "medianMS": 2.9378958332699767,
+      "maximumMS": 4.2452083334865165,
+      "sumMS": 17.16220833350235
+    },
+    "permission-post-event": {
+      "count": 6,
+      "minimumMS": 2.249291666657882,
+      "medianMS": 3.166708333310453,
+      "maximumMS": 8.160083333223156,
+      "sumMS": 22.597124999947482
+    },
+    "permission-screen-capture": {
+      "count": 6,
+      "minimumMS": 2.5057916666355595,
+      "medianMS": 4.0040208333493865,
+      "maximumMS": 8.202124999797888,
+      "sumMS": 27.435249999598454
+    },
+    "process-symbols": {
+      "count": 6,
+      "minimumMS": 0.09662499996920815,
+      "medianMS": 0.15170833341926482,
+      "maximumMS": 0.292875000013737,
+      "sumMS": 1.002208333602539
+    },
+    "self-signing": {
+      "count": 6,
+      "minimumMS": 1.317749999998341,
+      "medianMS": 1.6870416667416066,
+      "maximumMS": 2.2698333332300535,
+      "sumMS": 10.440333333235685
+    },
+    "sip-posture": {
+      "count": 6,
+      "minimumMS": 0.0798333333023038,
+      "medianMS": 0.12035416671096755,
+      "maximumMS": 0.5703750000520813,
+      "sumMS": 1.184375000093496
+    },
+    "sip-symbol": {
+      "count": 6,
+      "minimumMS": 0.11849999987134652,
+      "medianMS": 0.1752083333030896,
+      "maximumMS": 0.40162499999496504,
+      "sumMS": 1.1977499998465646
+    },
+    "source-revision": {
+      "count": 6,
+      "minimumMS": 0.12074999995093094,
+      "medianMS": 0.1699791667988393,
+      "maximumMS": 0.2459166666994861,
+      "sumMS": 1.053791666890902
+    }
+  },
+  "qualificationGranted": false
+}

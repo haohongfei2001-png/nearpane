@@ -1,0 +1,142 @@
+{
+  "status": "BLOCKED",
+  "newDesktops": 0,
+  "productSpaceActions": 0,
+  "originalStageManager": true,
+  "stageRestore": {
+    "status": "PASS",
+    "method": "isolated acceptance, temporary existing login boolean",
+    "setupOnly": true,
+    "countsAsAppleUIAcceptance": false,
+    "runtimeReceipt": "stage-restore-runtime.json"
+  },
+  "lease": {
+    "space": 5095,
+    "uuid": "745BC7CD-E201-1B68-D003-AB00E5D30C9D",
+    "original": 6
+  },
+  "initialAdmission": [
+    {
+      "uptime": 270709.475290625,
+      "ordinary": 0,
+      "unresolved": 0,
+      "inactiveStageSurfaces": [
+        {
+          "admitted": true,
+          "bounds": [
+            1352,
+            446,
+            103,
+            97
+          ],
+          "category": "offscreenSignedWindowManagerSurface",
+          "listedAsOwnDocument": false,
+          "number": 117,
+          "ownerBirth": 1794786957077193,
+          "pixels": 0,
+          "publicOnscreen": false
+        },
+        {
+          "admitted": true,
+          "bounds": [
+            1352,
+            446,
+            103,
+            97
+          ],
+          "category": "offscreenSignedWindowManagerSurface",
+          "listedAsOwnDocument": false,
+          "number": 19015,
+          "ownerBirth": 1794786957077193,
+          "pixels": 0,
+          "publicOnscreen": false
+        }
+      ],
+      "extraOwners": [
+        "com.holdsnow.nearpane.alpha",
+        "com.apple.dock",
+        "com.apple.WindowServer"
+      ]
+    },
+    {
+      "uptime": 270709.94858279167,
+      "ordinary": 0,
+      "unresolved": 0,
+      "inactiveStageSurfaces": [
+        {
+          "admitted": true,
+          "bounds": [
+            1352,
+            446,
+            103,
+            97
+          ],
+          "category": "offscreenSignedWindowManagerSurface",
+          "listedAsOwnDocument": false,
+          "number": 117,
+          "ownerBirth": 1794786957077193,
+          "pixels": 0,
+          "publicOnscreen": false
+        },
+        {
+          "admitted": true,
+          "bounds": [
+            1352,
+            446,
+            103,
+            97
+          ],
+          "category": "offscreenSignedWindowManagerSurface",
+          "listedAsOwnDocument": false,
+          "number": 19015,
+          "ownerBirth": 1794786957077193,
+          "pixels": 0,
+          "publicOnscreen": false
+        }
+      ],
+      "extraOwners": [
+        "com.holdsnow.nearpane.alpha",
+        "com.apple.dock",
+        "com.apple.WindowServer"
+      ]
+    }
+  ],
+  "stageSetup": {
+    "status": "PASS",
+    "method": "isolated acceptance, temporary existing login boolean",
+    "setupOnly": true,
+    "countsAsAppleUIAcceptance": false,
+    "runtimeReceipt": "stage-off-runtime.json"
+  },
+  "operation": {
+    "status": "FAIL",
+    "issued": 1,
+    "passes": 0,
+    "reason": "TextEdit has not exposed exactly the two enrolled document windows",
+    "operationStatus": "UNKNOWN",
+    "pressCounts": {
+      "ISSUED": 1,
+      "REFUSED": 0,
+      "UNKNOWN": 0
+    },
+    "cleanup": {
+      "status": "FAIL",
+      "terminated": false,
+      "observations": [
+        {
+          "state": "ALIVE",
+          "observedBirth": 1795197322641365,
+          "afterSeconds": 0.2499
+        }
+      ],
+      "pid": 6378,
+      "birth": 1795197322641365,
+      "observationDeadlineSeconds": 4,
+      "closeError": "TextEdit has not exposed exactly the two enrolled document windows",
+      "kernelChecks": 34,
+      "elapsedSeconds": 4.0058,
+      "reason": "enrolled TextEdit generation still alive at last kernel read"
+    }
+  },
+  "reason": "leased desktop has an ordinary application window"
+}

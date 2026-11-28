@@ -1,0 +1,51 @@
+{
+  "nativeStageManagerComparison": {
+    "status": "NOT_MEASURED",
+    "latencyMs": null,
+    "nativePresentationSamples": 0,
+    "scope": "archivedPairedRunFrameLedger",
+    "reason": "noEnrolledAppleThumbnailPixelChannel"
+  },
+  "pairedRun": {
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "build": "90",
+    "stageManager": false,
+    "matchedNearpaneTransitionsReported": 12,
+    "sha256OfFrameLedger": "58c570e658af56457ebf2714ccd2f3fdbb5edc430fc0dce3d2e72931c749c5d3",
+    "pixelChannels": [
+      {
+        "channel": 0,
+        "owner": "Field Notes",
+        "window": 52954,
+        "qualifiedCompleteFramesWithDisplayTime": 1442
+      },
+      {
+        "channel": 1,
+        "owner": "Field Notes",
+        "window": 52955,
+        "qualifiedCompleteFramesWithDisplayTime": 1435
+      },
+      {
+        "channel": 2,
+        "owner": "installed Nearpane",
+        "window": 52947,
+        "qualifiedCompleteFramesWithDisplayTime": 1429
+      }
+    ]
+  },
+  "stageOn": {
+    "sameHostRevisionAsPair": false,
+    "hostActiveStreams": [
+      0,
+      0
+    ],
+    "verifiedOffscreenWindowManagerSurfacesInLease": 2,
+    "pixelsFromThoseSurfaces": 0
+  },
+  "separateMissionControlObservation": {
+    "time": "2026-11-13T06:23:40Z",
+    "linkedFixtureButton": false,
+    "sameTrialAsPair": false,
+    "pixelClockSamples": null
+  }
+}

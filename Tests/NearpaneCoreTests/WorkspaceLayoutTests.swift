@@ -1,0 +1,229 @@
+import Foundation
+import Testing
+
+@testable import NearpaneCore
+
+struct WorkspaceLayoutTests {
+    let area = SurfaceRect(x: -700, y: 17, width: 700, height: 1000)
+    func member(_ i: Int) -> ManagedMember {
+        .init(
+            .init(pid: 11, launch: 200, number: UInt32(i), element: UUID()), minimumWidth: 20, minimumHeight: 20,
+            canResize: true)
+    }
+
+    @Test func systemFramesPartitionOnlyTheIntegralInteriorAndRecheckMinimums() throws {
+        let work = SurfaceRect(x: -700.25, y: 33.25, width: 700.25, height: 923.75)
+        let usable = SurfaceRect(x: -700, y: 34, width: 700, height: 923)
+        #expect(work.integralInterior == usable)
+        var layout = ManagedWindowTiler(workspace: nil)
+        for index in 1...17 {
+            layout = try layout.adding(member(index), in: work)
+            let frames = Array(try layout.frames(in: work, wholePoints: true).values)
+            #expect(frames.allSatisfy { $0 == $0.integralInterior && work.geometry.intersection($0.geometry) == $0.geometry })
+            #expect(frames.reduce(0) { $0 + $1.geometry.area } == usable.geometry.area)
+            for (index, frame) in frames.enumerated() {
+                #expect(frames.dropFirst(index + 1).allSatisfy { frame.geometry.intersection($0.geometry) == nil })
+            }
+        }
+        let odd = SurfaceRect(width: 401, height: 220)
+        let second = ManagedMember(member(2).id, minimumWidth: 200.25, minimumHeight: 20, canResize: true)
+        let constrained = try ManagedWindowTiler(workspace: nil).adding(member(1), in: odd).adding(second, in: odd)
+        #expect(try constrained.frames(in: odd)[second.id]?.width == 200.5)
+        #expect(throws: WorkspaceFailure.minimumSize) { try constrained.frames(in: odd, wholePoints: true) }
+    }
+
+    @Test func specifiedCountsMatchExactWindowSlotsOnAnOffsetOddSizedWorkArea() throws {
+        let work = SurfaceRect(x: -980.25, y: 36.1, width: 1002, height: 804.5)
+        func rect(_ x: Double, _ y: Double, _ w: Double, _ h: Double) -> SurfaceRect {
+            .init(x: x, y: y, width: w, height: h)
+        }
+        let full = rect(-980, 37, 1001, 803)
+        let left = rect(-980, 37, 501, 803), right = rect(-479, 37, 500, 803)
+        let upperRight = rect(-479, 37, 500, 402), lowerRight = rect(-479, 439, 500, 401)
+        let upperLeft = rect(-980, 37, 501, 402), lowerLeft = rect(-980, 439, 501, 401)
+        let expected = [
+            1: [full], 2: [left, right], 3: [upperRight, lowerRight, left],
+            4: [upperRight, lowerRight, upperLeft, lowerLeft],
+            8: [rect(-479, 37, 250, 402), rect(-229, 37, 250, 402), rect(-980, 37, 251, 402),
+                rect(-980, 439, 251, 401), rect(-479, 439, 250, 401), rect(-729, 37, 250, 402),
+                rect(-729, 439, 250, 401), rect(-229, 439, 250, 401)]
+        ]
+        var layout = ManagedWindowTiler(workspace: nil)
+        for count in 1...8 {
+            layout = try layout.adding(member(count), in: work)
+            guard let slots = expected[count] else { continue }
+            let frames = try layout.frames(in: work, wholePoints: true)
+            let byAdmission = try layout.members.map { try #require(frames[$0.id]) }
+            #expect(byAdmission == slots)
+        }
+    }
+
+    @Test func everyAdmissionCoversWorkRectIncludingNinthThroughSeventeenth() throws {
+        var layout = ManagedWindowTiler(workspace: .virtual(UUID()))
+        #expect(try layout.frames(in: area).isEmpty)
+        for n in 1...17 {
+            layout = try layout.adding(member(n), in: area)
+            let frames = try layout.frames(in: area)
+            #expect(frames.count == n)
+            let ordered = layout.members.compactMap { frames[$0.id]?.geometry }
+            #expect(ordered.reduce(0) { $0 + $1.area } == area.geometry.area)
+            for (i, rect) in ordered.enumerated() {
+                #expect(rect.intersection(area.geometry) == rect)
+                #expect(ordered.dropFirst(i + 1).allSatisfy { rect.intersection($0) == nil })
+            }
+            let shares = ordered.map { $0.area / area.geometry.area }
+            switch n {
+            case 1: #expect(shares == [1])
+            case 2: #expect(shares == [0.5, 0.5] && ordered[0].x == area.x)
+            case 3: #expect(shares == [0.25, 0.25, 0.5] && ordered[2].x == area.x && ordered[1].y > ordered[0].y)
+            case 4: #expect(shares == Array(repeating: 0.25, count: 4))
+            case 5: #expect(shares == [0.125, 0.125, 0.25, 0.25, 0.25])
+            case 8: #expect(shares == Array(repeating: 0.125, count: 8))
+            case 9: #expect(shares[0] == 1.0 / 16 && shares[8] == 1.0 / 16)
+            case 16: #expect(shares == Array(repeating: 1.0 / 16, count: 16))
+            case 17: #expect(shares[0] == 1.0 / 32 && shares[16] == 1.0 / 32)
+            default: break
+            }
+        }
+        #expect(layout.members.map(\.id.number) == Array(1...17).map(UInt32.init))
+    }
+
+    @Test func userPartitionPersistsButJoiningThirdResetsTemplate() throws {
+        let ids = (1...3).map(member)
+        var layout = ManagedWindowTiler(workspace: .virtual(UUID()))
+        for m in ids.prefix(2) { layout = try layout.adding(m, in: area) }
+        layout = try layout.adjusting(path: [], axis: .rows, ratio: 0.7, in: area).swapping(ids[0].id, ids[1].id, in: area)
+        let saved = try JSONDecoder().decode(ManagedWindowTiler.self, from: JSONEncoder().encode(layout))
+        #expect(try saved.frames(in: area)[ids[1].id]?.height == 700)
+        layout = try saved.adding(ids[2], in: area)
+        #expect(try layout.frames(in: area)[ids[2].id] == SurfaceRect(x: -700, y: 17, width: 350, height: 1000))
+        #expect(try layout.frames(in: area)[ids[0].id] == SurfaceRect(x: -350, y: 17, width: 350, height: 500))
+        let restored = try layout.removing(ids[2].id, in: area)
+        #expect(try restored.frames(in: area) == saved.frames(in: area))
+        #expect(restored.userAdjusted)
+        #expect(try layout.removing(ids[1].id, in: area).members.map(\.id) == [ids[0].id, ids[2].id])
+    }
+
+    @Test func insufficientMinimumOrPermissionRejectsWholePlan() throws {
+        let base = try ManagedWindowTiler(workspace: .virtual(UUID())).adding(member(1), in: area)
+        #expect(throws: WorkspaceFailure.minimumSize) {
+            try base.adding(.init(member(2).id, minimumWidth: 351, minimumHeight: 1, canResize: true), in: area)
+        }
+        #expect(throws: WorkspaceFailure.permission) {
+            try base.adding(.init(member(2).id, minimumWidth: 1, minimumHeight: 1, canResize: false), in: area)
+        }
+        #expect(try base.frames(in: area).values.first == area)
+    }
+
+    @Test func workRectSurvivesEveryPresentationAndInternalEdit() throws {
+        var settings = DisplaySettings()
+        func work() throws -> DesktopWorkArea {
+            try DesktopWorkArea(
+                display: "portrait", screen: .init(x: -800, y: 0, width: 800, height: 1280),
+                usable: .init(x: -800, y: 17, width: 800, height: 1240), primary: true, settings: settings,
+                fallbackEdge: .left)
+        }
+        let baseline = try work()
+        var presentation = MultiDisplayPresentationCoordinator()
+        var planner = WorkAreaLayoutPlanner()
+        let screen = ScreenGeometry(id: "portrait", frame: baseline.screen, visibleFrame: baseline.screen)
+        let layout = try ManagedWindowTiler(workspace: .virtual(UUID())).adding(member(1), in: baseline.ordinary)
+        #expect(try planner.update(area: baseline, layout: layout)?.count == 1)
+        for (expected, voice, tray, spaces, hidden) in [
+            (PanelContent.full, true, true, true, false), (.compact, true, true, false, false),
+            (.voiceOnly, true, false, false, false), (.trayOnly, false, true, false, false),
+            (.spacesOnly, false, false, true, false),
+            (.hidden, true, true, true, true),
+        ] {
+            settings.measures[.textSize] = .init(21)
+            let content = presentation.resolve(
+                screens: [screen], preferred: "portrait", settings: ["portrait": settings],
+                demand: ["portrait": .init(spaces: 2, complete: true)], hidden: hidden, voice: voice, tray: tray,
+                spacesEnabled: spaces, uptime: 3)
+            #expect(content.map(\.content) == [expected])
+            #expect(try work() == baseline)
+            #expect(try planner.update(area: work(), layout: layout) == nil)
+        }
+        #expect(baseline.frame(nativeFullscreen: false).width == 600)
+        #expect(baseline.frame(nativeFullscreen: true).width == 800)
+        settings.measures[.reservedWidth] = Measure(150)
+        #expect(try work().ordinary.x == -650)
+    }
+
+    @Test func endingAnOnDemandRequestRetainsThePersistentDisplayPolicyAndReservation() throws {
+        let screens = ["resident", "first", "second", "pinned"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
+        var coordinator = MultiDisplayPresentationCoordinator()
+        var pinned = DisplaySettings()
+        pinned.policy = .pinned
+        let settings = ["pinned": pinned]
+        let multiple = Dictionary(uniqueKeysWithValues: screens.map { ($0.id, DisplayDemand(windows: 2, complete: true)) })
+        func plans() -> [PanelContent] {
+            coordinator.resolve(screens: screens, preferred: "resident", settings: settings, demand: multiple,
+                hidden: false, voice: true, tray: true, spacesEnabled: true, uptime: 10).map(\.content)
+        }
+        coordinator.request("first")
+        coordinator.request("second")
+        #expect(plans() == [.full, .spacesOnly, .spacesOnly, .spacesOnly])
+        let closed = coordinator.finishRequest("second")
+        let closedAgain = coordinator.finishRequest("second")
+        #expect(closed && !closedAgain)
+        #expect(plans() == [.full, .spacesOnly, .hidden, .spacesOnly])
+        coordinator.request("second")
+        #expect(plans() == [.full, .spacesOnly, .spacesOnly, .spacesOnly])
+        coordinator.dismiss("first")
+        let alreadyDismissed = coordinator.finishRequest("first")
+        #expect(!alreadyDismissed)
+        #expect(plans() == [.full, .hidden, .spacesOnly, .spacesOnly])
+    }
+
+    @Test func singleResidenceAndSecondaryPoliciesRemainIndependent() {
+        let screens = ["A", "B", "C"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
+        var coord = MultiDisplayPresentationCoordinator()
+        var pinned = DisplaySettings()
+        var auto = DisplaySettings()
+        pinned.policy = .pinned
+        auto.policy = .contextualAuto
+        let multiple = DisplayDemand(spaces: 2, complete: true)
+        func plans(_ settings: [String: DisplaySettings], _ d: DisplayDemand) -> [PanelContent] {
+            coord.resolve(
+                screens: screens, preferred: "B", settings: settings, demand: ["A": d, "B": d, "C": d],
+                hidden: false, voice: true, tray: true, spacesEnabled: true, uptime: 10
+            ).map(\.content)
+        }
+        #expect(plans([:], multiple) == [.hidden, .full, .hidden])
+        coord.request("C")
+        #expect(plans(["A": auto], multiple) == [.spacesOnly, .full, .spacesOnly])
+        coord.dismiss("C")
+        #expect(plans(["C": pinned], .init(spaces: 1, windows: 1, complete: true)) == [.hidden, .compact, .spacesOnly])
+        #expect(plans(["C": pinned], .init(blocked: true)) == [.hidden, .hidden, .hidden])
+    }
+
+    @Test func requestedSingleDesktopHonorsDismissalFullscreenAndChangesOfResidentDisplay() {
+        let screens = ["A", "B"].map { ScreenGeometry(id: $0, frame: area, visibleFrame: area) }
+        let single = DisplayDemand(spaces: 1, windows: 1, complete: true)
+        let multiple = DisplayDemand(spaces: 1, windows: 2, complete: true)
+        var coordinator = MultiDisplayPresentationCoordinator()
+        func plans(primary: String = "A", first: DisplayDemand? = nil, enabled: Bool = true, hidden: Bool = false) -> [PanelContent] {
+            coordinator.resolve(screens: screens, preferred: primary, settings: [:], demand: ["A": first ?? single, "B": single],
+                hidden: hidden, voice: true, tray: true, spacesEnabled: enabled, uptime: 10).map(\.content)
+        }
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans() == [.full, .hidden])
+        coordinator.dismiss("A")
+        #expect(plans(first: multiple) == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(first: .init(blocked: true)) == [.hidden, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(enabled: false) == [.compact, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        #expect(plans(hidden: true) == [.hidden, .hidden])
+        #expect(plans() == [.compact, .hidden])
+        coordinator.request("A")
+        coordinator.request("B")
+        #expect(plans(primary: "B", first: multiple) == [.hidden, .compact])
+        #expect(plans() == [.compact, .hidden])
+    }
+}

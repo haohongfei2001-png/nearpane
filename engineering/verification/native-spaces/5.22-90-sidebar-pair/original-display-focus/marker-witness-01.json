@@ -1,0 +1,225 @@
+{
+  "birth": 1795214512424066,
+  "closureConfirmed": true,
+  "digest": "ce1eaa6b3de14199eb13280ff35e2eacb4d3ac9754a093298047f60e73b0e048",
+  "events": [
+    {
+      "active": true,
+      "clock": 287905.5542906667,
+      "key": 54172,
+      "main": 54172,
+      "marked": [
+        false,
+        false
+      ],
+      "responders": [
+        true,
+        true
+      ],
+      "step": "arm"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.03223025,
+      "eventClock": 287907.029066958,
+      "eventWindow": 54174,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "responders": [
+        true,
+        true
+      ],
+      "step": "appKeyDown"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.038074875,
+      "eventClock": 287907.029066958,
+      "eventWindow": 54174,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "markerMatches": false,
+      "receiver": 54174,
+      "responders": [
+        true,
+        true
+      ],
+      "step": "windowKeyDown"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.03814587503,
+      "eventClock": 287907.029066958,
+      "eventWindow": 54174,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "markerMatches": false,
+      "receiver": 54174,
+      "responders": [
+        true,
+        true
+      ],
+      "step": "editorKeyDown"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.04106970836,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "markerMatches": false,
+      "receiver": 54174,
+      "responders": [
+        true,
+        true
+      ],
+      "step": "insertText"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.0419163334,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "receiver": 54174,
+      "responders": [
+        true,
+        true
+      ],
+      "step": "afterInsert"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.0447065,
+      "eventClock": 287907.044525083,
+      "eventWindow": 54174,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "responders": [
+        true,
+        true
+      ],
+      "step": "appKeyUp"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.04476045835,
+      "eventClock": 287907.044525083,
+      "eventWindow": 54174,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "markerMatches": false,
+      "receiver": 54174,
+      "responders": [
+        true,
+        true
+      ],
+      "step": "windowKeyUp"
+    },
+    {
+      "active": true,
+      "attribution": "eventTag",
+      "clock": 287907.0447809583,
+      "eventClock": 287907.044525083,
+      "eventWindow": 54174,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "markerMatches": false,
+      "receiver": 54174,
+      "responders": [
+        true,
+        true
+      ],
+      "step": "editorKeyUp"
+    },
+    {
+      "active": true,
+      "clock": 287908.16269,
+      "key": 54174,
+      "main": 54174,
+      "marked": [
+        false,
+        false
+      ],
+      "responders": [
+        true,
+        true
+      ],
+      "step": "end"
+    }
+  ],
+  "intent": "ebbfd6a3-c02a-40b3-afcb-0d9ad155889d",
+  "keyDelivery": {
+    "attributedDown": 12,
+    "attributedUp": 12,
+    "mode": "pidNumericKeypad",
+    "overflow": false,
+    "physicalSuperseded": false,
+    "posterBound": true,
+    "sequenceMatches": true,
+    "unattributedDown": 0,
+    "unattributedUp": 0
+  },
+  "numbers": [
+    54172,
+    54174
+  ],
+  "pid": 60072,
+  "readerHash": "9167f484330db5bb7e92541e4f01b1b15e1a10ab",
+  "receiverDisposition": "COMPLETE_REGISTERED_SEQUENCE",
+  "sender": {
+    "afterPost": 287907.61612616666,
+    "beforePost": 287907.0121050417,
+    "complete": true,
+    "firstReceiverAck": 287907.08998679166,
+    "postedDown": 12,
+    "postedUp": 12,
+    "reason": "acknowledged",
+    "senderAliveUntil": 287907.63201545837,
+    "senderBirth": 1795214515646616,
+    "senderPID": 60164,
+    "status": "TAGGED_POST",
+    "transport": "pidNumericKeypad"
+  },
+  "session": "e6e5ba8a-ef56-4be1-82a6-cca68a0b4528",
+  "status": "SEALED",
+  "target": 54174,
+  "truncated": false
+}

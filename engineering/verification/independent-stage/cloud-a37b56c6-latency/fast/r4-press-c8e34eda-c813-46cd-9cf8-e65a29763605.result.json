@@ -1,0 +1,154 @@
+{
+  "attributeTimeoutMS" : 250,
+  "axError" : 0,
+  "directEngineInvocation" : false,
+  "discoveryBudgetMS" : 6000,
+  "inputUptime" : 367.550747,
+  "issued" : true,
+  "nonce" : "04420cec-5bb0-4c11-94b4-c3b24f4971fc",
+  "panelFrame" : [
+    784,
+    31,
+    240,
+    679
+  ],
+  "physicalPointerGesture" : false,
+  "prePress" : {
+    "actionRead" : "NOT_REPEATED",
+    "actionsPreviouslyConfirmed" : true,
+    "batchFieldCount" : 6,
+    "batchRead" : 0,
+    "enabled" : true,
+    "enabledRead" : 0,
+    "frame" : [
+      800,
+      47,
+      208,
+      122
+    ],
+    "frameRead" : 0,
+    "identifier" : "current-desktop-window:8146:54",
+    "identifierRead" : 0,
+    "insidePanel" : true,
+    "ownerMatches" : true,
+    "ownerRead" : 0,
+    "positionRead" : 0,
+    "role" : "AXButton",
+    "roleRead" : 0,
+    "sameOriginalElement" : true,
+    "sameRetainedPanel" : true,
+    "sizeRead" : 0,
+    "windowMatches" : true,
+    "windowRead" : 0
+  },
+  "prePressContext" : {
+    "configurationBytes" : true,
+    "onScreenCGPanel" : true,
+    "panelFrameChanged" : 0,
+    "parentSignatureAndIdentity" : true,
+    "retainedAXPanelIdentity" : true
+  },
+  "prePressPanelFrame" : [
+    784,
+    31,
+    240,
+    679
+  ],
+  "prePressPanelIdentity" : {
+    "canonicalNumber" : 79,
+    "canonicalNumberRead" : 0,
+    "expectedNumber" : 79,
+    "ownerMatches" : true,
+    "ownerRead" : 0
+  },
+  "prePressRediscoveries" : 0,
+  "qualificationGranted" : false,
+  "reason" : "realAccessibilityPressIssued",
+  "schema" : 1,
+  "selectedIdentifier" : "current-desktop-window:8146:54",
+  "status" : "ISSUED",
+  "tree" : {
+    "complete" : true,
+    "matchingButtons" : 1,
+    "nodes" : [
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXWindow",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : 0,
+        "role" : "AXScrollArea",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "current-desktop-window:8153:57",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "current-desktop-window:8146:56",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "actionRead" : 0,
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "enabled" : true,
+        "enabledRead" : 0,
+        "frame" : [
+          800,
+          47,
+          208,
+          122
+        ],
+        "frameRead" : 0,
+        "identifier" : "current-desktop-window:8146:54",
+        "identifierRead" : 0,
+        "insidePanel" : true,
+        "ownerMatches" : true,
+        "ownerRead" : 0,
+        "positionRead" : 0,
+        "pressSupported" : true,
+        "role" : "AXButton",
+        "roleRead" : 0,
+        "sameRetainedPanel" : true,
+        "sizeRead" : 0,
+        "windowMatches" : true,
+        "windowRead" : 0
+      }
+    ],
+    "visited" : 7
+  },
+  "uptime" : 367.58897354166669,
+  "windowListRead" : 0
+}

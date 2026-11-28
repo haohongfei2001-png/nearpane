@@ -1,0 +1,101 @@
+{
+  "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+  "status": "PASS",
+  "stageOff": true,
+  "physicalDisplays": 1,
+  "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+  "singleSpace": 5095,
+  "distinctSignedOrdinaryApps": 5,
+  "simultaneousSourceWindowsAndFormalHostCards": 5,
+  "testedPhases": 6,
+  "cardPhaseComparisons": 30,
+  "allCardsReadFromSameFormalHostFrame": true,
+  "minimumJointSourceAndHostObservationsPerPhase": 2,
+  "perCard": [
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS",
+    "PASS"
+  ],
+  "phases": [
+    {
+      "step": 0,
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "samples": 2,
+      "witnesses": 2
+    },
+    {
+      "step": 1,
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "samples": 2,
+      "witnesses": 2
+    },
+    {
+      "step": 2,
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "samples": 2,
+      "witnesses": 2
+    },
+    {
+      "step": 3,
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "samples": 2,
+      "witnesses": 2
+    },
+    {
+      "step": 4,
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "samples": 2,
+      "witnesses": 2
+    },
+    {
+      "step": 5,
+      "bySlot": [
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS",
+        "PASS"
+      ],
+      "samples": 2,
+      "witnesses": 2
+    }
+  ],
+  "fiveFixtureGenerationsTerminated": true,
+  "allTestWindowsClosedAndEmptyConfirmedTwice": true,
+  "privatePixelsSaved": 0,
+  "exactPriorFocus": "UNKNOWN",
+  "dailyConfigurationRestored": true,
+  "stageManagerRestored": true
+}

@@ -1,0 +1,465 @@
+{
+  "schema": 1,
+  "observedAtUTC": "2026-11-21T14:23:41.848732+00:00",
+  "repository": "haohongfei2001-png/nearpane",
+  "pullRequest": 15,
+  "branch": "codex/r4-native-candidate-20261120",
+  "baseline": "e6d4bacc684c34b517f6bcdf24fb7f50638e4292",
+  "sourceRevision": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+  "swiftFull": {
+    "receipt": "full-swift.xml",
+    "passed": 739,
+    "failed": 0,
+    "skipped": [
+      "coldFileJournalAndIndependentReopen()",
+      "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled()",
+      "offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord()"
+    ],
+    "cases": 742
+  },
+  "modules": [
+    {
+      "module": "windowWriteOwnership",
+      "sourceRevision": "122fc93e18e65715e805f4645085d9f8055f6286",
+      "local": {
+        "receipt": "ownership.xml",
+        "passed": 22,
+        "failed": 0,
+        "skipped": [],
+        "cases": 22
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44906708535",
+          "head": "122fc93e18e65715e805f4645085d9f8055f6286",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44906708529",
+          "head": "122fc93e18e65715e805f4645085d9f8055f6286",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "module": "groupSwitchAndRosterEdits",
+      "sourceRevision": "04a558acbe510a13514ad8d91f5d311dc48a70e2",
+      "local": {
+        "receipt": "groups.xml",
+        "passed": 52,
+        "failed": 0,
+        "skipped": [],
+        "cases": 52
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44907381046",
+          "head": "04a558acbe510a13514ad8d91f5d311dc48a70e2",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44907381107",
+          "head": "04a558acbe510a13514ad8d91f5d311dc48a70e2",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "module": "healthObservationAndRecovery",
+      "sourceRevision": "29e1ff4e9b9b0ce155f05f5d5142b0e48961e13d",
+      "local": {
+        "receipt": "health.xml",
+        "passed": 27,
+        "failed": 0,
+        "skipped": [],
+        "cases": 27
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44908095573",
+          "head": "29e1ff4e9b9b0ce155f05f5d5142b0e48961e13d",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44908095558",
+          "head": "29e1ff4e9b9b0ce155f05f5d5142b0e48961e13d",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "module": "processAndWindowLifecycles",
+      "sourceRevision": "0687142ad301f80fe5fe58d45f24a22cce562747",
+      "local": {
+        "receipt": "lifecycle.xml",
+        "passed": 33,
+        "failed": 0,
+        "skipped": [],
+        "cases": 33
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44908847971",
+          "head": "0687142ad301f80fe5fe58d45f24a22cce562747",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44908847991",
+          "head": "0687142ad301f80fe5fe58d45f24a22cce562747",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "module": "focusAndDisplayIsolation",
+      "sourceRevision": "a2ec64ff627c6e4312a8080f81203afc50fdd1b2",
+      "local": {
+        "receipt": "focus.xml",
+        "passed": 29,
+        "failed": 0,
+        "skipped": [],
+        "cases": 29
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44910198599",
+          "head": "a2ec64ff627c6e4312a8080f81203afc50fdd1b2",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44910198578",
+          "head": "a2ec64ff627c6e4312a8080f81203afc50fdd1b2",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "module": "restoredWindowIdentity",
+      "sourceRevision": "d5fe8ffd5485b4da847f7ccf579d1fe9290dea89",
+      "local": {
+        "receipt": "reappearing-window.xml",
+        "passed": 24,
+        "failed": 0,
+        "skipped": [],
+        "cases": 24
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44910829243",
+          "head": "d5fe8ffd5485b4da847f7ccf579d1fe9290dea89",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44910829265",
+          "head": "d5fe8ffd5485b4da847f7ccf579d1fe9290dea89",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "module": "wholeGroupCardAction",
+      "sourceRevision": "218668a1932510407f7313ee034b4e49df724ce5",
+      "local": {
+        "receipt": "group-action.xml",
+        "passed": 27,
+        "failed": 0,
+        "skipped": [],
+        "cases": 27
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44911592408",
+          "head": "218668a1932510407f7313ee034b4e49df724ce5",
+          "attempt": 2,
+          "conclusion": "success",
+          "firstAttemptConclusion": "cancelled"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44911592263",
+          "head": "218668a1932510407f7313ee034b4e49df724ce5",
+          "attempt": 2,
+          "conclusion": "success",
+          "firstAttemptConclusion": "cancelled"
+        }
+      ]
+    },
+    {
+      "module": "verifiedInterruptedRelease",
+      "sourceRevision": "f0c2f118c9d8a8461045a951a940b6c2299b38fe",
+      "local": {
+        "receipt": "interrupted-release.xml",
+        "passed": 24,
+        "failed": 0,
+        "skipped": [],
+        "cases": 24
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44911689316",
+          "head": "f0c2f118c9d8a8461045a951a940b6c2299b38fe",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44911689299",
+          "head": "f0c2f118c9d8a8461045a951a940b6c2299b38fe",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "module": "observerDispatchAndFullRegression",
+      "sourceRevision": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+      "local": {
+        "receipt": "full-swift.xml",
+        "passed": 739,
+        "failed": 0,
+        "skipped": [
+          "coldFileJournalAndIndependentReopen()",
+          "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled()",
+          "offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord()"
+        ],
+        "cases": 742
+      },
+      "ci": [
+        {
+          "workflow": "StageGroup window engine",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44912221403",
+          "head": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+          "attempt": 1,
+          "conclusion": "success"
+        },
+        {
+          "workflow": "Nearpane native 5.22 protocol",
+          "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/44912221364",
+          "head": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+          "attempt": 1,
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "sourceTests": {
+    "status": "PASS",
+    "macOSBuild": "26A434",
+    "architecture": "arm64",
+    "rust": 93,
+    "cABI": "PASS",
+    "receipt": "engine-44912221403/source-result.json",
+    "swiftStageTests": 85
+  },
+  "isolatedDevelopmentBundle": {
+    "status": "PASS",
+    "sourceRevision": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+    "configuration": "release",
+    "architecture": "arm64",
+    "distribution": "local ad-hoc development build",
+    "installedHost": "NOT_RUN",
+    "notarization": "NOT_RUN",
+    "initialDevelopmentBundle": {
+      "identity": {
+        "bundleID": "com.holdsnow.nearpane.host",
+        "shortVersion": "0.2.0",
+        "buildVersion": "1",
+        "sourceRevision": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+        "sourceState": "clean",
+        "abi": 1,
+        "executableSHA256": "0e1731b6b2887bb9b95c39a58a5dfe3a6c80b47b56e80ae7de9ae9bc994e24ad",
+        "cdhash": "24a4cd6c8779c7c48ff50e557a69b50d1487447b",
+        "signature": "adhoc",
+        "team": "not set"
+      },
+      "strictVerificationExit": 1,
+      "diagnostic": "Nearpane.app/Contents/MacOS/NearpaneHost: code has no resources but signature indicates they must be present"
+    },
+    "archivedBundle": {
+      "bundleID": "com.holdsnow.nearpane.host",
+      "shortVersion": "0.2.0",
+      "buildVersion": "1",
+      "sourceRevision": "5e708a4539cd1a59299cc2c1feafdca38d171f9d",
+      "sourceState": "clean",
+      "abi": 1,
+      "executableSHA256": "d46d974857e1f1f9d6192d1ef92ca2fa2bd193655274d97dc00d86e9006a815f",
+      "cdhash": "f1f8498fd1bf1209de64b5d9f2c60151f7d5fa0a",
+      "signature": "adhoc",
+      "team": "not set"
+    },
+    "strictDeepVerifiedAfterExtraction": true,
+    "helperHashesPreserved": {
+      "NearpaneCornerGuardian": "0d527ed523df0320919c436e4c6b62e45191e2cf8a98503d21cea9aab15a4987",
+      "NearpaneDesktopReader": "7d71b37efcf3d49ed88e7cf529be01c567c75e7e05a334c2b4a0af5589228c96",
+      "NearpaneOrdinaryWindowController": "b0d942337755d361f7818161f1e235dd436b427d1efabf69b6e11dee1fa140e6",
+      "NearpaneSpaceAction": "f9f21a325114497ccb8ce41dcfac507bdf63aaa6f585f8d9be84edcdec4375ce"
+    },
+    "packagedTools": "Packaged Saytile and Riftlet resources verified.",
+    "linkedRustABI": [
+      "_np_engine_version"
+    ],
+    "archive": "Nearpane-development-arm64.zip",
+    "sha256": "1252ff89d0cc42b8003793f426d699a23707dff9c90fa83ead00d31a27167b08",
+    "bytes": 17043965
+  },
+  "hostedGUI": {
+    "runner": "macos-26",
+    "groupSizes": [
+      2,
+      1
+    ],
+    "persistedGroupIDsMatched": true,
+    "observedProcessLifecycle": {
+      "departure": [
+        {
+          "firstAbsent": 496.70643904166667,
+          "lifetime": "318B7FE1-9F01-4E4D-8D7D-064672A42511",
+          "reason": "processExit",
+          "secondAbsent": 496.83350562500004,
+          "window": {
+            "birth": 1795270399988481,
+            "number": 122,
+            "pid": 12117
+          }
+        }
+      ],
+      "driver": "StageGroupStore",
+      "originalGroupPreserved": true,
+      "originalWindow": {
+        "birth": 1795270399988481,
+        "number": 122,
+        "pid": 12117
+      },
+      "productionWindowEngine": "NOT_RUN",
+      "replacementSingleton": "81C88EDF-98F5-4661-B3B1-0DA72ADB20E5",
+      "replacementWindow": {
+        "birth": 1795270401430141,
+        "number": 127,
+        "pid": 12124
+      },
+      "siblingWindowsUnchanged": 2,
+      "status": "PASS"
+    },
+    "homeSpaceIdentity": "UNKNOWN",
+    "fixtureProcessesExited": true,
+    "profileRemoved": true,
+    "receipt": "hosted-44912221364/stage-group-lifecycle.json",
+    "comparisonBuild": "25G332",
+    "legacyComparisons": {
+      "minimize": {
+        "status": "FAIL",
+        "reason": "dockWindowTiles"
+      },
+      "corner": {
+        "status": "FAIL",
+        "reason": "parkedWindowReceivedRealMouseDown"
+      },
+      "wallpaper": {
+        "status": "PASS",
+        "reason": "nativeRevealAndRestoreObserved"
+      }
+    },
+    "comparisonReceipts": "hosted-44912221364/comparison/",
+    "firstComparisonReceipts": "hosted-44906708529/",
+    "recordedFrames": "hosted-44912221364/comparison/frames.json"
+  },
+  "target": {
+    "systemVersion": "27.0",
+    "build": "26A428",
+    "sip": "enabled",
+    "purpose": "signed canonical Host and independent physical window acceptance",
+    "localFullTests": "offscreen regression on this OS build",
+    "developmentBundleIdentity": "development-build.json",
+    "installedCandidateCDHash": null,
+    "installedCandidateLaunch": "BLOCKED",
+    "physicalProductionWriterCount": 0,
+    "corner": {
+      "productionQualified": false,
+      "singleWindowHideRestore": "NOT_RUN",
+      "guardianHandoffAndInputIsolation": "NOT_RUN"
+    },
+    "spaces": {
+      "productionQualified": false,
+      "transparentCanary": "NOT_RUN",
+      "singleWindowHideRestore": "NOT_RUN"
+    },
+    "threeGroupsFromInstalledSidebar": "NOT_RUN",
+    "concurrentDualDisplayWrites": "NOT_IMPLEMENTED",
+    "physicalDockHandoffMissionControlFullscreenAndSleepWake": "NOT_RUN",
+    "applePerformanceComparison": "NOT_RUN",
+    "fiftyOrThousandCycles": "NOT_RUN",
+    "previousInstalledHostReceipt": "../in-place-26A428/verification.json",
+    "inactiveCompositePictures": "Incomplete: independently held groups currently project verified member metadata; a full retained composite frame is not yet supplied."
+  },
+  "preservedFailures": {
+    "firstFocusFixture": {
+      "receipt": "focus-first-attempt.xml",
+      "passed": 28,
+      "failed": 1,
+      "skipped": [],
+      "cases": 29
+    },
+    "firstFullRegression": {
+      "receipt": "full-swift-first-f0c2f11.xml",
+      "passed": 738,
+      "failed": 1,
+      "skipped": [
+        "offscreenDictionaryTermUsesProductionContentAndReopensFixtureWord()",
+        "recordLocalModelAvailabilityAndReplayThreeSyntheticFilesWhenInstalled()",
+        "coldFileJournalAndIndependentReopen()"
+      ],
+      "cases": 742
+    },
+    "sandboxIOSurface": {
+      "result": "FAIL",
+      "code": -6662,
+      "fullRunStopped": true,
+      "raw": "sandbox-pixel-allocation.log",
+      "recheck": {
+        "receipt": "iosurface-recheck.xml",
+        "passed": 5,
+        "failed": 0,
+        "skipped": [],
+        "cases": 5
+      }
+    },
+    "originalVoiceColdStartTimeout": "UNKNOWN",
+    "originalVoiceReceipt": "../swift-test-events.txt"
+  },
+  "limits": {
+    "historicalOrdinaryRecord": "in-place installation only; not examined or changed in this run",
+    "dailyInstallationChanged": false,
+    "productionWriterSequence": "qualify one backend independently on its target before an installed whole-group test",
+    "productionRelease": "NOT_RUN",
+    "notarization": "NOT_RUN",
+    "websiteDeployment": "Vercel status on the source head was FAILURE; no deployment or account change was requested.",
+    "developmentRollbackSource": "e6d4bacc684c34b517f6bcdf24fb7f50638e4292",
+    "rollbackScope": "A separate checkout may rebuild that source. This run did not install a development bundle or modify daily configuration."
+  }
+}

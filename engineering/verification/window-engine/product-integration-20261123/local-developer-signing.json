@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "product": "Nearpane",
+  "source": "3058039ffe3094b64a1e25374e9c7eb631175327",
+  "archiveName": "Nearpane-5.22-90-3058039f.zip",
+  "bytes": 32557679,
+  "sha256": "da840636b20da6b5c3a502ced31a091b981593edb7ba4aeaa618953f0f46a925",
+  "extractedBundle": {
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "version": "5.22",
+    "build": "90",
+    "revision": "3058039ffe3094b64a1e25374e9c7eb631175327",
+    "engineRevision": "3058039ffe3094b64a1e25374e9c7eb631175327",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "singleInstance": true,
+    "cdhash": "7a6c5af872b196aa006e7c9baf66e4fb20452c3d",
+    "team": "ZB9D4T66QB",
+    "hostSHA256": "ee23ea58ff7197fb4502f3ebc82978ffa799f40ce62f568caa95acf27c807870",
+    "requirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB"
+  },
+  "matchesInstalledDesignatedRequirement": true,
+  "strictDeepAllArchitectures": "PASS",
+  "unpackedResourceCount": 46,
+  "unpackedResourceSHA256": "d1d54d8a6b296fb41aa52d6847599387f7115f5263483c11c3e09ce6feb45c59",
+  "installIdentityCheck": "PASS",
+  "staticPackageBoundary": "PASS",
+  "gatekeeper": {
+    "status": "FAIL",
+    "exitCode": 3,
+    "readback": "Nearpane.app: rejected\nsource=Unnotarized Developer ID"
+  },
+  "notarizationSubmission": "NOT_RUN",
+  "sourceQualificationRecords": 0,
+  "newRegularHostLaunch": "NOT_RUN",
+  "installedBefore": {
+    "revision": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "version": "5.22",
+    "build": "90",
+    "team": "ZB9D4T66QB"
+  },
+  "publicRelease": false,
+  "bundledSigningMode": "local Developer ID, no secure timestamp requested",
+  "signedBinaries": 14,
+  "missingDistributionSignatureFields": [
+    "Frameworks/Sparkle.framework/Versions/B/Autoupdate",
+    "Frameworks/Sparkle.framework/Versions/B/Sparkle",
+    "Frameworks/Sparkle.framework/Versions/B/Updater.app/Contents/MacOS/Updater",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Downloader.xpc/Contents/MacOS/Downloader",
+    "Frameworks/Sparkle.framework/Versions/B/XPCServices/Installer.xpc/Contents/MacOS/Installer",
+    "Helpers/NearpaneAutomation",
+    "Helpers/NearpaneCornerGuardian",
+    "Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/Helpers/NearpaneDesktopReader",
+    "Helpers/NearpaneFixtureWindows.app/Contents/MacOS/NearpaneFixtureWindows",
+    "Helpers/NearpaneFrameController.app/Contents/MacOS/NearpaneFrameController",
+    "Helpers/NearpaneOrdinaryWindowController",
+    "Helpers/NearpaneSpaceAction",
+    "MacOS/NearpaneHost"
+  ]
+}

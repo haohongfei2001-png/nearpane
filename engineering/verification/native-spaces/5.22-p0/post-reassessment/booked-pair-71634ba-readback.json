@@ -1,0 +1,120 @@
+{
+  "kind": "booked-adjacent-census-offline-recheck",
+  "sourceBase": "71634ba46d81f92118667ea5e8e7cf423edfbacd",
+  "scope": "DIAGNOSTIC_ONLY",
+  "officialGateEligible": false,
+  "originalRun": {
+    "directory": "protected-install/drift-existing-pair/p0",
+    "source": "97109f436c503da4ea9837fb1079adbc58a0f3dc",
+    "runtimeOutcome": "BLOCKED",
+    "receiptSHA256": {
+      "actions.jsonl": "ed0bc9936b75afc31f92edc024b2cb139e8d9902fe99c7b1c006afe2039ab019",
+      "results.json": "ad458b9d043a6372150e023d26c8238db96bdc49c0b2344398a0199e521b8cdc",
+      "original.json": "d0354a2b767e883dd5c1cc98d6ba9aa94a0814b34d4de70354cdfe105cbbcc15",
+      "final.json": "581e75ca5ecf0e56633c2cb211bc4c3648fa05053f15b34fdfb81418b6937ed6",
+      "fixture-first-document.json": "27cd7f6175c66f114f85e289f32bfab692c79fdcb124822ada0a65bfabb5623f",
+      "fixture-stopped.json": "d428f89c4a128132be15236171810ca558ff3d174b15bff86e35b73714c4faef",
+      "retained-first.json": "98b47094ab2ce27fe45d4b1702cf573ee0f52cb22ce54d40748e400fc92041e5",
+      "current-card-first.json": "dfb3946eecf044ecf4898da07509875299890385c465d2078be3a1b671f83ff6",
+      "host-original-first.json": "0cb7e863d88be01e5d908afed140128caef960e7465ba83f7079985a72901a37",
+      "stage-manager/empty-lease-admission.json": "eded41f64fe01e639899d42bcfa50d024c49512bef55cdd26dbdbfbb77e44d50",
+      "installed.json": "15f04d9d7a048a5716562bc8af562365243be8b2d64579bd863675a604f2fa5e"
+    },
+    "sourceSpace": 5095,
+    "neighborSpace": 5094,
+    "initialLeaseCensusesPassed": 2,
+    "firstBeforeShortcut": {
+      "5094": {
+        "fixture": 0,
+        "inactiveStage": [],
+        "systemOrHost": 1,
+        "unresolved": 0
+      },
+      "5095": {
+        "fixture": 1,
+        "inactiveStage": [
+          117,
+          19015
+        ],
+        "systemOrHost": 3,
+        "unresolved": 0
+      }
+    },
+    "nextReceiptAfterMS": 418.01,
+    "nextCensus": {
+      "error": "unregistered ordinary window on booked endpoint",
+      "issued": false,
+      "ready": false
+    },
+    "unregisteredWindow": {
+      "number": "UNKNOWN",
+      "owner": "UNKNOWN",
+      "endpoint": "UNKNOWN"
+    },
+    "registeredSource": {
+      "number": 53833,
+      "pid": 15735,
+      "birth": 1795209694453704,
+      "generation": "E44743D0-2EC6-43FE-82F4-DDFAFDD45E14",
+      "sameStandardWindowAndExclusiveMembershipBeforeAndAfter": true,
+      "confirmedCurrentCardReads": 2
+    },
+    "fixtureMarker": {
+      "callbacks": [
+        39,
+        79
+      ],
+      "causeOfBlockedCensus": "UNKNOWN"
+    },
+    "physicalPixels": 0,
+    "hidUnchanged": true,
+    "setupShortcutIssued": false,
+    "hostSwitchIssued": false,
+    "cleanup": {
+      "status": "PASS",
+      "ownedWindowsGone": true,
+      "originalCurrentRestored": true,
+      "originalOrderAndUUIDsRestored": true,
+      "originalFocusedWindowRestored": true
+    }
+  },
+  "offlineChecks": {
+    "nativeExecutableSHA256": "c2aa5a6e22ce20109bcb8575f9afc63745ccc819c6e8184ec58a0072d4df382c",
+    "verb": "leased-artifact-check",
+    "creationReceiptsVerified": 2,
+    "bootUUIDStillMatchesBothOriginalCreationReceipts": true,
+    "sourceAndNeighborLeaseDigests": {
+      "5094": "ad4cef602a2081a0e8432d90fbe264d9349fb6fc206092dec1731765d8a7230a",
+      "5095": "134c25f3eef73bc3c486249fde03fa107a2d254c2dfde100b57cb3a07cc52bb8"
+    },
+    "historicalCountsProvideNewMemberProof": false,
+    "historicalAdmissionReason": "both booked endpoints require a per-window census",
+    "nativeOrWindowServerActionIssued": false,
+    "pixels": 0,
+    "suite": "test_p0*.py with compiled booked reader, visual metadata classifier and immutable physical archives",
+    "tests": 59,
+    "passed": 59,
+    "skipped": 0,
+    "cases": [
+      "same count with a different CG number or process birth",
+      "reused fixture number with a new window generation",
+      "duplicate or foreign identity",
+      "signed fixture metadata requested only for its own refused number",
+      "admission-only successful and refused branches restore and submit zero setup shortcuts or Host switches",
+      "new external foreground during census cleanup is preserved without an original-window action"
+    ]
+  },
+  "installedFollowup": {
+    "state": "NOT_RUN",
+    "admissionOnly": "NEARPANE_P0_BOOKED_CENSUS_ONLY=1 with the existing private-installed-trials.py P0 transaction",
+    "firstDocument": "real signed fixture, two visible production current-card reads and retained AX/window generation",
+    "requiresFreshHostIdentityAndExclusiveMembers": true,
+    "newAdmissionIsProductGate": false,
+    "ordinarySwitchDispatch": "QUARANTINED",
+    "officialGates": {
+      "roundTrip": "NOT_RUN",
+      "ten": "NOT_RUN",
+      "fifty": "NOT_RUN"
+    }
+  }
+}

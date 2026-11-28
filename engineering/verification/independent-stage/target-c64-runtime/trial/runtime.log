@@ -1,0 +1,19 @@
+revision c64bf6d587247e512fb72c50a666d8e41c539e04 buildRunID pro-independent-stage scope runtime
+build-engine PASS
+engine PASS
+product FAIL
+{
+  "schema": 1,
+  "revision": "c64bf6d587247e512fb72c50a666d8e41c539e04",
+  "buildRunID": "pro-independent-stage",
+  "toolchain": {
+    "status": "AVAILABLE",
+    "cargo": "/Users/hhf/Documents/GitHub/nearpane/build/window-engine/toolchain/portable/bin/cargo",
+    "source": "PATH"
+  },
+  "hostSampling": "disabledByRequest",
+  "candidate": {
+    "status": "SUPPLIED",
+    "completeApp": "/Users/hhf/Documents/GitHub/nearpane-pro-independent-20261126/build/standalone.pro-independent-stage/products/release/Nearpane.app"
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "appleEventsGrant": "NOT_QUERIED",
+  "applicationLaunches": 0,
+  "candidate": {
+    "build": "90",
+    "cdhash": "df0235c2872ddddfcb235ef11b55901e4bc5ca37",
+    "declaresAppleEvents": true,
+    "declaresService": true,
+    "expectedSource": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "hostSHA256": "e186f976748a707d45a8b823dc2aabd24cb8b1c4d27f1585f86ba2acde0fc42a",
+    "p3GrantOnlyProbePackaged": false,
+    "p4RequestBoundPanelPackaged": false,
+    "path": "archived temporary copy/Nearpane.app",
+    "singleInstance": true,
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "sourceMatches": true,
+    "team": "ZB9D4T66QB",
+    "version": "5.22"
+  },
+  "checkedAs": "Unpacked verified archived signature without registration or launch; temporary folder removed at process exit",
+  "checkedUTC": "2026-11-20T19:44:25.722392+00:00",
+  "holdsDailyWriterLock": false,
+  "holdsPrivateWriterLock": false,
+  "launchAndProcessAfter": {
+    "pidSourcesAgree": true,
+    "preferred": "canonical",
+    "processes": [
+      {
+        "birth": 1795203839824572,
+        "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+        "identifierMatches": true,
+        "kernelExecutableMatches": true,
+        "location": "canonical",
+        "pid": 56085,
+        "team": "ZB9D4T66QB",
+        "verified": true
+      }
+    ],
+    "registered": [
+      "canonical"
+    ]
+  },
+  "launchAndProcessBefore": {
+    "pidSourcesAgree": true,
+    "preferred": "canonical",
+    "processes": [
+      {
+        "birth": 1795203839824572,
+        "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+        "identifierMatches": true,
+        "kernelExecutableMatches": true,
+        "location": "canonical",
+        "pid": 56085,
+        "team": "ZB9D4T66QB",
+        "verified": true
+      }
+    ],
+    "registered": [
+      "canonical"
+    ]
+  },
+  "mode": "readOnly",
+  "p0LiveSidebarControl": "NOT_INSPECTED",
+  "p3HostGrantReadback": {
+    "reasons": [
+      "existingAcceptanceRunnersRequireCanonicalInstall",
+      "selectedBundleIsNotTheUniqueLaunchServicesRoute",
+      "oneRunningSelectedHostGenerationRequired",
+      "selectedPIDDoesNotHoldAnEnrolledPrivateProfile",
+      "nonpromptingHostGrantProbeMissing"
+    ],
+    "status": "BLOCKED"
+  },
+  "p4ServiceReadback": {
+    "reasons": [
+      "existingAcceptanceRunnersRequireCanonicalInstall",
+      "selectedBundleIsNotTheUniqueLaunchServicesRoute",
+      "oneRunningSelectedHostGenerationRequired",
+      "selectedPIDDoesNotHoldAnEnrolledPrivateProfile",
+      "systemServiceDoesNotSelectThisExactBundle",
+      "requestBoundTranslationPanelMissing"
+    ],
+    "status": "BLOCKED"
+  },
+  "schema": 1,
+  "serviceDirectoryAfter": [
+    {
+      "canonicalPath": true,
+      "identifier": true,
+      "menu": true,
+      "message": true,
+      "selectedPath": false
+    }
+  ],
+  "serviceDirectoryBefore": [
+    {
+      "canonicalPath": true,
+      "identifier": true,
+      "menu": true,
+      "message": true,
+      "selectedPath": false
+    }
+  ],
+  "serviceRequests": 0,
+  "sourceArchive": "Nearpane-5.22-90-d2d0bb6-staged-distribution.zip",
+  "sourceArchiveSHA256": "70b2b02b47e8a59ce72b9e5ca35db80e940cb667a38f409af3c9d0c8041536f9",
+  "systemOrProductInputs": 0
+}

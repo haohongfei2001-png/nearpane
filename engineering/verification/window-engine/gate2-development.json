@@ -1,0 +1,27 @@
+{
+  "gate": 2,
+  "status": "UNQUALIFIED",
+  "productionWriteEnabled": false,
+  "target": {
+    "os": "27.0",
+    "build": "26A428",
+    "sip": "enabled",
+    "check": "passive-symbol-and-signature-only"
+  },
+  "readback": {
+    "bridgeTyped": 1,
+    "classic": 1,
+    "core": 1,
+    "fixtureWindows": 0,
+    "initializerEncoding": "@36@0:8Q16@24I32",
+    "kind": "passiveABI",
+    "performEncoding": "v16@0:8",
+    "status": "NOT_QUALIFIED",
+    "systemWrites": 0,
+    "targetExactBuildSIP": 1
+  },
+  "rustSuiteTests": 12,
+  "receiptEvaluatorTests": 4,
+  "targetInstalledHostHideAndRestore": "NOT_RUN",
+  "effectiveOwners": 0
+}

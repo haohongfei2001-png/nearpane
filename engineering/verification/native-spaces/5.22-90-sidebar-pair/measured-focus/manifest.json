@@ -1,0 +1,10 @@
+{
+  "source": "7ad17dc635f8ed30af41ef465d297074a05c5196",
+  "fixtureAndPanelOnly": true,
+  "files": {
+    "actions.jsonl": "b5d1e971afec51930a883158221dbf6fde5fb80aac2ed56e5bd9d36870a6a201",
+    "marker-witness-01.json": "c2796389bffa147c57dba10251e058dccd7b184a268fa317436b6e73109770d8",
+    "pair-pointer.json": "9803c0b915f200fff564b67bf4b05687a172c6473b9efce1fef96b6f815e2c7d",
+    "protected-installation.json": "9e0a516974ede1bee83733a91636b18c4752920ef72c269cedc497c2eb1d6365"
+  }
+}

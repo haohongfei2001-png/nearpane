@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "kind": "artifact-provenance-manifest-not-a-runtime-receipt",
+  "revision": "e630b6bc891cde3002592b7fb8a45e7ec62ec48b",
+  "runID": "45695479739",
+  "attempt": "1",
+  "lane": "full",
+  "artifactID": "15061877592",
+  "artifactURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45695479739/artifacts/15061877592",
+  "originals": [
+    {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "sha256": "42e79ba0a42c582d29d0ebaeac008c859b7901be2578ac6f7d40b1f334524397",
+      "bytes": 562,
+      "archivedAs": "ci-workspace-prepare-receipt.json"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "sha256": "25310ab9e452788ffafbd0aac373bb55a6a6a3b0172f695d1b49e103e15cddc1",
+      "bytes": 570,
+      "archivedAs": "ci-workspace-cleanup-receipt.json"
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/ci-workspace-state.json",
+      "sha256": "ab5f37962b93bd508272857e29daf799db952e581d1d23a9f70ce3bd582afd9f",
+      "bytes": 3320,
+      "archivedAs": "ci-workspace-state.json"
+    },
+    {
+      "artifactPath": "Nearpane-independent-candidate.json",
+      "sha256": "de6fd0b2d4aaac1bff0a9ac9d2b7f2ef818da6a26ae89fe5723fc2bd23ceb7a3",
+      "bytes": 187,
+      "archivedAs": "candidate.json"
+    },
+    {
+      "artifactPath": "Nearpane-independent-candidate.sha256",
+      "sha256": "b64accfa84fc1105ec66f4783dff5474d6b34658fa52bc14dea8bdf45bbe7cb4",
+      "bytes": 126,
+      "archivedAs": "candidate.sha256"
+    },
+    {
+      "artifactPath": "independent-source/summary.json",
+      "sha256": "289a7611d02cb696c8d49b1a0ec213578c8908a5a242e6a5d67b1773098d7cb1",
+      "bytes": 1689,
+      "archivedAs": "source-summary.json"
+    }
+  ],
+  "referencedOnly": [
+    {
+      "artifactPath": "independent-runtime/runtime/engine-result.json",
+      "sha256": "7399b0bee882b57cd92fa4c71d2d8ca2d2a73eb4b0d817f686620ed738eb436c",
+      "bytes": 3112
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/platform-result.json",
+      "sha256": "c77e51cbf26b6c2f458a3e87d388f98fb35fd0eac9449421820eb72b7f7477c5",
+      "bytes": 33889
+    },
+    {
+      "artifactPath": "independent-runtime/runtime/product/product-result.json",
+      "sha256": "f9559b442988855a11d9dc74bd2c033ab576c1863baa944ed3fb40f57980a886",
+      "bytes": 1130
+    }
+  ],
+  "qualificationGranted": false
+}

@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "observedUTC": "2026-11-23T05:11:21.203601+00:00",
+  "scopes": [
+    "canonical Host process and current profile",
+    "no post-exit window observations"
+  ],
+  "system": "27.0",
+  "systemBuild": "26A428",
+  "arch": "arm64",
+  "sip": "System Integrity Protection status: enabled.",
+  "canonical": "/Applications/Nearpane.app",
+  "kernelExecutable": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+  "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+  "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+  "pid": 19081,
+  "birth": 1795399056044071,
+  "stableProcessStamp": true,
+  "installedTree": "0b09013a2163789c882f7c4a3a8e7c372e81c8abc58e596e4b73eb03faf636a1",
+  "rosterComplete": true,
+  "activeConsoleSessionQualified": true,
+  "activeCanonicalPIDs": [
+    19081
+  ],
+  "registeredProductPaths": [
+    "/Applications/Nearpane.app"
+  ],
+  "guardianPIDs": [],
+  "configAndProfileSHA256": {
+    "index": "2bebbc54052f3f008053447a0652fe6d49029a77bfbad763b30aca39b3fbadce",
+    "configuration": "498e5c463b4742ba3141daee76b4fbfe9cc7df9b1c443553db470b60b5e392af"
+  },
+  "activeSharedLeases": 0,
+  "blockingRecoveryRows": 0,
+  "mayNormallyExit": true,
+  "installedTCCSubjectMatches": true,
+  "sameProcessAsDesktopObservation": true,
+  "windowOperations": 0,
+  "permissionRequests": 0,
+  "status": "PASS"
+}

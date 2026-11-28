@@ -1,0 +1,73 @@
+{
+  "admission" : {
+    "durableOneUseClaim" : false,
+    "exact26A428AndSIP" : false,
+    "existingHostAccessibility" : false,
+    "externalFocusAndHIDRecorded" : false,
+    "installedHostSignatureAndPath" : false,
+    "originalOrdinaryAXAndCGGeometry" : false,
+    "pinnedLiveAndDiskFixture" : false,
+    "sameConsoleAndDisplay" : false,
+    "sameNonceRegistrationOwnerAndDeadline" : false
+  },
+  "canary" : {
+    "closed" : false,
+    "dispatchAttempts" : {
+      "create" : 0,
+      "destroy" : 0,
+      "hide" : 0,
+      "return" : 0
+    },
+    "observedRegistration" : false,
+    "owner" : "installedHostPrivateNonactivatingPanel",
+    "parkingGone" : false,
+    "parkingID" : 0,
+    "pid" : 21243,
+    "restored" : false,
+    "window" : 0
+  },
+  "canaryUnresolved" : false,
+  "challenge" : "d5e97dc5-0a87-4cd5-be5e-6f78b4a44e63",
+  "durableJournalDirectory" : "login-account\/Library\/Application Support\/Nearpane-Spaces-Verification",
+  "endInventoryAndFocusReads" : 0,
+  "engineDetail" : 206,
+  "fixture" : {
+    "birth" : 0,
+    "cgOnScreenInitial" : null,
+    "cgOnScreenParked" : null,
+    "cgOnScreenReturned" : null,
+    "dispatchAttempts" : {
+      "create" : 0,
+      "destroy" : 0,
+      "hide" : 0,
+      "return" : 0
+    },
+    "homeID" : 0,
+    "initialIndependentReads" : 0,
+    "originalCGAndAXFrame" : [
+      0,
+      0,
+      0,
+      0
+    ],
+    "owner" : "separatePinnedSignedRegularTransparentFixture",
+    "parkedIndependentReads" : 0,
+    "parkingID" : 0,
+    "pid" : 0,
+    "returnedIndependentReads" : 0,
+    "window" : 0
+  },
+  "heldSpaces" : 0,
+  "heldWindows" : 0,
+  "permissionRequests" : 0,
+  "phase" : "admission",
+  "postedInput" : 0,
+  "productionQualified" : false,
+  "reason" : "identityChangedOrUnreadable",
+  "refusal" : "exactInstalledDeveloperIDHostRequired",
+  "route" : "bridgedOnly",
+  "safeToRollback" : true,
+  "schema" : 1,
+  "status" : "BLOCKED",
+  "transport" : 0
+}

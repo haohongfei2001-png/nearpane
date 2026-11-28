@@ -1,0 +1,99 @@
+{
+  "allRequiredPassed": false,
+  "attemptCount": 0,
+  "catalog": {
+    "highlightMatchesSystem": true,
+    "independentCount": 4,
+    "rowIdentitiesMatch": true,
+    "sidebarCount": 4
+  },
+  "cleanup": {
+    "frontmostRestored": true,
+    "originalFocusedWindowRestored": true,
+    "ownedProcessExited": true,
+    "scopesRestored": true,
+    "windowNumbersGone": true
+  },
+  "controlledWindowConclusion": "Read-only diagnostic of one independent ordinary test process; no sidebar action or input.",
+  "controlledWindowTrials": 0,
+  "failedAttempts": 0,
+  "mode": "fixture-inventory",
+  "performancePercentiles": null,
+  "productAttempts": [],
+  "scenarios": {
+    "C01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "D01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "F01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "I01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "L02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "M01": {
+      "reason": "One physical display attached.",
+      "status": "BLOCKED"
+    },
+    "N01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "P01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "R01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "R02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S01": {
+      "reason": "No controlled A/B/C inventory with independent empty/member proof in this run.",
+      "status": "BLOCKED"
+    },
+    "S02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "S03": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "V01": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W01": {
+      "reason": "Read-only diagnostic of one independent ordinary test process; no sidebar action or input.",
+      "status": "NOT_RUN"
+    },
+    "W02": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    },
+    "W03": {
+      "reason": "No completed production sample in this run.",
+      "status": "NOT_RUN"
+    }
+  },
+  "stable": true,
+  "unknownAttempts": 0
+}

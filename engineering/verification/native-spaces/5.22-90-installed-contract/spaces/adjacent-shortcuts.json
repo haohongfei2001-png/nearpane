@@ -1,0 +1,64 @@
+{
+  "actions": {
+    "next": {
+      "carbonBareControl4096": [],
+      "carbonControlWithFunctionBit135168": [
+        true,
+        true,
+        true
+      ],
+      "defaultVirtualKey": 124,
+      "systemSymbolicID": "81",
+      "userKeyBindingOverride": null,
+      "userOverrideEnabled": true
+    },
+    "previous": {
+      "carbonBareControl4096": [],
+      "carbonControlWithFunctionBit135168": [
+        true,
+        true,
+        true
+      ],
+      "defaultVirtualKey": 123,
+      "systemSymbolicID": "79",
+      "userKeyBindingOverride": null,
+      "userOverrideEnabled": true
+    }
+  },
+  "createdDesktops": 0,
+  "date": "2026-11-20T16:26:14+08:00",
+  "deliveredKeyboardEvents": 0,
+  "deliveredOtherEvents": 0,
+  "inventory": [
+    {
+      "current": 4,
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "records": [
+        {
+          "id": 4,
+          "type": 0,
+          "uuid": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+        },
+        {
+          "id": 2000,
+          "type": 4,
+          "uuid": "91C73648-4AC8-49D0-8A8B-5DEA6E5160D0"
+        },
+        {
+          "id": 6,
+          "type": 0,
+          "uuid": "6E560DD4-C1B2-A5BA-DA23-02241E918293"
+        },
+        {
+          "id": 5,
+          "type": 0,
+          "uuid": "32E0240D-643C-360E-6D15-60A85CF55F1A"
+        }
+      ]
+    }
+  ],
+  "stableTwoReads": 1,
+  "systemMapping": "/System/Library/ExtensionKit/Extensions/KeyboardSettings.appex/Contents/Resources/en.lproj/DefaultShortcutsTable.xml",
+  "totalCarbonEntriesExamined": 234,
+  "windowAccess": false
+}

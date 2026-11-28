@@ -1,0 +1,31 @@
+{
+  "failed": 0,
+  "fullContract": false,
+  "hostCDHash": "25362e7db5d7d290d18ce6ceaaa9678fa6acc1c1",
+  "initial": 4,
+  "issued": 0,
+  "leased": {
+    "4867": "5B90B6CD-C16C-583B-5BA3-80CA310234A4",
+    "4887": "59FA8CC3-E7DF-B380-AD0E-24719F4E7DC8",
+    "4903": "A3627500-49E0-483A-02E1-A353C6EA3726"
+  },
+  "passed": 0,
+  "reason": "initial installed selection did not reach an owned desktop",
+  "scope": "installed sidebar input and WindowServer arrival only",
+  "trials": [
+    {
+      "actual": 4,
+      "axError": 0,
+      "highlight": true,
+      "index": 0,
+      "issued": true,
+      "mode": "setup",
+      "seconds": 3.376,
+      "source": 4,
+      "status": "FAIL",
+      "t0": 235269.775364791,
+      "target": 4867
+    }
+  ],
+  "unknown": 0
+}

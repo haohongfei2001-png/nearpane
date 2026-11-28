@@ -1,0 +1,25 @@
+{
+  "arch": "arm64",
+  "build": "90",
+  "installedActionHelperPin": "cea825c613dfe69db9105aac849091d4034da1335bceb081204ac729f31f22a6",
+  "installedHostCurrentPermissions": {
+    "accessibility": true,
+    "postEvent": true,
+    "request": "B553DA8F-04A4-4002-9F2F-41D01D13E405",
+    "screen": true,
+    "source": "installed Host live preflight"
+  },
+  "loadedMatchesInstalled": true,
+  "nativeCapabilitiesLog": [
+    {
+      "canMove": false,
+      "canSwitch": true,
+      "ready": true
+    }
+  ],
+  "os": "27.0",
+  "osBuild": "26A428",
+  "signatureValid": true,
+  "source": "0777130ffd7bdaade0b634ede26fb70d811e06b5",
+  "version": "5.22"
+}

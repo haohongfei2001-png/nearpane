@@ -1,0 +1,90 @@
+{
+  "attributeTimeoutMS" : 250,
+  "axError" : -25200,
+  "directEngineInvocation" : false,
+  "discoveryBudgetMS" : 6000,
+  "issued" : false,
+  "nonce" : "1fc88ded-fa62-4eb2-b67c-c9369f85cb47",
+  "panelFrame" : [
+    784,
+    31,
+    240,
+    679
+  ],
+  "physicalPointerGesture" : false,
+  "prePress" : {
+    "identifier" : "<redacted-or-absent>",
+    "identifierRead" : -25204,
+    "role" : "unknown",
+    "roleRead" : -25204
+  },
+  "qualificationGranted" : false,
+  "reason" : "prePressEvidenceChanged",
+  "schema" : 1,
+  "status" : "BLOCKED",
+  "tree" : {
+    "complete" : true,
+    "matchingButtons" : 1,
+    "nodes" : [
+      {
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXWindow",
+        "roleRead" : 0
+      },
+      {
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : 0,
+        "role" : "AXScrollArea",
+        "roleRead" : 0
+      },
+      {
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "identifier" : "current-desktop-window:28248:57",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "identifier" : "current-desktop-window:28245:56",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "actionRead" : 0,
+        "enabled" : true,
+        "enabledRead" : 0,
+        "frame" : [
+          800,
+          47,
+          208,
+          122
+        ],
+        "frameRead" : 0,
+        "identifier" : "current-desktop-window:28245:54",
+        "identifierRead" : 0,
+        "insidePanel" : true,
+        "pressSupported" : true,
+        "role" : "AXButton",
+        "roleRead" : 0,
+        "windowMatches" : true,
+        "windowRead" : 0
+      }
+    ],
+    "visited" : 7
+  },
+  "uptime" : 1085.1594152500002,
+  "windowListRead" : 0
+}

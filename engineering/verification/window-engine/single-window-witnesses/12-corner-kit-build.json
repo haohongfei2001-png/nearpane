@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "status": "NOT_RUN",
+  "reason": "signedFixtureBuiltWithoutOpeningSession",
+  "qualification": "UNQUALIFIED",
+  "single": 0,
+  "ten": 0,
+  "fifty": 0,
+  "officialInstalledHost": "NOT_RUN",
+  "physicalMultiDisplay": "NOT_RUN"
+}

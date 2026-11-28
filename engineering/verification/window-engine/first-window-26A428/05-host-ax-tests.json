@@ -1,0 +1,61 @@
+{
+  "baseline": "48866a91c808b6754a30e664cce675e647e2cebf",
+  "scope": "local offline and link verification",
+  "tests": {
+    "errors": 0,
+    "tests": 71,
+    "failures": 0,
+    "skipped": 0
+  },
+  "xunitSHA256": "4b22c79438705400b83bd4e5a963d69e951b10560916b48fa2680e3427fa194d",
+  "sourceFiles": {
+    "Package.swift": "07a5111eab19e1af9b84c58294d32032a71f8584338e9c8d3665f17893c22bc7",
+    "Sources/NearpaneCore/DesktopReadEvidence.swift": "e9f72fbffdbac4d20f75544e252474ea1116115297eecadcfdd57f14fbd37871",
+    "Sources/NearpaneOrdinaryWindowController/StageHostWindow.swift": "c7c235ab0d781723462ac83e48a86f1ce72de3e76ef2c038c74eb400e0d75996",
+    "Sources/NearpaneOrdinaryWindowController/CreatedWindowWatch.swift": "7767abd8b3aac10b43ce3a47cc30ef9efb0de4060b9d937ee9cd9fc9237e25b7",
+    "Sources/NearpaneOrdinaryWindowController/CurrentFocusScope.swift": "952426ad5e7181d32c260ca4100768594ff4da1780dc3221fcb1dce44383edf9",
+    "Sources/NearpaneOrdinaryWindowController/FocusCurrentWindow.swift": "0644ae72c60cd7797665497a1dd21771023d05c6da29ea91c6a43b20d148efb9",
+    "Sources/NearpaneOrdinaryWindowController/OwnerIdentity.swift": "06cb0947e75047ed5c1c020fce3a1f7d0fbdeebf81897048928ba6a822f7a047",
+    "Sources/NearpaneOrdinaryWindowController/SystemEvidence.swift": "e35835d08ddbc14c0040d7bb90f49d99954bb6d690f2cb0ee643d4d3dbb67452",
+    "Sources/NearpaneOrdinaryWindowController/WindowMonitor.swift": "b3f091c727a80aecdbcc15d119a9740a750463d10ee6ce8edc2d460223939af9",
+    "Sources/NearpaneOrdinaryWindowController/main.swift": "b12daf40b5c80893788b77e9804401ac9d804d20b7d0152b314d03a2a276ac84",
+    "Sources/NearpaneUI/CurrentDesktopWindows.swift": "8d2043e218ef43f2f2bd2ea2bfc156bcd544633454cd3110677420c9394f03f7",
+    "Sources/NearpaneUI/DesktopSurface.swift": "521476e53822584107b5bcf42c3da137a462be49a9bd0681b0eac2e473f60037",
+    "Sources/NearpaneUI/DesktopWindowSelection.swift": "6d451501eb9ffb7ee7d4f36ea6e9caa2d4ea620650c9c1b66febc52697d9cfd4",
+    "Sources/NearpaneUI/OrdinaryWindowAX.swift": "6cdaaf060beed2201bfbc2fad0dfc7a7f7e3fc0766a341df069659e633640367",
+    "Sources/NearpaneUI/StageWindowEngineHost.swift": "94647265f3526bc138aee9c65d8b45f12a299aeb299dd132ab6053229c2cf48d",
+    "Sources/NearpaneUI/StageWindowEngineWitness.swift": "aecb9708dc71112ee042f636cc827e70ca1cd1ff9621c51433a2a3210b19fe60",
+    "Tests/NearpaneOrdinaryWindowControllerTests/StageHostWindowAccessTests.swift": "ebd0ea2f182885c64b21b4b40a8d1e4abc7a891a5f81c3a38ce595751708198a",
+    "Tests/NearpaneOrdinaryWindowControllerTests/BoundaryChangeTrackerTests.swift": "60fa544564e24c86b5c6cb7f5e5a424c949ac213d0c962df96618250a880fbf4",
+    "Tests/NearpaneOrdinaryWindowControllerTests/ExplicitPairPlacementTests.swift": "aefc6e8eeb3a53798bd09d6f31c3980078c59c96dfe313a71f616bd97a96db07",
+    "Tests/NearpaneOrdinaryWindowControllerTests/OrdinaryDesktopMembershipTests.swift": "8dfb57acf9cb7862a7c5bb9132695869e660bdae19f5804bcc0789d34e60180c",
+    "Tests/NearpaneOrdinaryWindowControllerTests/OwnerIdentityTests.swift": "5960d28db474b078cff68f1f59ea7614791cc16eb2df443a6a24ed39ed384fb4",
+    "Tests/NearpaneOrdinaryWindowControllerTests/StageCreationFocusTests.swift": "d19fc559dd0f6d16ed31a17b07d6375edfb8ee79fd40c3e77132f84cee194134",
+    "Tests/NearpaneOrdinaryWindowControllerTests/TargetedCurrentFocusTests.swift": "e5c52634500d05018aabb5e54a365a39f0d9dbdf1c55ddf26f5b3da2ad193354",
+    "Tests/NearpaneOrdinaryWindowControllerTests/WindowRemovalTests.swift": "44da8ae44dc48e6cf6df765594f58368c03c00db84235078f1be30fefac4982a",
+    "Tests/NearpaneUITests/StageHostGroupProjectionTests.swift": "f73e74b1bd6b53f410ada726394674d40765ada9d4f3e2043eda781effdb5d05",
+    "scripts/acceptance/build-owned-desktop-row.sh": "38a36881cccf0b19348d7d46af94a187047eaa4a37b8cc02496c85499eda86a9",
+    "scripts/acceptance/build-current-desktop-selection.sh": "4e324ed2048773c817440a4395a0c5fa41d3c22674e35a4f7ebd62e6fde10274",
+    "scripts/acceptance/native-spaces/hosted-window-switch.py": "55573d4d2c1851a26c06c9bc4c9cb346b4d2d08999ba6c0bfa1694bc317a6893"
+  },
+  "builds": [
+    {
+      "script": "scripts/acceptance/build-owned-desktop-row.sh",
+      "status": "PASS",
+      "mode": "compile/sign only"
+    },
+    {
+      "script": "scripts/acceptance/build-current-desktop-selection.sh",
+      "status": "PASS",
+      "mode": "compile/sign only"
+    },
+    {
+      "script": "scripts/acceptance/native-spaces/hosted-window-switch.py",
+      "status": "PASS",
+      "mode": "--compile-only; signed --verify-link entry prints value and exits before AppKit UI"
+    }
+  ],
+  "installedHostActions": "NOT_RUN",
+  "guardianOriginalRetainAndRestore": "NOT_RUN",
+  "pinnedBackendActivation": "NOT_RUN"
+}

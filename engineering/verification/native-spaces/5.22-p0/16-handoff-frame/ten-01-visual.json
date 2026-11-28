@@ -1,0 +1,558 @@
+{
+  "allowlistedFrameCounts": {
+    "complete": 218
+  },
+  "captureFilter": "ScreenCaptureKit physical display, including only two exact fixture windows",
+  "coverage": {
+    "earlyEventsWithFollowingProof": 192,
+    "from": 251733.93288458334,
+    "maxGapMS": 16.666791666666665,
+    "maximumFollowingProofMS": 29.507000028388575,
+    "maximumLeadMS": 14.786874962737784,
+    "permittedGapMS": 50.0,
+    "pixelFailures": {
+      "litNativeFrameUnavailable": 1
+    },
+    "samples": 193,
+    "statusCounts": {
+      "0": 189,
+      "1": 4
+    },
+    "timingFailureCount": 1,
+    "timingFailureReasons": {
+      "twoPostPresentationSurfacesDisagree": 1
+    },
+    "timingFailures": [
+      {
+        "displayTime": 251734.14955125,
+        "reason": "twoPostPresentationSurfacesDisagree"
+      }
+    ],
+    "to": 251737.13288575,
+    "uncoveredIntervals": []
+  },
+  "displayProbe": {
+    "admission": {
+      "crop": [
+        723,
+        482,
+        24,
+        24
+      ],
+      "displayFilterMode": true,
+      "endpointCalibration": {
+        "commonCrop": true,
+        "displayAndSpaceIDs": true,
+        "distinctMarkerColors": true,
+        "sourceEnrolled": true,
+        "sourceWallpaperMatches": true,
+        "targetEnrolled": true
+      },
+      "failed": [],
+      "filterOwnership": {
+        "excludedOtherApplicationCount": 36,
+        "filterModeDisplay": true,
+        "source": {
+          "cataloguedAppCount": 1,
+          "excluded": false,
+          "includedApplicationEcho": false,
+          "includedWindowEcho": false
+        },
+        "target": {
+          "cataloguedAppCount": 1,
+          "excluded": false,
+          "includedApplicationEcho": false,
+          "includedWindowEcho": false
+        }
+      },
+      "foremostSurface": "sourceFixture",
+      "initial": {
+        "fixtureGenerationsAndInput": true,
+        "guardianGeneration": true,
+        "nativeInventory": true,
+        "screenPermission": true,
+        "sourceCurrent": true
+      },
+      "matchingEnrolledWindows": [
+        1,
+        1
+      ],
+      "matchingPhysicalDisplays": 1,
+      "membership": {
+        "source": {
+          "additionalUninspectedCount": 0,
+          "available": true,
+          "confirmedForeignOrdinary": false,
+          "exactFixtureCount": 1,
+          "extraOrdinary": [],
+          "ordinaryCount": 1,
+          "otherMembers": 0,
+          "qualified": true,
+          "systemMenus": 1,
+          "unclassifiedMembers": 0,
+          "verifiedFixtureAuxiliaryCount": 0,
+          "verifiedHostPanels": 1,
+          "verifiedNegativeSystemBackdrops": 0,
+          "verifiedSharedOverlays": 0
+        },
+        "target": {
+          "additionalUninspectedCount": 0,
+          "available": true,
+          "confirmedForeignOrdinary": false,
+          "exactFixtureCount": 1,
+          "extraOrdinary": [],
+          "ordinaryCount": 1,
+          "otherMembers": 0,
+          "qualified": true,
+          "systemMenus": 1,
+          "unclassifiedMembers": 0,
+          "verifiedFixtureAuxiliaryCount": 0,
+          "verifiedHostPanels": 1,
+          "verifiedNegativeSystemBackdrops": 0,
+          "verifiedSharedOverlays": 0
+        }
+      },
+      "nonce": "360B6B8E-EA99-4166-B357-9B7A14BBC98B",
+      "physicalStreamArmed": true,
+      "sourceFrameReadyBeforePress": true,
+      "sourceSpace": 5019,
+      "strictCleanPreflightReads": 2,
+      "strictPreflightCensuses": [
+        {
+          "source": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedFixtureAuxiliaryCount": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          },
+          "target": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedFixtureAuxiliaryCount": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          }
+        },
+        {
+          "source": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedFixtureAuxiliaryCount": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          },
+          "target": {
+            "additionalUninspectedCount": 0,
+            "available": true,
+            "confirmedForeignOrdinary": false,
+            "exactFixtureCount": 1,
+            "extraOrdinary": [],
+            "ordinaryCount": 1,
+            "otherMembers": 0,
+            "qualified": true,
+            "systemMenus": 1,
+            "unclassifiedMembers": 0,
+            "verifiedFixtureAuxiliaryCount": 0,
+            "verifiedHostPanels": 1,
+            "verifiedNegativeSystemBackdrops": 0,
+            "verifiedSharedOverlays": 0
+          }
+        }
+      ],
+      "targetSpace": 5018,
+      "wallpaper": {
+        "fileURL": true,
+        "qualified": true,
+        "readOnlyVolume": true,
+        "recognizedImage": true,
+        "regularFile": true,
+        "rootOwned": true,
+        "sameSystemVolume": true,
+        "source": "systemWallpapers"
+      }
+    },
+    "armed": true,
+    "auxiliaryRequestCount": 0,
+    "auxiliaryRequests": [],
+    "blockedReadbacks": {
+      "twoPostPresentationSurfacesDisagree": 1
+    },
+    "censusAfter": true,
+    "cropPoints": [
+      723,
+      482,
+      24,
+      24
+    ],
+    "currentCropReads": 0,
+    "privatePixelOutput": false,
+    "sourceFrameReadyBeforePress": true,
+    "targetCompleteColorCounts": {
+      "allNativeTargetComplete": 207,
+      "allTargetSurfaceCompleteIncludingTransition": 207,
+      "matchingNeither": 0,
+      "matchingSource": 1,
+      "matchingTarget": 206,
+      "sourceDeltaBands": {
+        "11–20": 1,
+        "129–255": 206
+      },
+      "targetDeltaBands": {
+        "0–10": 104,
+        "11–20": 102,
+        "129–255": 1
+      },
+      "targetSurfaceMatchingColor": 206
+    },
+    "terminalTarget": {
+      "confirmedConsecutiveCensuses": 2,
+      "corroboratedAt": 251737.58710783336,
+      "displayVsCurrentFixtureBand": "11–20",
+      "eligible": true,
+      "endRequest": {
+        "callerConfirmed": true,
+        "independentEndAfterPress": true,
+        "positivePress": true
+      },
+      "fixtureVsEnrolledBand": "11–20",
+      "freshFilterOwnership": {
+        "excludedOtherApplicationCount": 37,
+        "filterModeDisplay": true,
+        "source": {
+          "cataloguedAppCount": 1,
+          "excluded": false,
+          "includedApplicationEcho": false,
+          "includedWindowEcho": false
+        },
+        "target": {
+          "cataloguedAppCount": 1,
+          "excluded": false,
+          "includedApplicationEcho": false,
+          "includedWindowEcho": false
+        }
+      },
+      "freshFramesAgreeWithEnrolledCrop": true,
+      "independentTargetAndDisplayAgree": true,
+      "linkedToNativeTarget": true,
+      "nativeTargetCompleteTime": 251737.56621925,
+      "nativeTargetTime": 251737.56621925,
+      "observations": [
+        {
+          "censusQualified": true,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251737.15199866667,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedFixtureAuxiliaryCount": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795178329035588,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 67792,
+                  "ownerBirth": 1795178329035588,
+                  "ownerPID": 67792,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "f1be886f296ec0d64802ff0e",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50495
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedFixtureAuxiliaryCount": 1,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251737.15512304168,
+          "membershipThrough": 251737.17612925,
+          "space": "target",
+          "stage": "terminal-admission-1",
+          "surface": "targetFixture",
+          "to": 251737.15512204167
+        },
+        {
+          "censusQualified": true,
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251737.21147345836,
+          "membership": {
+            "source": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [],
+              "ordinaryCount": 1,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedFixtureAuxiliaryCount": 0,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            },
+            "target": {
+              "additionalUninspectedCount": 0,
+              "available": true,
+              "confirmedForeignOrdinary": false,
+              "exactFixtureCount": 1,
+              "extraOrdinary": [
+                {
+                  "alpha": 1,
+                  "appleAnchored": false,
+                  "ax": {
+                    "main": false,
+                    "minimized": false,
+                    "query": "exactNumberAndPID",
+                    "roleIsWindow": true,
+                    "standard": false
+                  },
+                  "classification": "otherWindowOfEnrolledFixtureProcess",
+                  "confirmedForeignOrdinary": false,
+                  "cropRelation": "outside",
+                  "forwardAtDetail": true,
+                  "layer": 0,
+                  "onScreen": true,
+                  "ownedBirth": 1795178329035588,
+                  "ownedCDHash": "cfbd2e49d1ef80c6c454374b1d8030c47e4ee773",
+                  "ownedExecutable": "/private/tmp/nearpane-d01.Gmxc1oSC/Field Notes.app/Contents/MacOS/FieldNotes",
+                  "ownedPID": 67792,
+                  "ownerBirth": 1795178329035588,
+                  "ownerPID": 67792,
+                  "privateKitExecutable": true,
+                  "reverseAtDetail": true,
+                  "reverseExclusive": true,
+                  "rowToken": "f1be886f296ec0d64802ff0e",
+                  "sealedAppleSystemExecutable": false,
+                  "sourceReportForwardAndReverse": true,
+                  "windowNumber": 50495
+                }
+              ],
+              "ordinaryCount": 2,
+              "otherMembers": 0,
+              "qualified": true,
+              "systemMenus": 1,
+              "unclassifiedMembers": 0,
+              "verifiedFixtureAuxiliaryCount": 1,
+              "verifiedHostPanels": 1,
+              "verifiedNegativeSystemBackdrops": 0,
+              "verifiedSharedOverlays": 0
+            }
+          },
+          "membershipFrom": 251737.21254745836,
+          "membershipThrough": 251737.22031600002,
+          "space": "target",
+          "stage": "terminal-admission-2",
+          "surface": "targetFixture",
+          "to": 251737.21254629167
+        },
+        {
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251737.25025129167,
+          "space": "target",
+          "stage": "fresh-geometry",
+          "surface": "targetFixture",
+          "to": 251737.25445645835
+        },
+        {
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251737.397644375,
+          "space": "target",
+          "stage": "after-isolated-target",
+          "surface": "targetFixture",
+          "to": 251737.39866216667
+        },
+        {
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251737.559118875,
+          "space": "target",
+          "stage": "after-display-target",
+          "surface": "targetFixture",
+          "to": 251737.56003804167
+        },
+        {
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251737.560081375,
+          "space": "target",
+          "stage": "native-presentation-link",
+          "surface": "targetFixture",
+          "to": 251737.56084983336
+        },
+        {
+          "checks": {
+            "foremostExactTarget": true,
+            "sameHumanInput": true,
+            "sameSealedWallpaper": true,
+            "sameTargetSpace": true,
+            "sourceGeneration": true,
+            "targetGeneration": true
+          },
+          "failed": [],
+          "from": 251737.58244283334,
+          "space": "target",
+          "stage": "native-presentation-link",
+          "surface": "targetFixture",
+          "to": 251737.5870974167
+        }
+      ],
+      "sameStream": true,
+      "sampleRequested": 251737.25455800002,
+      "sampleReturned": 251737.56006166668,
+      "shareableTargetOnScreen": true,
+      "strictCleanAt": 251737.22031712503,
+      "withheldPixelIntervals": []
+    },
+    "totalNativeEvents": 234
+  },
+  "ended": 251737.12075258335,
+  "filteredDarkFrames": 0,
+  "filteredEmptyFrames": 0,
+  "frameLog": "frames.json",
+  "movieSource": "real fixture pixels; excluded transparent areas matted gray",
+  "nonce": "360B6B8E-EA99-4166-B357-9B7A14BBC98B",
+  "physicallyQualified": false,
+  "pressed": 251733.93973529167,
+  "ready": false,
+  "reason": "Physical presentation ownership/timing: twoPostPresentationSurfacesDisagree; Unqualified native pixel/status: litNativeFrameUnavailable",
+  "scope": "Observed absence of a user-visible whole-display blackout during this interval; changes below measured sampling resolution are outside the evidence.",
+  "screenshotTaken": false,
+  "silentMovie": {
+    "file": "verified-pair.mp4",
+    "sha256": "b56f697323ad22ab1558b76c692aac6f643b3ce1d0dd1eb16c6881ea6abcadf9"
+  },
+  "source": 5019,
+  "sources": [
+    "https://developer.apple.com/documentation/screencapturekit/sccontentfilter/init(display:including:)",
+    "https://developer.apple.com/documentation/screencapturekit/scstreamframeinfo/displaytime"
+  ],
+  "status": "UNKNOWN",
+  "subchecks": {
+    "continuousVisibleLight": "UNKNOWN",
+    "independentTerminalTargetMatched": true,
+    "nativePresentationCoverage": "PASS",
+    "rawNativeBlankEventsDuringPress": 0,
+    "scopedNativeBlankEventsDuringPress": 0,
+    "streamingTargetMatched": true
+  },
+  "target": 5018,
+  "wallpaperIncludedInMovie": false
+}

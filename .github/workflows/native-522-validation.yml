@@ -1,0 +1,210 @@
+name: Nearpane native 5.22 protocol
+on:
+  push:
+    branches: [codex/r4-native-candidate-20261120]
+    paths:
+      - '.github/workflows/native-522-validation.yml'
+      - 'Package.swift'
+      - 'scripts/acceptance/stage-groups/**'
+      - 'Tests/NearpaneCoreTests/StageGroup*Tests.swift'
+      - 'Sources/CNativeSpaceActions/**'
+      - 'Sources/NearpaneSpaceAction/**'
+      - 'Sources/NearpaneCore/**'
+      - 'Sources/NearpaneDesktopReader/**'
+      - 'Sources/NearpaneHost/**'
+      - 'Sources/NearpaneUI/**'
+      - 'Sources/NearpaneOrdinaryWindowController/**'
+      - 'Tests/NearpaneOrdinaryWindowControllerTests/ExplicitPairPlacementTests.swift'
+      - 'Tests/NearpaneOrdinaryWindowControllerTests/TargetedCurrentFocusTests.swift'
+      - 'Tests/NearpaneCoreTests/OrdinaryFocusAttributesTests.swift'
+      - 'Tests/NearpaneUITests/WindowFocusLatencyTests.swift'
+      - 'Tests/NearpaneUITests/WindowSwitchTransitionTests.swift'
+      - 'Tests/NearpaneUITests/CurrentCardFocusPreparationTests.swift'
+      - 'Tests/NearpaneUITests/TargetedCurrentCardTests.swift'
+      - 'Tests/NearpaneUITests/OrdinaryWindowManagerTests.swift'
+      - 'Tests/NearpaneUITests/DesktopOverviewShortcutTests.swift'
+      - 'Tests/NearpaneUITests/DesktopItemsSettingTests.swift'
+      - 'Tests/NearpaneUITests/SystemWindowDispatchTests.swift'
+      - 'Tests/NearpaneUITests/NativeSpaceMenuTests.swift'
+      - 'Tests/NearpaneUITests/WorkspacePanelTests.swift'
+      - 'Tests/NearpaneSpaceActionTests/**'
+      - 'Tests/NearpaneUITests/NativeSidebarWindowHistoryTests.swift'
+      - 'Tests/NearpaneUITests/StageGroupHistoryPictureTests.swift'
+      - 'Tests/NearpaneUITests/PreviewPixelCacheTests.swift'
+      - 'Tests/NearpaneUITests/WindowFrameStreamTests.swift'
+      - 'Tests/NearpaneUITests/OwnedWindowPreviewReturnTests.swift'
+      - 'Tests/NearpaneUITests/NativeSidebarNavigationTests.swift'
+      - 'Tests/NearpaneUITests/DesktopPreviewOwnerTests.swift'
+      - 'Tests/NearpaneUITests/TranslationSelectionOriginTests.swift'
+      - 'Tests/NearpaneHostTests/ServiceOpenIntentTests.swift'
+      - 'Tests/NearpaneCoreTests/AXWindowListTests.swift'
+      - 'scripts/acceptance/native-spaces/**'
+      - 'Resources/NearpaneHost.entitlements'
+      - 'scripts/build-candidate.sh'
+      - 'scripts/candidate_signing.py'
+      - 'scripts/check-alpha-distribution.py'
+      - 'scripts/test-candidate-signing.py'
+      - 'scripts/private_notary.py'
+      - 'scripts/test-private-notary.py'
+      - 'scripts/qualify-private-macos-asset.py'
+      - 'engineering/verification/native-spaces/5.22-p6/integrated-*/draft-asset.json'
+permissions:
+  contents: read
+concurrency:
+  group: native-522-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  desktop-items-27:
+    name: Desktop files on macOS 27
+    if: contains(github.event.head_commit.message, '[desktop-items-27]')
+    runs-on: xcode-27
+    timeout-minutes: 10
+    env:
+      NEARPANE_FOUNDATION_ONLY: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Measure the real desktop file on a fresh login
+        run: |
+          swift build --build-system native --target NearpaneSpaceAction
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --build-system native --show-bin-path)" --hosted-desktop-items "$RUNNER_TEMP/desktop-items-27"
+          cat "$RUNNER_TEMP/desktop-items-27/summary.json" >> "$GITHUB_STEP_SUMMARY"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          r = json.loads((Path(os.environ["RUNNER_TEMP"]) / "desktop-items-27/desktop-items.json").read_bytes())
+          if r["status"] == "BLOCKED":
+              print("::warning::Desktop files could not be qualified on this hosted login.")
+          elif r["status"] != "PASS":
+              raise SystemExit(r.get("reason", r["status"]))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: desktop-items-27
+          path: ${{ runner.temp }}/desktop-items-27
+          if-no-files-found: warn
+          retention-days: 14
+  protocol:
+    runs-on: macos-26
+    timeout-minutes: 18
+    env:
+      NEARPANE_FOUNDATION_ONLY: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Identify hosted environment
+        run: |
+          sw_vers
+          uname -m
+          swift --version
+          engine_archive="$(bash scripts/build-window-engine.sh)"
+          echo "NEARPANE_ENGINE_ARCHIVE=$engine_archive" >> "$GITHUB_ENV"
+          openssl_bin="$(brew --prefix openssl@3)/bin"
+          if ! test -x "$openssl_bin/openssl"; then
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install openssl@3
+          fi
+          "$openssl_bin/openssl" version | grep '^OpenSSL 3\.'
+          echo "$openssl_bin" >> "$GITHUB_PATH"
+      - name: Verify wallpaper and desktop item behavior on a disposable desktop
+        run: |
+          swift build --target NearpaneSpaceAction
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-desktop-behavior "$RUNNER_TEMP/stage-group-isolation"
+          cat "$RUNNER_TEMP/stage-group-isolation/summary.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve full window observations and screen recordings
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stage-group-isolation
+          path: ${{ runner.temp }}/stage-group-isolation
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Verify acceptance arithmetic and routing fixtures
+        run: |
+          python3 -m unittest discover -s scripts/acceptance/native-spaces -p 'test_*.py'
+          python3 scripts/test-candidate-signing.py
+          python3 scripts/test-private-notary.py
+          if test -f scripts/acceptance/native-spaces/p0-tests.py; then
+            python3 scripts/acceptance/native-spaces/p0-tests.py
+          fi
+          src=scripts/acceptance/native-spaces
+          xcrun swiftc -parse-as-library "$src/p0-generation.swift" "$src/p0-marker-tests.swift" -o "$RUNNER_TEMP/p0-marker-tests"
+          "$RUNNER_TEMP/p0-marker-tests"
+          xcrun swiftc -parse-as-library "$src/pair-pointer-motion.swift" "$src/test-pair-pointer-motion.swift" -o "$RUNNER_TEMP/pair-pointer-motion"
+          "$RUNNER_TEMP/pair-pointer-motion"
+          xcrun swiftc -parse-as-library "$src/pair-pointer-cursor.swift" "$src/test-pair-pointer-cursor.swift" -o "$RUNNER_TEMP/pair-pointer-cursor"
+          "$RUNNER_TEMP/pair-pointer-cursor"
+      - name: Build production helper and run no-input protocol tests
+        run: |
+          swift build --target NearpaneSpaceAction
+          bash scripts/acceptance/native-spaces/protocol-tests.sh
+      - name: Compile the foundation-only production UI on the hosted SDK
+        run: swift build --target NearpaneUI
+      - name: Verify window identity, Services source and Host open handling
+        run: |
+          set -euo pipefail
+          suites=(StageGroupStoreTests StageGroupCoordinatorTests MoveReadbackTests NativeSidebarWindowHistoryTests NativeSidebarNavigationTests AXWindowListTests DesktopPreviewOwnerTests TranslationSelectionOriginTests ServiceOpenIntentTests ExplicitPairPlacementTests OrdinaryFocusAttributesTests WindowFocusLatencyTests WindowSwitchTransitionTests CurrentCardFocusPreparationTests OrdinaryWindowManagerTests TargetedCurrentFocusTests TargetedCurrentCardTests DesktopOverviewShortcutTests SystemWindowDispatchTests WorkspacePanelTests NativeSpaceMenuTests ActionInventoryTests)
+          suites+=(DesktopItemsSettingTests StageGroupHistoryPictureTests PreviewPixelCacheTests WindowFrameStreamTests)
+          filter=$(IFS='|'; echo "${suites[*]}")
+          swift test --disable-xctest --enable-swift-testing --filter "$filter" 2>&1 | tee "$RUNNER_TEMP/native-ui-tests.log"
+          for suite in "${suites[@]}"; do
+            grep -F "Suite $suite passed" "$RUNNER_TEMP/native-ui-tests.log"
+          done
+      - name: Check the production switch cover in an isolated WindowServer session
+        run: |
+          set -euo pipefail
+          receipt="$RUNNER_TEMP/window-switch-windowserver.json"
+          python3 -B scripts/acceptance/native-spaces/hosted-window-switch.py "$(swift build --show-bin-path)" --hosted-receipt "$receipt"
+          cat "$receipt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify the shipping read-only helper and real cross-app group membership
+        run: |
+          set -euo pipefail
+          bin=$(swift build --show-bin-path)
+          python3 scripts/acceptance/stage-groups/check-boundary.py "$bin/NearpaneSpaceAction"
+          receipt="$RUNNER_TEMP/stage-group-windowserver.json"
+          python3 -B scripts/acceptance/stage-groups/windowserver.py "$bin" --hosted-receipt "$receipt"
+          cat "$receipt" >> "$GITHUB_STEP_SUMMARY"
+      - name: Close and relaunch a registered app beside two independently observed sibling windows
+        run: python3 -B scripts/acceptance/stage-groups/windowserver.py "$(swift build --show-bin-path)" --hosted-lifecycle "$RUNNER_TEMP/stage-group-lifecycle.json"
+      - name: Preserve ordinary-window and process lifecycle readbacks
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stage-group-windowserver
+          path: |
+            ${{ runner.temp }}/stage-group-lifecycle.json
+            ${{ runner.temp }}/stage-group-windowserver.json
+            ${{ runner.temp }}/stage-group-windowserver-delivery/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Assess the enrolled private archive on this clean hosted Mac
+        if: "${{ !cancelled() && contains(github.event.head_commit.message, '[private-macos-26 ') }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEARPANE_PRIVATE_ASSET_URL: ${{ secrets.NEARPANE_PRIVATE_ASSET_URL }}
+        run: |
+          set -euo pipefail
+          frozen=$(git log -1 --format=%s | sed -nE 's/.*\[private-macos-26 ([a-f0-9]{7,40})\].*/\1/p')
+          test -n "$frozen"
+          python3 -B scripts/qualify-private-macos-asset.py "$frozen" > "$RUNNER_TEMP/nearpane-private-policy.json"
+          cat "$RUNNER_TEMP/nearpane-private-policy.json"
+          cat "$RUNNER_TEMP/nearpane-private-policy.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Report desktop item visibility and restoration
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          failed = False
+          for name in ("wallpaper", "desktop-items"):
+              record = json.loads((Path(os.environ["RUNNER_TEMP"]) / "stage-group-isolation" / (name + ".json")).read_bytes())
+              status = record["status"]
+              print(f"{name}: {status} ({record.get('reason', 'native marker sequence')})")
+              failed |= status not in ("PASS", "BLOCKED")
+              if status == "BLOCKED":
+                  print(f"::warning::{name} could not be qualified in this hosted login.")
+          if failed:
+              raise SystemExit(1)
+          PY

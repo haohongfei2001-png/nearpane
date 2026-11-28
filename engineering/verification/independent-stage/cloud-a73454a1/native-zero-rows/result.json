@@ -1,0 +1,124 @@
+{
+  "capabilityProven": false,
+  "error": null,
+  "evidence": [
+    {
+      "sample": 0,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 1,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 2,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 3,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 4,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 5,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 6,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 7,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 8,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 9,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 10,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 11,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    },
+    {
+      "sample": 12,
+      "windows": [
+        31,
+        125,
+        126
+      ]
+    }
+  ],
+  "preferencesTested": {
+    "GloballyEnabled": true,
+    "LeftStripMaximumRowCount": 0
+  },
+  "reason": "Native strip members were still presented onscreen.",
+  "requires": [
+    "A concrete render-disable mechanism",
+    "Independent group switch/merge/split controls",
+    "Engine operations verified while rendering remains disabled",
+    "Target macOS 27.0 SIP-enabled reproduction"
+  ],
+  "restoreError": null,
+  "sampleCount": 13,
+  "status": "REJECTED_RENDERER_SEPARATION"
+}

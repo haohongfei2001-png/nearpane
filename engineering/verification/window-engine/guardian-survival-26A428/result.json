@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "scope": "formal read-only Guardian survival on the physical console",
+  "originalPullRequestHEAD": "eea2141b39ace7b754fc207b20f7b305e905b713",
+  "sourceRevisionOfPhysicalSupervisor": "eea2141b39ace7b754fc207b20f7b305e905b713",
+  "localAcceptanceToolsRevision": "575c12c657133ec569e580c18734692ec091118a",
+  "productSource": "d81329d5b829630f10bae4f4bb8edf39d9824171",
+  "target": {
+    "macOS": "27.0",
+    "build": "26A428",
+    "architecture": "arm64",
+    "sip": "System Integrity Protection status: enabled."
+  },
+  "status": "BLOCKED",
+  "guardianSurvivalPassed": false,
+  "postExitReadExecution": "NOT_RUN",
+  "independentBlockers": [
+    {
+      "stage": "standardPathImage",
+      "status": "BLOCKED",
+      "reason": "running daily image lacks the survival command and request marker",
+      "runningSource": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+      "evidence": "images-and-gatekeeper.json"
+    },
+    {
+      "stage": "candidateLaunchPolicy",
+      "status": "BLOCKED",
+      "reason": "Gatekeeper rejected the exact candidate as Unnotarized Developer ID; no stapled ticket",
+      "evidence": "images-and-gatekeeper.json"
+    },
+    {
+      "stage": "ordinaryDesktop",
+      "status": "BLOCKED",
+      "reason": "two current reads showed fullscreenType4 before any quit request",
+      "evidence": "desktop-readback.json"
+    }
+  ],
+  "dailyHost": {
+    "pid": 19081,
+    "birthMicroseconds": 1795399056044071,
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "executable": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "team": "ZB9D4T66QB",
+    "permissions": {
+      "screenCapture": true,
+      "accessibility": true,
+      "postEvent": true,
+      "listenEvent": true
+    },
+    "permissionSubject": "running installed daily Host only"
+  },
+  "candidate": {
+    "hostCDHash": "819a44400baf353f9484442505c2a684b768b95d",
+    "guardianCDHash": "8e2aba5a640ec94d2bef9d731ad6c4735a296225",
+    "guardianSHA256": "99dbebde8585950c8cb7a5aa8e06ab78a6cdbeb6d7ba30e921db9148a60de75d",
+    "team": "ZB9D4T66QB",
+    "ABI": 1,
+    "hostReportSchema": 2,
+    "guardianReportSchema": 1,
+    "protocolInSignedImages": "PASS",
+    "notaryPreparation": "PASS",
+    "strictSignedExecutables": 14,
+    "distributionAssessment": "FAIL",
+    "archiveSHA256": "db6f04dc15e3132e6e277d4683e9b7ce461793b026096ce85f7e6530da138af6",
+    "launched": false
+  },
+  "notarizationAccess": {
+    "status": "BLOCKED",
+    "scope": "no project-designated profile or usable Apple credential found in visible configuration",
+    "matchingKeychainQueryStatus": [
+      -25300,
+      -25300,
+      -25300,
+      -25300
+    ],
+    "uploaded": false,
+    "secretDataRead": false,
+    "evidence": "notary-credential-scope.json",
+    "ordinarySystemException": "NOT_REQUESTED"
+  },
+  "realExecution": {
+    "hostNormalExit": "NOT_RUN",
+    "hostExitKernelWitness": null,
+    "guardianProcess": null,
+    "guardianPostExitPermissionResponsibility": null,
+    "registeredFixtureWindow": null,
+    "fixtureAXIdentityBeforeExit": null,
+    "postExitAXRawSamples": [],
+    "postExitNativeMembershipSamples": [],
+    "newTCCGrantNeeded": "UNKNOWN",
+    "newTCCRequests": 0
+  },
+  "dailyEnvironment": {
+    "status": "PASS",
+    "originalHostKeptRunning": true,
+    "sameHostBirthAndImage": true,
+    "configurationAndProfileDigestsUnchanged": true,
+    "activeLeases": 0,
+    "fixtureAndGuardianProcesses": 0,
+    "canonicalPathsCount": 1,
+    "regularHostRelaunch": "NOT_RUN",
+    "privateRollbackOnly": "PASS"
+  },
+  "safety": {
+    "parkOrHide": 0,
+    "keyboardOrPointerEventsPosted": 0,
+    "spacesCreatedMovedOrDestroyed": 0,
+    "hiddenWindowWriteAheadLeases": 0,
+    "groupSwitches": 0,
+    "gatekeeperExceptions": 0,
+    "notarySubmissions": 0,
+    "leasePhaseAdmitted": false,
+    "singleWindowHidingAdmitted": false,
+    "spacesProductScope": "OUT_OF_SCOPE"
+  },
+  "engineeringPreparation": {
+    "oldPrivateArchivePreparation": "FAIL",
+    "oldPreparationError": "frozen binary inventory differs",
+    "oldPrivateManifestExpected": 13,
+    "verifiedEnginePackageCount": 14,
+    "newPrivateArchivePreparation": "PASS",
+    "nonRunningPackageRoundTrip": "PASS",
+    "priorGuardianJSONReader": "FAIL",
+    "newGuardianJSONReaderTest": "PASS",
+    "zeroExitStatusRequired": true,
+    "localReaderCases": 17,
+    "localPackagingCases": 11,
+    "physicalHostExitProofFromLocalCases": false,
+    "hostedTestsRequestedOrRepeated": false
+  },
+  "timeline": [
+    {
+      "utc": "2026-11-23T04:54:14.564841+00:00",
+      "event": "signed permission inquiry to the existing Host",
+      "file": "installed-host-permissions.json"
+    },
+    {
+      "utc": "2026-11-23T04:55:05Z",
+      "event": "first passive desktop/focus/HID sample",
+      "file": "desktop-readback.json"
+    },
+    {
+      "utc": "2026-11-23T04:55:06Z",
+      "event": "second passive desktop/focus/HID sample",
+      "file": "desktop-readback.json"
+    },
+    {
+      "utc": "2026-11-23T04:55:29.792578+00:00",
+      "event": "checkingAdmission",
+      "file": "supervisor.json"
+    },
+    {
+      "utc": "2026-11-23T04:55:30.202818+00:00",
+      "event": "ordinaryDesktopRequiredBeforeQuit",
+      "file": "supervisor.json"
+    },
+    {
+      "utc": "2026-11-23T05:00:27.625229+00:00",
+      "event": "signed archive and Gatekeeper assessment",
+      "file": "images-and-gatekeeper.json"
+    },
+    {
+      "utc": "2026-11-23T05:02:47.536651+00:00",
+      "event": "live configuration, recovery and process observation",
+      "file": "daily-host-state.json"
+    },
+    {
+      "utc": "2026-11-23T05:10:28.611432+00:00",
+      "event": "isolated test owner signed and verified without launch",
+      "file": "signed-test-owner.json"
+    },
+    {
+      "utc": "2026-11-23T05:11:21.203601+00:00",
+      "event": "live configuration, recovery and terminal generation observation",
+      "file": "daily-host-final.json"
+    },
+    {
+      "utc": "2026-11-23T05:13:35.111163+00:00",
+      "event": "private bundles removed and zero live Guardian or fixture processes",
+      "file": "cleanup.json"
+    }
+  ],
+  "rawFilesSHA256": {
+    "cleanup.json": "e0497ce668404306171b81e35bb5008f0ce755dfb6209624b6f400a5e49a1328",
+    "daily-host-final.json": "87c66e842b38ef24e482c0d53dfa6546202c7c55878fe696b45899b66083acde",
+    "daily-host-state.json": "63f82a43a87e95669daa464ac7b077438793226a460a6d43b9fe7b001acd1cf1",
+    "desktop-readback.json": "14824bf9e278009a3994c4e5cd4947b6c5c527c486a2cbc7b4d334b4d10fb126",
+    "images-and-gatekeeper.json": "2a8dae7290f8ec0e3311e4deeadbdc94814aafaa5aebe79d83fc0a8dfa5e5731",
+    "installed-host-permissions.json": "35b507a9de37281f5196a625980a6d5c32e7759eafae4a946af3af087571cd34",
+    "local-regressions.json": "9107653306401963a4d0b37f4856f91ee784d41a5b2e696a00963728a5a1bcee",
+    "notary-credential-scope.json": "24ad54f8a4f238e49cfa461c2de699bcc19b0b63fc86233bba9c7422b59a3b3b",
+    "prepared-archive.json": "055381481e283ad150dbcd3e2a67b2ec273ab675dc9e082d3a5213d3d176c38f",
+    "private-package-rollback.json": "afb83d3f4f4791d7cdc875894264e294818fc76ee3ed32590bd15ed5813c6193",
+    "reader-failure-before-fix.json": "2c8d9a52cfef84d3cadc491c089ceb2175fae94958b029a493099faf9ddb9642",
+    "signed-test-owner.json": "eb5f68d63f1e2b0ed325b4708727c7a35241e42645c10c61b5fd15861d35bad5",
+    "supervisor.json": "4116a632a20b6346e9d632358b05365995329f43ca7b7579abafcb8a42b129c9"
+  },
+  "nextAdmission": "Use a normally admitted signed candidate with this read-only protocol and a fresh passive ordinary-desktop receipt. Execute one supervised run, then independently verify the sole returning Host and profile before grading it."
+}

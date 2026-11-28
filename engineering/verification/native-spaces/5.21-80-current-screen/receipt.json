@@ -1,0 +1,131 @@
+{
+  "source": "2cdb5eb595db8a76a54cc2c388c94e0986189e32",
+  "build": 80,
+  "installation": {
+    "hostSHA256": "ce42fbd1a9343f2f29d1ac05bf8b6c2aa0bb73efb22d50fadc253bfd5c64c4dc",
+    "hostCDHash": "88b3f3caaa72e04241b3c4099c31cf214914d260",
+    "memberFiles": 247,
+    "loadedMatchesDisk": true,
+    "backup79": "496eaee6f432f39fdd135a4a871c950d0f1bddd7baa3808e9c3bce8352fb1bb2"
+  },
+  "before": {
+    "build": 79,
+    "ownerSizes": [
+      [
+        540,
+        213
+      ],
+      [
+        240,
+        383
+      ]
+    ],
+    "previews": [
+      [
+        16,
+        15
+      ],
+      [
+        26,
+        41
+      ]
+    ],
+    "result": "FAIL"
+  },
+  "installed": {
+    "ordinaryWindowSizes": [
+      [
+        540,
+        213
+      ],
+      [
+        240,
+        383
+      ]
+    ],
+    "cards": [
+      {
+        "axSize": [
+          540,
+          213
+        ],
+        "cgSize": [
+          152,
+          141
+        ],
+        "spaceRows": 0,
+        "value": "窗口轮廓，预览 58 × 23 pt，窗口位置待核对",
+        "cardY": 1120,
+        "cardHeight": 39.5,
+        "currentSpaceMember": true
+      },
+      {
+        "axSize": [
+          240,
+          383
+        ],
+        "cgSize": [
+          240,
+          383
+        ],
+        "spaceRows": 0,
+        "value": "窗口轮廓，预览 26 × 41 pt，窗口 10，左距 42%，上距 32%，宽 16%，高 40%",
+        "cardY": 1165.5,
+        "cardHeight": 58,
+        "currentSpaceMember": true
+      }
+    ],
+    "permissions": {
+      "screen": false,
+      "accessibility": false,
+      "postEvent": false
+    },
+    "bothCards": "PASS",
+    "geometryScaleAndOrder": true,
+    "cleanup": {
+      "ownedProcessExited": true,
+      "ownedWindowsGone": true,
+      "frontmostPreserved": true,
+      "scopesPreserved": true,
+      "focusedWindowPreserved": true
+    },
+    "observerCapturedPixels": 0,
+    "pressAttemptCount": 1,
+    "completedFocusTrials": 0,
+    "selectionCleanup": {
+      "frontmostRestored": true,
+      "originalFocusedWindowRestored": true,
+      "ownedProcessExited": true,
+      "scopesRestored": true,
+      "windowNumbersGone": true
+    }
+  },
+  "isolated": {
+    "addMs": 254,
+    "coldBackgroundFixture": false,
+    "colorPixels": [
+      4561,
+      4418,
+      3218,
+      5273
+    ],
+    "currentMembership": 3,
+    "individuallyMatchedPictures": 4,
+    "initialBackground": 0,
+    "initialCardsMs": 224,
+    "literalColorPixels": [
+      4561,
+      4418,
+      3218,
+      5273
+    ],
+    "newPictureMs": 566,
+    "originalFrontPreserved": true,
+    "ownedProcessesExited": true,
+    "owners": 2,
+    "pass": true,
+    "publicVisibleFixture": true,
+    "removeMs": 557,
+    "threePicturesMs": 609
+  }
+}

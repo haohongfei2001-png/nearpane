@@ -1,0 +1,24 @@
+{
+  "scope": "twoReviewedPrivateDeveloperIDFixtureApplications",
+  "source": "b77111458e18d354d456304efd5c8317e1277104",
+  "archive": "Nearpane-5.22-90-b7711145-interactive-fixtures.zip",
+  "sha256": "f985062bf6c4bf6d05d531461d62bf3221267e7504058af94326fc9bb906f04d",
+  "bytes": 77960,
+  "strictSignatureAndExecutableReadback": "PASS",
+  "applications": {
+    "targetAndSibling": {
+      "identifier": "com.holdsnow.nearpane.stage-interactive-fixture",
+      "team": "ZB9D4T66QB",
+      "cdhash": "c5d6a238ce6c7bc504a6b536f41ef60c01527d6b",
+      "executableSHA256": "28c415bf7ac656d800ac28e5625f320d006565deb0ebc96c92424ea48ca9f0d9"
+    },
+    "bystander": {
+      "identifier": "com.holdsnow.nearpane.stage-interactive-bystander",
+      "team": "ZB9D4T66QB",
+      "cdhash": "e56e66a75ff4b38139a9459c0cbf951e3ebe7738",
+      "executableSHA256": "41f95f64cde5d208bd473856a15a908b877205d374ff150d842c42edde04526d"
+    }
+  },
+  "windowLaunches": 0,
+  "publicDistribution": false
+}

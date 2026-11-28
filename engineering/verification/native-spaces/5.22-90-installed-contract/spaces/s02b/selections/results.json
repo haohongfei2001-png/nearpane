@@ -1,0 +1,14 @@
+{
+  "R01": "BLOCKED",
+  "S02": "BLOCKED",
+  "S03": "NOT_RUN",
+  "S03Reason": "An independent system-initiated switch and a controlled native reorder are still required.",
+  "attempts": [],
+  "failed": 0,
+  "prepared": 0,
+  "reason": "fixture bundle ID or signed path changed: 57689",
+  "returnVerified": true,
+  "sent": 0,
+  "singles": 0,
+  "unknown": 0
+}

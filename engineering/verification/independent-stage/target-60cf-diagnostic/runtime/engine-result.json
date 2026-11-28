@@ -1,0 +1,148 @@
+{
+  "checks" : {
+    "cleanup" : {
+      "scope" : "all enrolled foreign windows on their original desktop; no owned Space remains",
+      "status" : "PASS"
+    },
+    "crossAppGroup" : {
+      "scope" : "two foreign apps visible, same-app sibling hidden; engine calls, not R4 input",
+      "status" : "PASS"
+    },
+    "focusRestore" : {
+      "status" : "NOT_RUN"
+    },
+    "foreignRoundTrip" : {
+      "scope" : "foreign window, same-app sibling and other-app bystander",
+      "status" : "PASS"
+    },
+    "initialVisibleBindings" : {
+      "scope" : "two existing NP_READBACK receipts per initial visible foreign window; retained standard AX identity, original home and frame; no Space write",
+      "status" : "PASS"
+    },
+    "initialYellowButton" : {
+      "scope" : "first yellow minimize before any ordinary HIDE\/SHOW, using the initially retained standard AX window; independent bystanders and return",
+      "status" : "PASS"
+    },
+    "launchCanary" : {
+      "scope" : "controller-owned panel only",
+      "status" : "PASS"
+    },
+    "repeatedSwitch" : {
+      "scope" : "A→B→C→A through candidate ABI with independent readback",
+      "status" : "PASS"
+    },
+    "sameAppIndependent" : {
+      "scope" : "only one of two windows from the same foreign app left the ordinary desktop",
+      "status" : "PASS"
+    },
+    "yellowButton" : {
+      "scope" : "real title-bar action after repeated switching → candidate hidden Space → AX deminiaturized while hidden → restored; R4 observer tested separately",
+      "status" : "FAIL"
+    }
+  },
+  "cleanup" : true,
+  "desktopGestures" : "NOT_RUN",
+  "enrolledWindows" : [
+    {
+      "attempted" : true,
+      "birth" : 1795801243662364,
+      "directory" : "\/private\/tmp\/nearpane-independent-60cf-target-diagnostic-20261128\/runtime\/FixtureA",
+      "executable" : "\/private\/tmp\/nearpane-independent-60cf-target-diagnostic-20261128\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        120,
+        574,
+        250,
+        202
+      ],
+      "group" : "F08FF18A-8488-4F66-A25C-CB24D8E4F665",
+      "hidden" : false,
+      "index" : 0,
+      "lifetime" : "67434AD1-5716-4957-B7F9-01922E3A4668",
+      "member" : "7637B382-75C0-4916-9D2B-647EB81E7A58",
+      "number" : 121955,
+      "parking" : 7086,
+      "pid" : 85912
+    },
+    {
+      "attempted" : true,
+      "birth" : 1795801243662364,
+      "directory" : "\/private\/tmp\/nearpane-independent-60cf-target-diagnostic-20261128\/runtime\/FixtureA",
+      "executable" : "\/private\/tmp\/nearpane-independent-60cf-target-diagnostic-20261128\/runtime\/kit\/FixtureA.app\/Contents\/MacOS\/FixtureA",
+      "frame" : [
+        400,
+        574,
+        250,
+        202
+      ],
+      "group" : "C1A94360-2A80-4582-8328-D115AFA40C6D",
+      "hidden" : true,
+      "index" : 1,
+      "lifetime" : "A3B49267-9856-4293-8799-BBBEB8F6F2A5",
+      "member" : "D2584D79-2CB2-4E16-A56F-19F5142AEDC9",
+      "number" : 121957,
+      "parking" : 7087,
+      "pid" : 85912
+    },
+    {
+      "attempted" : true,
+      "birth" : 1795801244377275,
+      "directory" : "\/private\/tmp\/nearpane-independent-60cf-target-diagnostic-20261128\/runtime\/FixtureB",
+      "executable" : "\/private\/tmp\/nearpane-independent-60cf-target-diagnostic-20261128\/runtime\/kit\/FixtureB.app\/Contents\/MacOS\/FixtureB",
+      "frame" : [
+        680,
+        574,
+        250,
+        202
+      ],
+      "group" : "25E74C81-613C-44C2-8282-3B2777C6C850",
+      "hidden" : true,
+      "index" : 0,
+      "lifetime" : "3BAE6640-63D8-4254-92C2-21332654063B",
+      "member" : "50A43AC7-1A04-4C5A-ADF3-39E578A85C18",
+      "number" : 121960,
+      "parking" : 7088,
+      "pid" : 85915
+    }
+  ],
+  "fixtureFocusCommands" : 1,
+  "foreignProcesses" : true,
+  "fullScreenSplitView" : "NOT_RUN",
+  "missionControl" : "NOT_RUN",
+  "nonce" : "a03290fe-f572-4349-a580-690e7d0b5d87",
+  "operationReason" : "yellowButtonFailed",
+  "operationStatus" : "FAIL",
+  "ordinaryHome" : 4,
+  "originalSpaceInventory" : [
+    4,
+    7,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    17,
+    18,
+    19,
+    31,
+    38,
+    654,
+    6628,
+    6629,
+    7015,
+    7015
+  ],
+  "qualificationGranted" : false,
+  "R4ProductPath" : "NOT_RUN",
+  "reason" : "yellowButtonFailed",
+  "schema" : 1,
+  "setupAXWrites" : 2,
+  "status" : "FAIL",
+  "targetEnvironment" : {
+    "exactTarget" : true,
+    "kernelBuild" : "26A428",
+    "sipEnabled" : true
+  },
+  "windowWrites" : 25,
+  "windowWritesScope" : "engine hide\/restore request attempts, including rejected or unverified requests"
+}

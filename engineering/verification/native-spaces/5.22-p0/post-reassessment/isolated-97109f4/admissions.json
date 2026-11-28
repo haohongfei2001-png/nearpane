@@ -1,0 +1,270 @@
+{
+  "attempts": [
+    {
+      "trial": "resources",
+      "source": "97109f436c503da4ea9837fb1079adbc58a0f3dc",
+      "signedHost": "7db1464f4da84318335e5fc0610edde6e1e5da2a",
+      "scope": "DIAGNOSTIC_ONLY",
+      "officialGateEligible": false,
+      "protectedInstallation": {
+        "P0-diagnostic": {
+          "status": "UNKNOWN",
+          "reason": "ValueError: Missing or indirect icon resource: /private/tmp/nearpane-p2-registered.ZifdlStO/design/assets/2026-11-15-v2/manifest.json"
+        }
+      },
+      "restoration": "PASS",
+      "cleanup": "PASS",
+      "rawInstallSHA256": "c329dcd0b1da14b8e22df2a59d6a7e95d4e7851a10107544828033bb69f66553",
+      "outcome": "BLOCKED",
+      "reason": "missingFrozenIconResourcesInRunnerCheckout",
+      "productIntents": 0,
+      "productSteps": 0
+    },
+    {
+      "trial": "hid-schema",
+      "source": "97109f436c503da4ea9837fb1079adbc58a0f3dc",
+      "signedHost": "7db1464f4da84318335e5fc0610edde6e1e5da2a",
+      "scope": "DIAGNOSTIC_ONLY",
+      "officialGateEligible": false,
+      "protectedInstallation": {
+        "P0-diagnostic": {
+          "status": "BLOCKED",
+          "scope": "DIAGNOSTIC_ONLY",
+          "officialGateEligible": false,
+          "exit": 2,
+          "receipt": "p0/results.json",
+          "sha256": "2406619c2764461e180639511f57cf4544607fad078a7aac3ab19e96977d51c9"
+        }
+      },
+      "restoration": "PASS",
+      "cleanup": "PASS",
+      "rawInstallSHA256": "6eafa3425422b089377dedddb242fba1b232b6e54392b325478423f3158191f8",
+      "outcome": "BLOCKED",
+      "reason": "physical input changed before Stage setup",
+      "hostNonceProbe": [
+        {
+          "action": "probe",
+          "at": 281684.5713795417,
+          "birth": 1795208289848644,
+          "canMove": false,
+          "canSwitch": false,
+          "generation": "4a96295d-a3bb-4e05-801a-9dcc3960c23e",
+          "issued": false,
+          "nonce": "8F702831-DECB-4E71-AF35-096C743C3479",
+          "operation": "8F702831-DECB-4E71-AF35-096C743C3479",
+          "pid": 99791,
+          "ready": true,
+          "revision": "97109f436c503da4ea9837fb1079adbc58a0f3dc",
+          "stageManagerOwnsDispatch": true,
+          "state": "ready",
+          "submittedSteps": 0
+        }
+      ],
+      "physicalCleanup": {
+        "errors": [],
+        "newerHumanInput": false,
+        "originalCurrentRestored": true,
+        "originalFocusRestoration": {
+          "issued": false,
+          "reason": "released"
+        },
+        "originalFocusedWindowRestored": true,
+        "originalForegroundRestored": true,
+        "originalOrderAndUUIDsRestored": true,
+        "ownedAppsExited": true,
+        "preservedNewerState": false,
+        "stageManager": {
+          "changedByRun": false,
+          "current": [
+            {
+              "ax": true,
+              "screen": true,
+              "state": true,
+              "uid": 501,
+              "uptime": 281687.7625969167
+            },
+            {
+              "ax": true,
+              "screen": true,
+              "state": true,
+              "uid": 501,
+              "uptime": 281687.98633208335
+            }
+          ],
+          "original": true,
+          "status": "PASS"
+        },
+        "status": "PASS"
+      },
+      "sourceSHA256": "2406619c2764461e180639511f57cf4544607fad078a7aac3ab19e96977d51c9",
+      "fixtureActions": [],
+      "productIntents": 0,
+      "productSteps": 0,
+      "rawOperationsSHA256": "d9fc56688c11d4b6d1da231e51772bc422f45b0f878a54307fb9b93ac43102eb"
+    },
+    {
+      "trial": "desktop-add",
+      "source": "97109f436c503da4ea9837fb1079adbc58a0f3dc",
+      "signedHost": "7db1464f4da84318335e5fc0610edde6e1e5da2a",
+      "scope": "DIAGNOSTIC_ONLY",
+      "officialGateEligible": false,
+      "protectedInstallation": {
+        "P0-diagnostic": {
+          "status": "BLOCKED",
+          "scope": "DIAGNOSTIC_ONLY",
+          "officialGateEligible": false,
+          "exit": 2,
+          "receipt": "p0/results.json",
+          "sha256": "d7e32dd72f25cdfa3706ea8d7b6dedb05ee320d232f4f1a20c62e3872d0a6fef"
+        }
+      },
+      "restoration": "PASS",
+      "cleanup": "PASS",
+      "rawInstallSHA256": "b2acd087fa751b50271ddd27d46b3b1b2c61426fe5875691ff7418ae32218478",
+      "outcome": "BLOCKED",
+      "reason": "add: system overview is not exposed",
+      "hostNonceProbe": [
+        {
+          "action": "probe",
+          "at": 281929.7754280834,
+          "birth": 1795208535104098,
+          "canMove": false,
+          "canSwitch": false,
+          "generation": "e9917ae7-de11-4800-88ce-3c3f30a7c99b",
+          "issued": false,
+          "nonce": "B0EC3459-E1F0-4EDE-BD61-FC84F7D334F7",
+          "operation": "B0EC3459-E1F0-4EDE-BD61-FC84F7D334F7",
+          "pid": 3225,
+          "ready": true,
+          "revision": "97109f436c503da4ea9837fb1079adbc58a0f3dc",
+          "stageManagerOwnsDispatch": true,
+          "state": "ready",
+          "submittedSteps": 0
+        }
+      ],
+      "physicalCleanup": {
+        "errors": [],
+        "independentFocusReadbacks": [
+          {
+            "birth": 1795208535104098,
+            "number": 53740,
+            "pid": 3225
+          },
+          {
+            "birth": 1795208535104098,
+            "number": 53740,
+            "pid": 3225
+          }
+        ],
+        "newerHumanInput": false,
+        "ordinary": {
+          "cleanupCurrent": 5095,
+          "created": 0,
+          "errors": [],
+          "focusRestored": true,
+          "originalCurrent": 5095,
+          "originalOrderRestored": true,
+          "outstanding": [],
+          "preservedLatestOrder": true,
+          "removed": 0,
+          "retainedUserSelectedSpace": false,
+          "topologyRestored": true
+        },
+        "originalCurrentRestored": true,
+        "originalFocusRestoration": {
+          "actions": [
+            "activation accepted"
+          ],
+          "issued": true,
+          "observations": [
+            {
+              "systemFocus": {
+                "birth": 1794786957628325,
+                "number": null,
+                "pid": 702
+              },
+              "uptime": 281944.8363534167
+            },
+            {
+              "systemFocus": {
+                "birth": 1795208535104098,
+                "number": 53740,
+                "pid": 3225
+              },
+              "uptime": 281944.87257504166
+            },
+            {
+              "systemFocus": {
+                "birth": 1795208535104098,
+                "number": 53740,
+                "pid": 3225
+              },
+              "uptime": 281944.875786125
+            },
+            {
+              "systemFocus": {
+                "birth": 1795208535104098,
+                "number": 53740,
+                "pid": 3225
+              },
+              "uptime": 281944.88102045836
+            },
+            {
+              "systemFocus": {
+                "birth": 1795208535104098,
+                "number": 53740,
+                "pid": 3225
+              },
+              "uptime": 281945.0049294584
+            }
+          ],
+          "restored": true
+        },
+        "originalFocusedWindowRestored": true,
+        "originalForegroundRestored": true,
+        "originalOrderAndUUIDsRestored": true,
+        "ownedAppsExited": true,
+        "ownedWindowsGone": true,
+        "preservedNewerState": false,
+        "retainedFocusConfirmedTwice": true,
+        "stageManager": {
+          "countsAsAppleUIAcceptance": false,
+          "method": "isolated acceptance, temporary existing login boolean",
+          "runtimeReceipt": "stage-restore-runtime.json",
+          "setupOnly": true,
+          "status": "PASS"
+        },
+        "status": "PASS"
+      },
+      "sourceSHA256": "d7e32dd72f25cdfa3706ea8d7b6dedb05ee320d232f4f1a20c62e3872d0a6fef",
+      "fixtureActions": [
+        {
+          "event": "system-fixture-intent",
+          "monotonic": 281938.667436416,
+          "operation": "add",
+          "current": 5095,
+          "target": null,
+          "other": null
+        },
+        {
+          "event": "system-fixture-result",
+          "monotonic": 281942.338526833,
+          "operation": "add",
+          "target": null,
+          "acknowledged": false,
+          "issued": false,
+          "reason": "system overview is not exposed"
+        }
+      ],
+      "productIntents": 0,
+      "productSteps": 0,
+      "rawOperationsSHA256": "2dc56c3112603e47af7c39552c5c4962330b9042b40fcaf504c635712877ea32"
+    }
+  ],
+  "diagnosticGestures": 0,
+  "formalStages": {
+    "roundTrip": "NOT_RUN",
+    "ten": "NOT_RUN",
+    "fifty": "NOT_RUN"
+  }
+}

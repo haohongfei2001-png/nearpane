@@ -1,0 +1,17 @@
+{"event":"scenario-result","monotonic":234734.794740125,"scenario":"D01","status":"BLOCKED","reason":"Installed Host move capability is false or unknown; zero drag inputs dispatched."}
+{"event":"creation-ledger","monotonic":234735.032778166,"path":"/private/tmp/nearpane-contract-suite-20261120/build/verification/secondary-route-followup/4427657e-3b1d-44ec-8c21-ac6fd1ddcb1a/provision","operation":"eafbcb8b-045f-4948-bbc2-4f03a9a47f79"}
+{"event":"system-fixture-intent","monotonic":234735.31536975,"operation":"add","current":6,"target":null,"other":null}
+{"event":"system-fixture-result","monotonic":234739.292832,"operation":"add","target":null,"issued":true,"acknowledged":true}
+{"event":"system-fixture-created","monotonic":234739.896183166,"desktop":{"id":4887,"type":0,"uuid":"59FA8CC3-E7DF-B380-AD0E-24719F4E7DC8"},"oldCurrent":6,"newCurrent":6}
+{"event":"system-fixture-intent","monotonic":234740.8301825,"operation":"select","current":6,"target":4887,"other":null}
+{"event":"system-fixture-result","monotonic":234741.014413208,"operation":"select","target":4887,"acknowledged":false,"reason":"Mission Control was already open","issued":false}
+{"event":"scenario-result","monotonic":234741.014736166,"scenario":"R01","status":"BLOCKED","reason":"select: Mission Control was already open"}
+{"event":"scenario-result","monotonic":234741.014899833,"scenario":"S02","status":"BLOCKED","reason":"select: Mission Control was already open"}
+{"event":"scenario-result","monotonic":234741.01504425,"scenario":"S01","status":"BLOCKED","reason":"select: Mission Control was already open"}
+{"event":"scenario-result","monotonic":234741.015144916,"scenario":"W02","status":"BLOCKED","reason":"select: Mission Control was already open"}
+{"event":"scenario-result","monotonic":234741.015223708,"scenario":"N01","status":"BLOCKED","reason":"select: Mission Control was already open"}
+{"event":"scenario-result","monotonic":234741.015320625,"scenario":"S03","status":"BLOCKED","reason":"select: Mission Control was already open"}
+{"event":"scenario-result","monotonic":234741.015442875,"scenario":"W01","status":"BLOCKED","reason":"select: Mission Control was already open"}
+{"event":"suite-stopped","monotonic":234741.015623541,"reason":"select: Mission Control was already open"}
+{"event":"system-fixture-intent","monotonic":234742.689200166,"operation":"remove","current":6,"target":4887,"other":null}
+{"event":"system-fixture-result","monotonic":234743.576088375,"operation":"remove","target":4887,"issued":true,"acknowledged":true,"overviewComposite":{"otherOrdinary":0,"pid":647,"newSinceOverview":true,"owner":"com.apple.WindowManager","number":45736}}

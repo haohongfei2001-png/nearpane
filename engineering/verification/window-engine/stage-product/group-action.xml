@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="TestResults" errors="0" tests="27" failures="0" skipped="0" time="1.186836083">
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="groupSelectionUsesItsLastExactMemberAndPreservesSiblingFocusChoices()" time="0.332145375" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="threeGroupsRequireConsentFocusOwnershipAndFullReadback()" time="0.6339705" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="unknownAfterIssuedIsDurableAndNeverReplayed()" time="0.598226292" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch()" time="0.527708" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow()" time="0.362149709" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="focusTakeoverAfterHideNeverRefocusesOrCommitsTheSwitch()" time="0.596872625" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_:)" time="0.598942542" />
+    <testcase classname="NearpaneCoreTests.StageGroupCoordinatorTests" name="latePhysicalChangeProtectsBystandersAndTheLastVerifiedGroup()" time="0.599074542" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="gestureSurvivesUnrelatedRefreshButNotReplacedOwnerSpaceOrTopology()" time="0.598897208" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="eachGestureRequiresTheOriginalAXElementEvenIfTheNumericIDIsReused()" time="0.634157875" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="externalActivationRetiresOnlyThePendingCrossSpaceFocus()" time="0.597825541" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="lateFocusWriteNeedsFreshIntentAndTheOriginalLifetime()" time="0.598423625" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="ordinaryCardPointerDistinguishesClickDropAndCancelledTargetsWithoutOrderingAWindow()" time="0.597866542" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="emptyOrdinaryFullscreenAndUnreadSpacesProduceNoSidebarEntries()" time="0.634085625" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="onlyConfirmedWindowsAppearOnceAndDisappearWhenTheyClose()" time="0.597815042" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="internalCatalogKeepsNeverVisitedAndEmptySpacesForDispatch()" time="0.597781416" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="newerChoiceSuppressesOldPostSwitchFocusAndCoalescesIntermediateIntent()" time="0.597881125" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="subsequentSelectionCannotDiscardQueuedMove()" time="0.597862667" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="groupOwnerExcludesQueuedAndNewFocusAndDragBeforePreparation()" time="0.597807" />
+    <testcase classname="NearpaneUITests.NativeSidebarNavigationTests" name="revocationCancelsOnlyFutureGestureSteps()" time="0.598282208" />
+    <testcase classname="NearpaneUITests.DesktopRosterPresentationTests" name="glassChangesTheBackdropWhileWindowPixelsAndCaptionInkStayOpaque()" time="0.597960292" />
+    <testcase classname="NearpaneUITests.DesktopRosterPresentationTests" name="nativeRosterStartsAfterToolsAndTheFifthWindowContinuesDown()" time="1.186076333" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="foreignMembershipRebuiltWindowDisagreementAndNativeTakeoverWithholdTheCard()" time="0.5993205" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="focusOnAnotherDisplayNeedsTwoInventoriesAndIndependentVisibleFocus()" time="0.633841417" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="actualHostEvidenceSuppliesAGroupProjectionWithoutChangingTheReaderReceipt()" time="0.597831666" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="theIndependentRawRosterRequiresUniqueCurrentKeysAndAKnownRole()" time="0.597752625" />
+    <testcase classname="NearpaneUITests.StageHostGroupProjectionTests" name="anUnavailableGroupClickKeepsTheWorkSetAndOnlyAnExplicitMemberMayFocus()" time="0.598238791" />
+  </testsuite>
+</testsuites>

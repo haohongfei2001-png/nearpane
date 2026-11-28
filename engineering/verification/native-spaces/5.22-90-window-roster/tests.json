@@ -1,0 +1,6 @@
+{
+  "swift": "✔ Test run with 520 tests in 76 suites passed after 12.418 seconds.",
+  "python": "................................\n----------------------------------------------------------------------\nRan 32 tests in 0.046s\n\nOK",
+  "firstPackageManagerInvocation": "Default xctest signing stopped before running tests; repository native scripts/test.sh runs the supported Swift Testing toolchain.",
+  "originalIntegrationAssertion": "The earlier panel test expected text below the tools. That assertion failed once on the corrected UI and was replaced with a calibrated blank-area pixel check."
+}

@@ -1,0 +1,55 @@
+{
+  "status": "CAPTURED",
+  "selection": "existing ordinary desktop",
+  "pixelReadRequested": true,
+  "systemActions": 0,
+  "installed": {
+    "version": "5.22",
+    "build": "90",
+    "source": "f50d6ac5394be994e657abd77e7fdca79a77b4bc",
+    "cdHash": "239df93c60835fe5523214d8b5163a27d87e60ef"
+  },
+  "binding": {
+    "pid": 48609,
+    "birth": 1795187905023565,
+    "hash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "panel": 52254,
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "space": 5091,
+    "spaceUUID": "AFCD0CD3-4147-8E26-1FA7-AD4B58564705"
+  },
+  "leaseSHA256": null,
+  "image": "compact-tools.png",
+  "independentReads": 3,
+  "frame": {
+    "controls": {
+      "tray-camera-entry": 1,
+      "tray-content": 1,
+      "voice-capture-toggle": 1,
+      "tray-file-drop": 1
+    },
+    "hash": "239df93c60835fe5523214d8b5163a27d87e60ef",
+    "width": 480,
+    "spaceUUID": "AFCD0CD3-4147-8E26-1FA7-AD4B58564705",
+    "space": 5091,
+    "status": "CAPTURED",
+    "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "birth": 1795187905023565,
+    "nativeTransparencyBacking": "solidWhite",
+    "sampleUptime": [
+      261305.08685770835,
+      261305.18483820834
+    ],
+    "lumaRange": [
+      38,
+      255
+    ],
+    "panel": 52254,
+    "filter": "desktopIndependentWindow",
+    "includedWindowCount": 1,
+    "sha256": "6ee45063bfc8a3e13b9330258116bf1bae4aa813842072aad791cbdcde0d9dd4",
+    "height": 300,
+    "scale": 2,
+    "pid": 48609
+  }
+}

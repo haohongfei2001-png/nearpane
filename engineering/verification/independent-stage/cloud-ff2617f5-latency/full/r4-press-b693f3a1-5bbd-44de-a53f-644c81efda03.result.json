@@ -1,0 +1,170 @@
+{
+  "attributeTimeoutMS" : 250,
+  "axError" : 0,
+  "directEngineInvocation" : false,
+  "discoveryBudgetMS" : 6000,
+  "inputUptime" : 1126.5791733333333,
+  "issued" : true,
+  "nonce" : "536418c7-6098-41ed-aed9-c68a621b2559",
+  "panelFrame" : [
+    784,
+    31,
+    240,
+    679
+  ],
+  "panelFrameRead" : -25204,
+  "physicalPointerGesture" : false,
+  "prePress" : {
+    "actionRead" : "NOT_REPEATED",
+    "actionsPreviouslyConfirmed" : true,
+    "batchFieldCount" : 6,
+    "batchRead" : 0,
+    "enabled" : true,
+    "enabledRead" : 0,
+    "frame" : [
+      800,
+      318,
+      208,
+      18
+    ],
+    "frameRead" : 0,
+    "identifier" : "native-held-group:DAD8DE71-2152-40E2-96E6-11A69C483A32",
+    "identifierRead" : 0,
+    "insidePanel" : true,
+    "ownerMatches" : true,
+    "ownerRead" : 0,
+    "positionRead" : 0,
+    "role" : "AXButton",
+    "roleRead" : 0,
+    "sameOriginalElement" : true,
+    "sameRetainedPanel" : true,
+    "sizeRead" : 0,
+    "windowMatches" : true,
+    "windowRead" : 0
+  },
+  "prePressContext" : {
+    "configurationBytes" : true,
+    "onScreenCGPanel" : true,
+    "panelFrameChanged" : 0,
+    "parentSignatureAndIdentity" : true,
+    "retainedAXPanelIdentity" : true
+  },
+  "prePressPanelFrame" : [
+    784,
+    31,
+    240,
+    679
+  ],
+  "prePressPanelIdentity" : {
+    "canonicalNumber" : 78,
+    "canonicalNumberRead" : 0,
+    "expectedNumber" : 78,
+    "ownerMatches" : true,
+    "ownerRead" : 0
+  },
+  "prePressRediscoveries" : 0,
+  "qualificationGranted" : false,
+  "reason" : "realAccessibilityPressIssued",
+  "schema" : 1,
+  "status" : "ISSUED",
+  "tree" : {
+    "complete" : true,
+    "matchingButtons" : 1,
+    "nodes" : [
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXWindow",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : 0,
+        "role" : "AXScrollArea",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "native-held-group:86BC4F64-B3F6-439E-9D99-9C2B07446301",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "actionRead" : 0,
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "enabled" : true,
+        "enabledRead" : 0,
+        "frame" : [
+          800,
+          318,
+          208,
+          18
+        ],
+        "frameRead" : 0,
+        "identifier" : "native-held-group:DAD8DE71-2152-40E2-96E6-11A69C483A32",
+        "identifierRead" : 0,
+        "insidePanel" : true,
+        "ownerMatches" : true,
+        "ownerRead" : 0,
+        "positionRead" : 0,
+        "pressSupported" : true,
+        "role" : "AXButton",
+        "roleRead" : 0,
+        "sameRetainedPanel" : true,
+        "sizeRead" : 0,
+        "windowMatches" : true,
+        "windowRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "current-desktop-window:37426:53",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      }
+    ],
+    "visited" : 9
+  },
+  "uptime" : 1126.5802977916667,
+  "windowListRead" : 0
+}

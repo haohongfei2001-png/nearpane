@@ -1,0 +1,47 @@
+{
+  "scope": "isolatedSigningCandidateArchiveReadback",
+  "filename": "Nearpane-5.22-90.zip",
+  "bytes": 31848588,
+  "sha256": "1366b7639e6ec407f12c0434d770f48a5494dd0938eb328d5c80b087a1205e74",
+  "source": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+  "hostCDHash": "64e2214263f2b8e028923973bee68002f8e512ac",
+  "guardianCDHash": "1d5d5ecb1ec101841420d0c66d5af98d1112a86d",
+  "firstWorkspaceExtraction": "FAIL",
+  "workspaceExtractionRepeat": {
+    "host": {
+      "exit": 1,
+      "sha256": "2ac5aff1ef683745f5d0d8d099b163ca303062c5c360ae7e9bec79a32bdafcf6",
+      "sha256Match": true,
+      "cdhashMatch": true,
+      "error": "Nearpane.app: resource fork, Finder information, or similar detritus not allowed"
+    },
+    "guardian": {
+      "exit": 0,
+      "sha256": "67eab7cf7e903648a0a7b96337ad94795287a8739f897aaa67ebfbedcee52df6",
+      "sha256Match": true,
+      "cdhashMatch": true,
+      "error": null
+    }
+  },
+  "privateTemporaryExtraction": {
+    "host": {
+      "exit": 0,
+      "sha256": "2ac5aff1ef683745f5d0d8d099b163ca303062c5c360ae7e9bec79a32bdafcf6",
+      "sha256Match": true,
+      "cdhashMatch": true,
+      "error": null
+    },
+    "guardian": {
+      "exit": 0,
+      "sha256": "67eab7cf7e903648a0a7b96337ad94795287a8739f897aaa67ebfbedcee52df6",
+      "sha256Match": true,
+      "cdhashMatch": true,
+      "error": null
+    }
+  },
+  "candidateExecutions": 0,
+  "installation": "NOT_RUN",
+  "status": "PASS",
+  "statusAppliesTo": "strictSignatureAndDigestsAfterPrivateTemporaryExtraction",
+  "workspaceExtractionStatus": "FAIL"
+}

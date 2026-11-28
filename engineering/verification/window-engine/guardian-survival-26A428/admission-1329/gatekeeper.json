@@ -1,0 +1,53 @@
+{
+  "startedUTC": "2026-11-23T05:32:54.672244+00:00",
+  "endedUTC": "2026-11-23T05:32:56.939123+00:00",
+  "archiveSHA256": "db6f04dc15e3132e6e277d4683e9b7ce461793b026096ce85f7e6530da138af6",
+  "source": "d81329d5b829630f10bae4f4bb8edf39d9824171",
+  "host": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "819a44400baf353f9484442505c2a684b768b95d",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "guardian": {
+    "Identifier": "com.holdsnow.nearpane.alpha.corner-guardian",
+    "CDHash": "8e2aba5a640ec94d2bef9d731ad6c4735a296225",
+    "TeamIdentifier": "ZB9D4T66QB"
+  },
+  "strictSignature": {
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "previousFourteenSignatureReceipt": "../prepared-archive.json",
+  "beforeLocalTicket": {
+    "exit": 65,
+    "stdout": "Processing: Nearpane.app\nNearpane.app does not have a ticket stapled to it.",
+    "stderr": ""
+  },
+  "existingTicketLookup": {
+    "exit": 65,
+    "stdout": "Processing: Nearpane.app\nCloudKit query for Nearpane.app (2/819a44400baf353f9484442505c2a684b768b95d) failed due to \"Record not found\".\nCould not find base64 encoded ticket in response for 2/819a44400baf353f9484442505c2a684b768b95d\nThe staple and validate action failed! Error 65.",
+    "stderr": ""
+  },
+  "terminalLocalTicket": {
+    "exit": 65,
+    "stdout": "Processing: Nearpane.app\nNearpane.app does not have a ticket stapled to it.",
+    "stderr": ""
+  },
+  "gatekeeper": {
+    "exit": 3,
+    "stdout": "",
+    "stderr": "Nearpane.app: rejected\nsource=Unnotarized Developer ID"
+  },
+  "distributionPolicy": {
+    "exit": 70,
+    "stdout": "{\"output\": [{\n  \"SyspolicyCheckAdvice\" : \"If this application has already been uploaded to the Apple notary service, please make sure to attach the ticket with the `stapler staple` command. If not, please upload to the Apple notary service using Xcode or via `notarytool`. \",\n  \"SyspolicyCheckErrorLevel\" : \"Fatal\",\n  \"SyspolicyCheckDocumentationLink\" : \"https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution.\",\n  \"SyspolicyCheckErrorFile\" : \"Nearpane.app\",\n  \"SyspolicyCheckLongError\" : \"A Notarization ticket is not stapled to this application.\",\n  \"SyspolicyCheckShortError\" : \"Notary Ticket Missing\",\n  \"SyspolicyCheckAdditionalInformation\" : \"\"\n}]}",
+    "stderr": "Only one signature found in file://Nearpane.app, skipping dual signature check"
+  },
+  "admittedPrivateArchiveSHA256": null,
+  "executablesUnchanged": true,
+  "notarySubmissions": 0,
+  "appLaunches": 0,
+  "standardPathInstallations": 0,
+  "privatePolicyCopyRemoved": true
+}

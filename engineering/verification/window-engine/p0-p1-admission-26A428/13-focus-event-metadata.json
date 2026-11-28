@@ -1,0 +1,930 @@
+{
+  "status": "OBSERVED",
+  "exit": 0,
+  "startLocal": "2026-11-22 22:35:21 +0800",
+  "endLocal": "2026-11-22 22:35:32 +0800",
+  "systemEmitters": [
+    "Dock",
+    "WindowManager",
+    "WindowServer",
+    "launchservicesd",
+    "runningboardd",
+    "lsd",
+    "NearpaneHost"
+  ],
+  "matchedRecords": 191,
+  "emitterCounts": {
+    "launchservicesd": 51,
+    "lsd": 29,
+    "runningboardd": 105,
+    "Dock": 1,
+    "WindowManager": 1,
+    "NearpaneHost": 4
+  },
+  "boundMetadata": [
+    {
+      "timestamp": "2026-11-22 22:35:22.999816+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "edge",
+        "githubDesktop",
+        "nearpane"
+      ],
+      "matchedTerms": [
+        "activation"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.010061+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "edge"
+      ],
+      "matchedTerms": [
+        "frontmost"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.012027+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "githubDesktop"
+      ],
+      "matchedTerms": [
+        "activation"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.013420+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "edge"
+      ],
+      "matchedTerms": [
+        "frontmost"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.933148+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.933252+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.933330+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.934219+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.934221+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.934345+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.944802+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.944806+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.944809+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.944915+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.945700+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.945779+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.945879+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.946169+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.946170+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.946187+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.946188+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.946194+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.946334+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.946764+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.948376+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.948454+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949144+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949390+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949444+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949445+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949447+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949448+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949460+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949461+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949461+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949461+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.949530+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.956752+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.956787+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.957031+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.957315+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.957357+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.959052+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.959317+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:23.960057+0800",
+      "emitter": "launchservicesd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.054494+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.724875+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.724996+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.725094+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.726040+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.726042+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.726182+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.737825+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.737830+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.737832+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.737932+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738505+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738598+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738699+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738944+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738945+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738951+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738952+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.738953+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.739062+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.739450+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.739621+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.739622+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.739622+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.739622+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.739658+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.740653+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.740724+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.741026+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.741026+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.741027+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.741028+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.741254+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.741506+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.750401+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.750424+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.750638+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.750860+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.750885+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.752289+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.752516+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.752916+0800",
+      "emitter": "launchservicesd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.755537+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "githubDesktop"
+      ],
+      "matchedTerms": [
+        "frontmost"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.759559+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "githubDesktop"
+      ],
+      "matchedTerms": [
+        "frontmost"
+      ]
+    },
+    {
+      "timestamp": "2026-11-22 22:35:24.847206+0800",
+      "emitter": "runningboardd",
+      "subjectsMentioned": [
+        "systemOverview"
+      ],
+      "matchedTerms": [
+        "missionControl"
+      ]
+    }
+  ],
+  "causalAttribution": "UNKNOWN",
+  "scope": "retained system logs; allowlisted process identities and event categories only; free text is not retained"
+}

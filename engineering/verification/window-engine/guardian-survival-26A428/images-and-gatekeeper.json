@@ -1,0 +1,119 @@
+{
+  "schema": 1,
+  "atUTC": "2026-11-23T05:00:27.625229+00:00",
+  "candidateArchive": "Nearpane-5.22-90-d81329d5-arm64.zip",
+  "candidateArchiveSHA256": "db6f04dc15e3132e6e277d4683e9b7ce461793b026096ce85f7e6530da138af6",
+  "candidate": {
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "singleInstance": true,
+    "version": "5.22",
+    "build": "90",
+    "source": "d81329d5b829630f10bae4f4bb8edf39d9824171",
+    "engineABI": 1,
+    "engineSource": "d81329d5b829630f10bae4f4bb8edf39d9824171",
+    "host": {
+      "identifier": "com.holdsnow.nearpane.alpha",
+      "team": "ZB9D4T66QB",
+      "cdhash": "819a44400baf353f9484442505c2a684b768b95d",
+      "secureTimestamp": "Nov 23, 2026 at 10:53:39",
+      "hardened": true,
+      "designatedRequirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "sha256": "bb951355f09aa4bac4150ae2d58a7a5504fc20e97ddfb45af46d57f6cedbc9c1",
+      "arch": "arm64"
+    },
+    "guardian": {
+      "identifier": "com.holdsnow.nearpane.alpha.corner-guardian",
+      "team": "ZB9D4T66QB",
+      "cdhash": "8e2aba5a640ec94d2bef9d731ad6c4735a296225",
+      "secureTimestamp": "Nov 23, 2026 at 10:53:30",
+      "hardened": true,
+      "designatedRequirement": "identifier \"com.holdsnow.nearpane.alpha.corner-guardian\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "sha256": "99dbebde8585950c8cb7a5aa8e06ab78a6cdbeb6d7ba30e921db9148a60de75d",
+      "arch": "arm64"
+    },
+    "guardianPin": "99dbebde8585950c8cb7a5aa8e06ab78a6cdbeb6d7ba30e921db9148a60de75d",
+    "matchesSignedGuardianPin": true,
+    "strictDeepVerification": 0,
+    "hostProtocolMarkers": {
+      "guardian-survival.request": true,
+      "--inspect-fixture-after-host-exit": true
+    },
+    "guardianProtocolMarkers": {
+      "--inspect-fixture-after-host-exit": true,
+      "guardian-post-exit.json": true,
+      "readOnlyOriginalObjectAcrossHostExit": true
+    }
+  },
+  "daily": {
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "singleInstance": true,
+    "version": "5.22",
+    "build": "90",
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "engineABI": 1,
+    "engineSource": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "host": {
+      "identifier": "com.holdsnow.nearpane.alpha",
+      "team": "ZB9D4T66QB",
+      "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+      "secureTimestamp": null,
+      "hardened": false,
+      "designatedRequirement": "identifier \"com.holdsnow.nearpane.alpha\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "sha256": "488c61c412064a9894801ba6b888fb116f18aa9b005ff4b274f00bae442ef2b8",
+      "arch": "arm64"
+    },
+    "guardian": {
+      "identifier": "com.holdsnow.nearpane.alpha.corner-guardian",
+      "team": "ZB9D4T66QB",
+      "cdhash": "a1d9d62dfa6a131dd1909a42513f39d4c78fe5f6",
+      "secureTimestamp": null,
+      "hardened": true,
+      "designatedRequirement": "identifier \"com.holdsnow.nearpane.alpha.corner-guardian\" and anchor apple generic and certificate 1[field.1.2.840.113635.100.6.2.6] /* exists */ and certificate leaf[field.1.2.840.113635.100.6.1.13] /* exists */ and certificate leaf[subject.OU] = ZB9D4T66QB",
+      "sha256": "7d8624c337ffb359999b101230cdac59c1c8609218cb05429e46080918cf1de3",
+      "arch": "arm64"
+    },
+    "guardianPin": "7d8624c337ffb359999b101230cdac59c1c8609218cb05429e46080918cf1de3",
+    "matchesSignedGuardianPin": true,
+    "strictDeepVerification": 0,
+    "hostProtocolMarkers": {
+      "guardian-survival.request": false,
+      "--inspect-fixture-after-host-exit": false
+    },
+    "guardianProtocolMarkers": {
+      "--inspect-fixture-after-host-exit": false,
+      "guardian-post-exit.json": false,
+      "readOnlyOriginalObjectAcrossHostExit": false
+    }
+  },
+  "policy": {
+    "gatekeeperEnabled": {
+      "exit": 0,
+      "stdout": "assessments enabled",
+      "stderr": ""
+    },
+    "signedExecuteAssessment": {
+      "exit": 3,
+      "stdout": "",
+      "stderr": "Nearpane.app: rejected\nsource=Unnotarized Developer ID"
+    },
+    "stapledTicket": {
+      "exit": 65,
+      "stdout": "Processing: Nearpane.app\nNearpane.app does not have a ticket stapled to it.",
+      "stderr": ""
+    },
+    "distributionPolicy": {
+      "exit": 70,
+      "stdout": "{\"output\": [{\n  \"SyspolicyCheckErrorLevel\" : \"Fatal\",\n  \"SyspolicyCheckAdditionalInformation\" : \"\",\n  \"SyspolicyCheckErrorFile\" : \"Nearpane.app\",\n  \"SyspolicyCheckLongError\" : \"A Notarization ticket is not stapled to this application.\",\n  \"SyspolicyCheckAdvice\" : \"If this application has already been uploaded to the Apple notary service, please make sure to attach the ticket with the `stapler staple` command. If not, please upload to the Apple notary service using Xcode or via `notarytool`. \",\n  \"SyspolicyCheckDocumentationLink\" : \"https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution.\",\n  \"SyspolicyCheckShortError\" : \"Notary Ticket Missing\"\n}]}",
+      "stderr": "Only one signature found in file://Nearpane.app, skipping dual signature check"
+    }
+  },
+  "hostGuardianSignedBySameTeam": true,
+  "sameHostRequirement": true,
+  "sameGuardianRequirement": true,
+  "engineABI": 1,
+  "candidateGuardianReceiptSchemaFromSource": 1,
+  "formalHostScopeReplySchemaFromSource": 2,
+  "launchedCandidate": false,
+  "securityPolicyChanges": 0,
+  "mutualDesignatedRequirementVerification": "PASS"
+}

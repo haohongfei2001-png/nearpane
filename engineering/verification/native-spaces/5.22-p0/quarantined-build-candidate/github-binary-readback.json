@@ -1,0 +1,10 @@
+{
+  "assetID": 771871324,
+  "source": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
+  "readMethod": "authenticated GitHub release asset streamed through SHA-256",
+  "downloadedBytes": 24890617,
+  "downloadedSHA256": "c671f70f48a4422fe86101b34bd505b6e3de9e13a524589d2c72e7fe28090052",
+  "matchesLocalZIP": true,
+  "localZIPMatchesInstalledBundle": "zip-installed-tree.json",
+  "draft": true
+}

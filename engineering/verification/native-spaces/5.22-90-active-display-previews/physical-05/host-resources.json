@@ -1,0 +1,1022 @@
+{
+  "status": "SAMPLED",
+  "reason": "session ended",
+  "hostIdentity": [
+    59059,
+    6321427908623,
+    "239df93c60835fe5523214d8b5163a27d87e60ef"
+  ],
+  "samples": [
+    {
+      "uptime": 263408.216226958,
+      "cpuSeconds": 0.6586944583333333,
+      "residentBytes": 112951296,
+      "footprintBytes": 46941264
+    },
+    {
+      "uptime": 263408.97206025,
+      "cpuSeconds": 0.6793929999999999,
+      "residentBytes": 113311744,
+      "footprintBytes": 47268944
+    },
+    {
+      "uptime": 263409.732520125,
+      "cpuSeconds": 0.8398534999999999,
+      "residentBytes": 123502592,
+      "footprintBytes": 104154216
+    },
+    {
+      "uptime": 263410.489079666,
+      "cpuSeconds": 0.9535784999999999,
+      "residentBytes": 118308864,
+      "footprintBytes": 105841768
+    },
+    {
+      "uptime": 263411.244719,
+      "cpuSeconds": 1.1139422083333332,
+      "residentBytes": 118341632,
+      "footprintBytes": 107365480
+    },
+    {
+      "uptime": 263412.004761708,
+      "cpuSeconds": 1.2486011666666665,
+      "residentBytes": 117456896,
+      "footprintBytes": 107709544
+    },
+    {
+      "uptime": 263412.76244125,
+      "cpuSeconds": 1.3973915,
+      "residentBytes": 117440512,
+      "footprintBytes": 108315752
+    },
+    {
+      "uptime": 263413.515215875,
+      "cpuSeconds": 1.6196832499999998,
+      "residentBytes": 117424128,
+      "footprintBytes": 107725928
+    },
+    {
+      "uptime": 263414.26881175,
+      "cpuSeconds": 1.8564146249999998,
+      "residentBytes": 117473280,
+      "footprintBytes": 108069992
+    },
+    {
+      "uptime": 263415.026834375,
+      "cpuSeconds": 2.107163,
+      "residentBytes": 117473280,
+      "footprintBytes": 109610088
+    },
+    {
+      "uptime": 263415.77813975,
+      "cpuSeconds": 2.3516413333333333,
+      "residentBytes": 117440512,
+      "footprintBytes": 107709544
+    },
+    {
+      "uptime": 263416.538654916,
+      "cpuSeconds": 2.5612791249999995,
+      "residentBytes": 116899840,
+      "footprintBytes": 107676776
+    },
+    {
+      "uptime": 263417.295814166,
+      "cpuSeconds": 2.805369208333333,
+      "residentBytes": 116883456,
+      "footprintBytes": 108004456
+    },
+    {
+      "uptime": 263418.056370125,
+      "cpuSeconds": 3.0447527083333332,
+      "residentBytes": 116867072,
+      "footprintBytes": 107906152
+    },
+    {
+      "uptime": 263418.816917958,
+      "cpuSeconds": 3.2683876666666665,
+      "residentBytes": 114163712,
+      "footprintBytes": 107414632
+    },
+    {
+      "uptime": 263419.577238833,
+      "cpuSeconds": 3.4637561249999997,
+      "residentBytes": 114163712,
+      "footprintBytes": 109020264
+    },
+    {
+      "uptime": 263420.3376865,
+      "cpuSeconds": 3.682401708333333,
+      "residentBytes": 114163712,
+      "footprintBytes": 107463784
+    },
+    {
+      "uptime": 263421.099236625,
+      "cpuSeconds": 3.912959583333333,
+      "residentBytes": 114180096,
+      "footprintBytes": 107906152
+    },
+    {
+      "uptime": 263421.859642541,
+      "cpuSeconds": 4.129431041666666,
+      "residentBytes": 114180096,
+      "footprintBytes": 107644008
+    },
+    {
+      "uptime": 263422.616281083,
+      "cpuSeconds": 4.340664875,
+      "residentBytes": 114180096,
+      "footprintBytes": 107463784
+    },
+    {
+      "uptime": 263423.370389083,
+      "cpuSeconds": 4.580656125,
+      "residentBytes": 114180096,
+      "footprintBytes": 108414056
+    },
+    {
+      "uptime": 263424.127801458,
+      "cpuSeconds": 4.779332708333333,
+      "residentBytes": 114196480,
+      "footprintBytes": 108004456
+    },
+    {
+      "uptime": 263424.88676675,
+      "cpuSeconds": 5.020516458333333,
+      "residentBytes": 114196480,
+      "footprintBytes": 107398248
+    },
+    {
+      "uptime": 263425.6469365,
+      "cpuSeconds": 5.198699458333333,
+      "residentBytes": 114262016,
+      "footprintBytes": 106857576
+    },
+    {
+      "uptime": 263426.407776875,
+      "cpuSeconds": 5.346102958333333,
+      "residentBytes": 114262016,
+      "footprintBytes": 108151912
+    },
+    {
+      "uptime": 263427.15914625,
+      "cpuSeconds": 5.525099624999999,
+      "residentBytes": 114278400,
+      "footprintBytes": 107480168
+    },
+    {
+      "uptime": 263427.909869,
+      "cpuSeconds": 5.770105041666666,
+      "residentBytes": 114294784,
+      "footprintBytes": 107119720
+    },
+    {
+      "uptime": 263428.67051125,
+      "cpuSeconds": 6.027729583333333,
+      "residentBytes": 114343936,
+      "footprintBytes": 107070568
+    },
+    {
+      "uptime": 263429.430794875,
+      "cpuSeconds": 6.265816666666666,
+      "residentBytes": 114360320,
+      "footprintBytes": 107938920
+    },
+    {
+      "uptime": 263430.186396583,
+      "cpuSeconds": 6.4503981249999995,
+      "residentBytes": 114343936,
+      "footprintBytes": 107578472
+    },
+    {
+      "uptime": 263430.946872958,
+      "cpuSeconds": 6.701304874999999,
+      "residentBytes": 114343936,
+      "footprintBytes": 107496552
+    },
+    {
+      "uptime": 263431.707937041,
+      "cpuSeconds": 6.775834999999999,
+      "residentBytes": 116375552,
+      "footprintBytes": 112591976
+    },
+    {
+      "uptime": 263432.464930041,
+      "cpuSeconds": 6.776349999999999,
+      "residentBytes": 116375552,
+      "footprintBytes": 64046184
+    },
+    {
+      "uptime": 263433.225600083,
+      "cpuSeconds": 6.776866583333333,
+      "residentBytes": 116375552,
+      "footprintBytes": 64046184
+    },
+    {
+      "uptime": 263433.986854291,
+      "cpuSeconds": 6.777150874999999,
+      "residentBytes": 116375552,
+      "footprintBytes": 64046184
+    },
+    {
+      "uptime": 263434.748126625,
+      "cpuSeconds": 6.777505833333333,
+      "residentBytes": 116375552,
+      "footprintBytes": 64046184
+    },
+    {
+      "uptime": 263435.508809041,
+      "cpuSeconds": 6.7780841249999995,
+      "residentBytes": 116326400,
+      "footprintBytes": 64029800
+    },
+    {
+      "uptime": 263436.270038958,
+      "cpuSeconds": 6.778453083333333,
+      "residentBytes": 116310016,
+      "footprintBytes": 64013416
+    },
+    {
+      "uptime": 263437.021736666,
+      "cpuSeconds": 6.779022625,
+      "residentBytes": 116260864,
+      "footprintBytes": 63964264
+    },
+    {
+      "uptime": 263437.772496125,
+      "cpuSeconds": 6.779203041666666,
+      "residentBytes": 116260864,
+      "footprintBytes": 63964264
+    },
+    {
+      "uptime": 263438.533472041,
+      "cpuSeconds": 6.7794476249999995,
+      "residentBytes": 116260864,
+      "footprintBytes": 63964264
+    },
+    {
+      "uptime": 263439.293995708,
+      "cpuSeconds": 6.779651124999999,
+      "residentBytes": 116260864,
+      "footprintBytes": 63964264
+    },
+    {
+      "uptime": 263440.049915416,
+      "cpuSeconds": 6.779970499999999,
+      "residentBytes": 116260864,
+      "footprintBytes": 63964264
+    },
+    {
+      "uptime": 263440.810388916,
+      "cpuSeconds": 6.780179499999999,
+      "residentBytes": 116260864,
+      "footprintBytes": 63964264
+    },
+    {
+      "uptime": 263441.570870083,
+      "cpuSeconds": 6.780549291666666,
+      "residentBytes": 116260864,
+      "footprintBytes": 62391400
+    },
+    {
+      "uptime": 263442.326084541,
+      "cpuSeconds": 6.780792999999999,
+      "residentBytes": 116244480,
+      "footprintBytes": 60818536
+    },
+    {
+      "uptime": 263443.08246675,
+      "cpuSeconds": 6.780969833333333,
+      "residentBytes": 116244480,
+      "footprintBytes": 60818536
+    },
+    {
+      "uptime": 263443.835426791,
+      "cpuSeconds": 6.781415208333333,
+      "residentBytes": 116244480,
+      "footprintBytes": 60818536
+    },
+    {
+      "uptime": 263444.59651725,
+      "cpuSeconds": 6.781813291666666,
+      "residentBytes": 116195328,
+      "footprintBytes": 60753000
+    },
+    {
+      "uptime": 263445.357797833,
+      "cpuSeconds": 6.7822534999999995,
+      "residentBytes": 115736576,
+      "footprintBytes": 60294248
+    },
+    {
+      "uptime": 263446.115511708,
+      "cpuSeconds": 6.782433541666666,
+      "residentBytes": 115736576,
+      "footprintBytes": 60294248
+    },
+    {
+      "uptime": 263446.875983458,
+      "cpuSeconds": 6.782608375,
+      "residentBytes": 115736576,
+      "footprintBytes": 60294248
+    },
+    {
+      "uptime": 263447.636987291,
+      "cpuSeconds": 6.782814624999999,
+      "residentBytes": 115736576,
+      "footprintBytes": 60294248
+    },
+    {
+      "uptime": 263448.392477791,
+      "cpuSeconds": 6.783063291666666,
+      "residentBytes": 115523584,
+      "footprintBytes": 60294248
+    },
+    {
+      "uptime": 263449.153066166,
+      "cpuSeconds": 6.783328833333333,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263449.913888125,
+      "cpuSeconds": 6.783499666666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263450.670312166,
+      "cpuSeconds": 6.783745833333333,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263451.431473,
+      "cpuSeconds": 6.783976541666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263452.187721083,
+      "cpuSeconds": 6.784198333333332,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263452.948983791,
+      "cpuSeconds": 6.784487166666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263453.705030208,
+      "cpuSeconds": 6.785339291666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263454.462448291,
+      "cpuSeconds": 6.785544499999999,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263455.221144041,
+      "cpuSeconds": 6.785726416666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263455.974459625,
+      "cpuSeconds": 6.785970208333333,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263456.73105575,
+      "cpuSeconds": 6.786215791666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263457.485069291,
+      "cpuSeconds": 6.786466166666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263458.237465166,
+      "cpuSeconds": 6.786803249999999,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263458.998429833,
+      "cpuSeconds": 6.786988541666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263459.758253291,
+      "cpuSeconds": 6.7872289583333325,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263460.515188125,
+      "cpuSeconds": 6.787385541666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263461.272404791,
+      "cpuSeconds": 6.7876938749999995,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263462.03335925,
+      "cpuSeconds": 6.787942791666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263462.785089791,
+      "cpuSeconds": 6.788216374999999,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263463.536761416,
+      "cpuSeconds": 6.788568958333332,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263464.296601666,
+      "cpuSeconds": 6.788749374999999,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263465.049100708,
+      "cpuSeconds": 6.789012166666666,
+      "residentBytes": 114147328,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263465.807736916,
+      "cpuSeconds": 6.789219374999999,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263466.565595166,
+      "cpuSeconds": 6.789491999999999,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263467.321249791,
+      "cpuSeconds": 6.789709124999999,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263468.074374791,
+      "cpuSeconds": 6.790076208333333,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263468.835220333,
+      "cpuSeconds": 6.790296249999999,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263469.590715875,
+      "cpuSeconds": 6.790537291666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263470.3471155,
+      "cpuSeconds": 6.790716791666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263471.107940333,
+      "cpuSeconds": 6.790943458333333,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263471.859287125,
+      "cpuSeconds": 6.7911014583333325,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263472.618858458,
+      "cpuSeconds": 6.791445749999999,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263473.378126708,
+      "cpuSeconds": 6.791808708333333,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263474.131051208,
+      "cpuSeconds": 6.791991749999999,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263474.883076333,
+      "cpuSeconds": 6.792255166666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263475.639691083,
+      "cpuSeconds": 6.792507,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263476.393906833,
+      "cpuSeconds": 6.792734833333332,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263477.146566875,
+      "cpuSeconds": 6.793009416666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263477.902787625,
+      "cpuSeconds": 6.793282791666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263478.660581291,
+      "cpuSeconds": 6.793518541666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263479.421779916,
+      "cpuSeconds": 6.793702916666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263480.17542525,
+      "cpuSeconds": 6.793945041666666,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263480.928128416,
+      "cpuSeconds": 6.794162208333333,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263481.689007125,
+      "cpuSeconds": 6.7944295,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263482.450083291,
+      "cpuSeconds": 6.794627875,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263483.205309833,
+      "cpuSeconds": 6.7950349999999995,
+      "residentBytes": 114049024,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263483.956760958,
+      "cpuSeconds": 6.795213958333333,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263484.711257666,
+      "cpuSeconds": 6.795432166666666,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263485.464169666,
+      "cpuSeconds": 6.795694291666666,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263486.225427708,
+      "cpuSeconds": 6.795911333333333,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263486.985762541,
+      "cpuSeconds": 6.796322249999999,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263487.738356916,
+      "cpuSeconds": 6.796552458333332,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263488.49959025,
+      "cpuSeconds": 6.7967341249999995,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263489.252221166,
+      "cpuSeconds": 6.796934208333333,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263490.005106666,
+      "cpuSeconds": 6.797117875,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263490.760828625,
+      "cpuSeconds": 6.797366041666666,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263491.51800625,
+      "cpuSeconds": 6.797701416666666,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263492.271497333,
+      "cpuSeconds": 6.797957708333333,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263493.023016625,
+      "cpuSeconds": 6.798146291666666,
+      "residentBytes": 113983488,
+      "footprintBytes": 60327016
+    },
+    {
+      "uptime": 263493.77412675,
+      "cpuSeconds": 6.865119666666666,
+      "residentBytes": 118046720,
+      "footprintBytes": 104399976
+    },
+    {
+      "uptime": 263494.527868625,
+      "cpuSeconds": 7.022395874999999,
+      "residentBytes": 118095872,
+      "footprintBytes": 107742312
+    },
+    {
+      "uptime": 263495.289037541,
+      "cpuSeconds": 7.223604708333332,
+      "residentBytes": 118095872,
+      "footprintBytes": 109577320
+    },
+    {
+      "uptime": 263496.043375,
+      "cpuSeconds": 7.409950583333333,
+      "residentBytes": 118177792,
+      "footprintBytes": 107807848
+    },
+    {
+      "uptime": 263496.799091833,
+      "cpuSeconds": 7.558793083333333,
+      "residentBytes": 118325248,
+      "footprintBytes": 108168296
+    },
+    {
+      "uptime": 263497.559014583,
+      "cpuSeconds": 7.713474833333333,
+      "residentBytes": 126304256,
+      "footprintBytes": 117474432
+    },
+    {
+      "uptime": 263498.314392458,
+      "cpuSeconds": 7.905002249999999,
+      "residentBytes": 126713856,
+      "footprintBytes": 109036672
+    },
+    {
+      "uptime": 263499.066405875,
+      "cpuSeconds": 8.051839374999998,
+      "residentBytes": 126713856,
+      "footprintBytes": 109823104
+    },
+    {
+      "uptime": 263499.823693458,
+      "cpuSeconds": 8.157110625,
+      "residentBytes": 126582784,
+      "footprintBytes": 116081792
+    },
+    {
+      "uptime": 263500.584320375,
+      "cpuSeconds": 8.182693291666666,
+      "residentBytes": 126599168,
+      "footprintBytes": 59720832
+    },
+    {
+      "uptime": 263501.344844541,
+      "cpuSeconds": 8.199758375,
+      "residentBytes": 126599168,
+      "footprintBytes": 57377920
+    },
+    {
+      "uptime": 263502.105706833,
+      "cpuSeconds": 8.224469291666665,
+      "residentBytes": 126582784,
+      "footprintBytes": 57361536
+    },
+    {
+      "uptime": 263502.856521791,
+      "cpuSeconds": 8.329222208333332,
+      "residentBytes": 126730240,
+      "footprintBytes": 106136704
+    },
+    {
+      "uptime": 263503.616447,
+      "cpuSeconds": 8.480602124999999,
+      "residentBytes": 126746624,
+      "footprintBytes": 105186432
+    },
+    {
+      "uptime": 263504.377190958,
+      "cpuSeconds": 8.679442583333332,
+      "residentBytes": 126648320,
+      "footprintBytes": 104481920
+    },
+    {
+      "uptime": 263505.13788025,
+      "cpuSeconds": 8.736816291666665,
+      "residentBytes": 126763008,
+      "footprintBytes": 101811328
+    },
+    {
+      "uptime": 263505.89863375,
+      "cpuSeconds": 8.753533625,
+      "residentBytes": 126763008,
+      "footprintBytes": 57459840
+    },
+    {
+      "uptime": 263506.651256458,
+      "cpuSeconds": 8.776052916666666,
+      "residentBytes": 126730240,
+      "footprintBytes": 57427072
+    },
+    {
+      "uptime": 263507.411928791,
+      "cpuSeconds": 8.802969,
+      "residentBytes": 119635968,
+      "footprintBytes": 57410664
+    },
+    {
+      "uptime": 263508.163282541,
+      "cpuSeconds": 8.817131958333333,
+      "residentBytes": 119635968,
+      "footprintBytes": 57410664
+    },
+    {
+      "uptime": 263508.921104125,
+      "cpuSeconds": 8.831357041666665,
+      "residentBytes": 116981760,
+      "footprintBytes": 57410664
+    },
+    {
+      "uptime": 263509.681721958,
+      "cpuSeconds": 8.950762958333332,
+      "residentBytes": 119193600,
+      "footprintBytes": 106267776
+    },
+    {
+      "uptime": 263510.437175916,
+      "cpuSeconds": 8.986854166666665,
+      "residentBytes": 119291904,
+      "footprintBytes": 105317504
+    },
+    {
+      "uptime": 263511.197891166,
+      "cpuSeconds": 9.051341874999999,
+      "residentBytes": 119422976,
+      "footprintBytes": 103515264
+    },
+    {
+      "uptime": 263511.955996208,
+      "cpuSeconds": 9.139974333333333,
+      "residentBytes": 119422976,
+      "footprintBytes": 103597184
+    },
+    {
+      "uptime": 263512.7160315,
+      "cpuSeconds": 9.257379041666665,
+      "residentBytes": 118571008,
+      "footprintBytes": 103580800
+    },
+    {
+      "uptime": 263513.468995791,
+      "cpuSeconds": 9.386483499999999,
+      "residentBytes": 118571008,
+      "footprintBytes": 103253120
+    },
+    {
+      "uptime": 263514.229739541,
+      "cpuSeconds": 9.522761083333332,
+      "residentBytes": 118587392,
+      "footprintBytes": 103597184
+    },
+    {
+      "uptime": 263514.990456708,
+      "cpuSeconds": 9.584340583333333,
+      "residentBytes": 118505472,
+      "footprintBytes": 109642880
+    },
+    {
+      "uptime": 263515.75111625,
+      "cpuSeconds": 9.593524583333332,
+      "residentBytes": 118505472,
+      "footprintBytes": 67634304
+    },
+    {
+      "uptime": 263516.50322525,
+      "cpuSeconds": 9.596497291666665,
+      "residentBytes": 118505472,
+      "footprintBytes": 65291392
+    },
+    {
+      "uptime": 263517.264415041,
+      "cpuSeconds": 9.599118625,
+      "residentBytes": 118505472,
+      "footprintBytes": 65291392
+    },
+    {
+      "uptime": 263518.02527975,
+      "cpuSeconds": 9.628123124999998,
+      "residentBytes": 126582784,
+      "footprintBytes": 65209472
+    },
+    {
+      "uptime": 263518.785921791,
+      "cpuSeconds": 9.652661083333332,
+      "residentBytes": 126582784,
+      "footprintBytes": 58115200
+    },
+    {
+      "uptime": 263519.547295083,
+      "cpuSeconds": 9.665667041666666,
+      "residentBytes": 124698624,
+      "footprintBytes": 57853032
+    },
+    {
+      "uptime": 263520.308220208,
+      "cpuSeconds": 9.676516041666666,
+      "residentBytes": 124698624,
+      "footprintBytes": 56280168
+    },
+    {
+      "uptime": 263521.068992333,
+      "cpuSeconds": 9.690890333333332,
+      "residentBytes": 124698624,
+      "footprintBytes": 56280168
+    },
+    {
+      "uptime": 263521.829810375,
+      "cpuSeconds": 9.704310041666666,
+      "residentBytes": 124698624,
+      "footprintBytes": 56280168
+    },
+    {
+      "uptime": 263522.590453833,
+      "cpuSeconds": 9.720558749999999,
+      "residentBytes": 124698624,
+      "footprintBytes": 56280168
+    },
+    {
+      "uptime": 263523.351312916,
+      "cpuSeconds": 9.736188124999998,
+      "residentBytes": 119029760,
+      "footprintBytes": 57508968
+    },
+    {
+      "uptime": 263524.112741625,
+      "cpuSeconds": 9.741110999999998,
+      "residentBytes": 119029760,
+      "footprintBytes": 50365544
+    },
+    {
+      "uptime": 263524.867116541,
+      "cpuSeconds": 9.761172041666665,
+      "residentBytes": 111919104,
+      "footprintBytes": 50365544
+    },
+    {
+      "uptime": 263525.628469458,
+      "cpuSeconds": 9.777935041666666,
+      "residentBytes": 111919104,
+      "footprintBytes": 48792680
+    },
+    {
+      "uptime": 263526.389127291,
+      "cpuSeconds": 9.79491375,
+      "residentBytes": 111919104,
+      "footprintBytes": 48792680
+    },
+    {
+      "uptime": 263527.15038025,
+      "cpuSeconds": 9.812166458333332,
+      "residentBytes": 111919104,
+      "footprintBytes": 48792680
+    },
+    {
+      "uptime": 263527.910433833,
+      "cpuSeconds": 9.829000375,
+      "residentBytes": 111919104,
+      "footprintBytes": 48792680
+    },
+    {
+      "uptime": 263528.671188291,
+      "cpuSeconds": 9.8491255,
+      "residentBytes": 111755264,
+      "footprintBytes": 48628840
+    },
+    {
+      "uptime": 263529.432652375,
+      "cpuSeconds": 9.865754583333333,
+      "residentBytes": 111755264,
+      "footprintBytes": 48628840
+    },
+    {
+      "uptime": 263530.192868416,
+      "cpuSeconds": 9.878316875,
+      "residentBytes": 111755264,
+      "footprintBytes": 48628840
+    },
+    {
+      "uptime": 263530.954134416,
+      "cpuSeconds": 9.878588541666666,
+      "residentBytes": 111755264,
+      "footprintBytes": 48628840
+    },
+    {
+      "uptime": 263531.715697166,
+      "cpuSeconds": 9.878857125,
+      "residentBytes": 111755264,
+      "footprintBytes": 48628840
+    },
+    {
+      "uptime": 263532.473334541,
+      "cpuSeconds": 9.879282791666666,
+      "residentBytes": 111755264,
+      "footprintBytes": 48628840
+    },
+    {
+      "uptime": 263533.234795708,
+      "cpuSeconds": 9.882731333333332,
+      "residentBytes": 111706112,
+      "footprintBytes": 48579688
+    },
+    {
+      "uptime": 263533.993727166,
+      "cpuSeconds": 9.883220875,
+      "residentBytes": 111706112,
+      "footprintBytes": 48579688
+    },
+    {
+      "uptime": 263534.753349625,
+      "cpuSeconds": 9.887008208333333,
+      "residentBytes": 111706112,
+      "footprintBytes": 48579688
+    }
+  ],
+  "intervalSeconds": 0.75,
+  "warmedBenchmark": "NOT_RUN",
+  "scope": "Darwin cumulative resource counters. Intervals include test preparation and polling."
+}

@@ -1,0 +1,649 @@
+#!/usr/bin/env python3
+"""Native tests using only the new sample app and the candidate's passive Settings."""
+from argparse import ArgumentParser
+import hashlib
+import json
+import os
+from pathlib import Path
+import select
+import tempfile
+import signal
+import subprocess as sp
+import sys
+import time
+import uuid
+
+ROOT = Path(__file__).resolve().parents[3]
+WORK = ROOT / "build/verification/p54/ordinary"
+OUT = WORK / str(uuid.uuid4())
+OUT.mkdir(mode=0o700, parents=True)
+OFF = ["/usr/bin/sandbox-exec", "-p",
+       '(version 1)(allow default)(deny network-outbound)(deny file-read* file-write* (regex #"/Library/Application Support/(Nearpane|Riftlet|Saytile)"))']
+sys.path.insert(0, str(ROOT / "scripts/acceptance"))
+import session_evidence as se
+
+def check(value, message):
+    if not value:
+        raise RuntimeError(message)
+
+def put(path, data):
+    temp = path.with_suffix(".pending")
+    temp.write_text(json.dumps(data, indent=2, ensure_ascii=False))
+    temp.replace(path)
+
+def reply(cmd):
+    result = sp.run(cmd, timeout=6, text=True, capture_output=True)
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or "readback helper exited " + str(result.returncode))
+    return json.loads(result.stdout)
+
+def wait(test, timeout=8):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            val = test()
+            if val:
+                return val
+        except (FileNotFoundError, json.JSONDecodeError, IndexError):
+            pass
+        time.sleep(.09)
+    raise TimeoutError(f"checkpoint {test.__code__.co_firstlineno}")
+
+def line(proc):
+    check(select.select([proc.stdout],[],[],4)[0], "sample app response timeout")
+    raw = proc.stdout.readline()
+    check(raw, "sample app closed its output")
+    return json.loads(raw)
+
+def same_rect(a, b):
+    return a is not None and b is not None and len(a)==len(b)==4 and all(abs(i-j)<=1 for i,j in zip(a,b))
+
+def resources(pid, executable):
+    # Only reads resource counters for a previously enrolled process. CPU time is cumulative.
+    try:
+        if se.process_path(pid) != executable:
+            return None
+        sample = sp.run(["/bin/ps","-p",str(pid),"-o","time=,rss="],capture_output=True,text=True)
+        fields = sample.stdout.split()
+        if sample.returncode == 0 and len(fields) == 2 and se.process_path(pid) == executable:
+            return dict(pid=pid, cpuTime=fields[0], rssKiB=int(fields[1]))
+    except (OSError, ValueError):
+        pass  # A short-lived helper may exit between read-only observations.
+    return None
+
+# Independent expected slots, expressed as quarter columns and half rows of the real WorkRect.
+DENSITY_SLOTS = {
+    1: [(0,0,4,2)],
+    2: [(0,0,2,2),(2,0,2,2)],
+    3: [(2,0,2,1),(2,1,2,1),(0,0,2,2)],
+    4: [(2,0,2,1),(2,1,2,1),(0,0,2,1),(0,1,2,1)],
+    5: [(2,0,1,1),(3,0,1,1),(0,0,2,1),(0,1,2,1),(2,1,2,1)],
+    6: [(2,0,1,1),(3,0,1,1),(0,0,1,1),(0,1,2,1),(2,1,2,1),(1,0,1,1)],
+    7: [(2,0,1,1),(3,0,1,1),(0,0,1,1),(0,1,1,1),(2,1,2,1),(1,0,1,1),(1,1,1,1)],
+    8: [(2,0,1,1),(3,0,1,1),(0,0,1,1),(0,1,1,1),(2,1,1,1),(1,0,1,1),(1,1,1,1),(3,1,1,1)]
+}
+
+class Trial:
+    def __init__(self, candidate, *, palette=False, single=False, right_edge=False):
+        self.single = single
+        self.right_edge = right_edge
+        self.control_scope = "--ordinary-single" if single else "--ordinary-secondary"
+        self.out = OUT / "palette" if palette else OUT
+        self.out.mkdir(exist_ok=True, mode=0o700)
+        self.candidate = candidate
+        self.app = Path((WORK/("palette-path.txt" if palette else "fixture-path.txt")).read_text().strip())
+        self.exe = self.app / "Contents/MacOS" / ("StandardPalette" if palette else "StandardWindows")
+        self.bundle = "net.example.standard-palette" if palette else "net.example.standard-documents"
+        check(self.app.parent.parent == Path("/private/tmp") and self.app.parent.name.startswith("nearpane-standard-windows."), "fixture location")
+        sp.run(["/usr/bin/codesign","--verify","--strict",f'-R=identifier "{self.bundle}"',self.app], check=True)
+        # Wait for a quiet existing desktop before creating any GUI object.
+        samples=[]; since=None; deadline=time.monotonic()+(30 if single else 8)
+        while time.monotonic()<deadline:
+            each=self.observe()
+            if not samples or (each["front"],each["focus"])!=(samples[-1]["front"],samples[-1]["focus"]):
+                since=time.monotonic()
+            samples.append(each)
+            if time.monotonic()-since>=2: break
+            time.sleep(.22)
+        put(self.out/"quiet-preflight.json",samples)
+        check(time.monotonic()-since>=2,"no stable foreground window before launch")
+        self.run_focus = samples[-1]
+        put(self.out/"initial.json",self.run_focus)
+        self.pipes = tempfile.TemporaryDirectory(prefix="np-window-pipes-",dir="/private/tmp")
+        io = Path(self.pipes.name)
+        if single: (io/"single-display").touch(mode=0o600)
+        if single and right_edge: (io/"right-edge").touch(mode=0o600)
+        for n in ("requests","reports"): os.mkfifo(io/n,0o600)
+        # Open request pipe first, then read from the reports pipe without blocking launch.
+        req = os.open(io/"requests",os.O_RDWR)
+        reports = os.open(io/"reports",os.O_RDONLY|os.O_NONBLOCK)
+        ticket=self.app.parent/"sample-pipes"
+        ticket.write_text(str(io))
+        try:
+            focus = self.run_focus["focus"]
+            launched = reply(OFF+[WORK/"observe", "launch", str(self.app), str(io),
+                                  str(self.run_focus["front"]), str(focus) if focus is not None else "none"])
+        except Exception:
+            os.close(req)
+            os.close(reports)
+            self.pipes.cleanup()
+            if ticket.read_text() == str(io): ticket.unlink()
+            raise
+        self.fixture = type("Fixture",(),{})()
+        put(self.out/"launch.json",launched)
+        self.fixture.pid = launched["subjectPID"]
+        self.fixture.stdin = os.fdopen(req,"w",buffering=1)
+        self.fixture.stdout = os.fdopen(reports)
+        self.fixture.poll = lambda: None if se.process_path(self.fixture.pid)==self.exe else 0
+        self.host = None
+        self.hostpid = None
+        self.all_windows=set()
+        self.checkpoints=[]
+        self.sequence=0
+
+    def observe(self, numbers=None):
+        args = [] if numbers is None else [str(self.fixture.pid), str(self.exe), *map(str,numbers)]
+        return reply(OFF+[WORK/"observe", *args])
+
+    def command(self, value):
+        self.fixture.stdin.write(value+"\n")
+        self.fixture.stdin.flush()
+        r = line(self.fixture)
+        if "exit" in r: put(self.out/"fixture-final.json",r)
+        check("exit" not in r or value=="quit",str(r))
+        self.all_windows.update(row["number"] for row in r.get("windows",[]))
+        return r
+
+    def sample(self, label, stable=True):
+        owner = self.command("read")
+        system = self.observe([r["number"] for r in owner["windows"]])
+        result = {"label":label, "owner":owner,"system":system}
+        if self.host is not None and self.host.poll() is None and (host_use := resources(self.hostpid,self.hostexe)):
+            result["hostResources"] = host_use
+            children = sp.run(["/usr/bin/pgrep","-P",str(self.hostpid)],capture_output=True,text=True)
+            helper = self.hostexe.parents[1]/"Helpers/NearpaneOrdinaryWindowController"
+            result["controllerResources"] = [record for child in children.stdout.split()
+                                             if child.isdigit() and (record := resources(int(child),helper))]
+        self.checkpoints.append(result)
+        put(self.out/"geometry.json",self.checkpoints)
+        check(system["side"]==self.run_focus["side"] and self.focus(system) and owner["focusEvents"]==0,
+              "focus or display changed")
+        check(len(owner["windows"])==len(system["windows"]), "incomplete independent readback")
+        check(system["ownerBundle"] == self.bundle and system["ownerRegular"] and not system["ownerTerminated"] and
+              system["ownerLaunch"] == self.checkpoints[0]["system"]["ownerLaunch"], "fixture identity changed")
+        for w, z in zip(owner["windows"],system["windows"]):
+            check(w["number"]==z["number"] and not w["key"] and not w["main"],"key/main or window identity changed")
+            if stable:
+                check(z.get("axMatches")==z.get("cgMatches")==1 and z.get("on") and z.get("layer")==0
+                      and z.get("role")=="AXStandardWindow" and same_rect(z.get("ax"),z.get("cg"))
+                      and same_rect(w["frame"], z.get("cg")),"inconsistent AX/CG/owner for "+label+" window "+str(w["index"]))
+        return {w["number"]: w["frame"] for w in owner["windows"]}
+
+    def focus(self, record):
+        return all(record[k]==self.run_focus[k] for k in ("front","focus"))
+
+    def baseline(self,count=3, density=False):
+        ready = line(self.fixture)
+        if self.fixture.pid == -1 and int(ready.get("ready", -1)) > 1 and se.process_path(ready["ready"]) == self.exe: self.fixture.pid = ready["ready"]
+        check(ready.get("ready")==self.fixture.pid and ready["front"]==self.run_focus["front"],"launch or foreground")
+        # The ordinary primary window orders first, secondary-role siblings afterwards.
+        for i in ([1,9] if density else range(1,count+1)):
+            self.command(("add-small " if density else "add ")+str(i))
+        time.sleep(.8)
+        first=self.sample("baseline")
+        time.sleep(.12)
+        check(self.sample("baseline-stable")==first,"unstable initial frames")
+        return first
+
+    def start_host(self, restart=False):
+        app=self.candidate
+        self.hostexe=app/"Contents/MacOS/NearpaneHost"
+        sp.run(["/usr/bin/codesign","--verify","--strict","--deep",'-R=identifier "com.holdsnow.nearpane.alpha"',app],check=True)
+        if not restart:
+            if not getattr(self, "desktop_tiling", False):
+                check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode==1, "a Host is already running")
+            self.sid=str(uuid.uuid4())
+            self.session=ROOT/"build/native-acceptance"/self.sid
+            self.records=self.session/"support/WorkRect/ordinary"
+            sp.run(OFF+[self.hostexe,"--verify-bundled-resources","--native-acceptance-prepare-draft",self.sid],cwd=ROOT,check=True,stdout=(OUT/"prepare.log").open("w"))
+            cfg=self.session/"support/Nearpane/host-configuration.json"
+            self.start_config=json.loads(cfg.read_text())
+            side=self.run_focus["side"]
+            check(self.start_config["preferredDisplayID"]==side,"unexpected secondary")
+            self.start_config["displays"][side]=dict(edge="left", placement="docked", policy="onDemand",
+                                                 spacesDismissed=False, anchor="top", measures=["reservedWidth",{"unit":"pt","value":160}])
+            if self.single or getattr(self, "boundary_review", False):
+                self.start_config["displays"][side]["measures"] += [
+                    "panelWidth", {"unit":"pt","value":148}, "sideInset", {"unit":"pt","value":8}]
+            put(cfg,self.start_config)
+            self.receipts=[]
+        marker=json.loads((self.session/"session.json").read_text())
+        check(marker["executableSHA256"]==hashlib.sha256(self.hostexe.read_bytes()).hexdigest(),"changed executable")
+        self.epoch=str(uuid.uuid4())
+        self.sequence=0
+        env=dict(os.environ,NEARPANE_ACCEPTANCE_RUN=self.epoch, NEARPANE_MANAGEMENT_ACCEPTANCE=self.sid,
+                 NEARPANE_ADMISSION_ACCEPTANCE=self.sid, NEARPANE_ORDINARY_ACCEPTANCE=self.sid,
+                 NEARPANE_ORDINARY_PID=str(self.fixture.pid))
+        if getattr(self, "peer", None) is not None:
+            env["NEARPANE_PALETTE_PID"] = str(self.peer.fixture.pid)
+            if getattr(self, "desktop_tiling", False):
+                env["NEARPANE_DESKTOP_TILING_TRIAL"] = self.sid
+        if getattr(self,"idle_review",False):
+            env["NEARPANE_ORDINARY_IDLE_ACCEPTANCE"]=self.sid
+        log=(OUT/("host-"+self.epoch+".log")).open("wb")
+        self.host=sp.Popen(OFF+[self.hostexe,"--native-acceptance-single-ordinary" if self.single else "--native-acceptance-secondary",self.sid],env=env,cwd=ROOT,stdout=log,stderr=log)
+        self.hostpid=self.host.pid
+        self.settings=wait(lambda:json.loads((self.session/("management-panel-"+self.epoch+".json")).read_text()))
+        check(se.process_path(self.hostpid)==self.hostexe,"wrong host")
+        put(self.out/("host-session-"+self.epoch+".json"),dict(session=self.sid,epoch=self.epoch,exe=marker["executableSHA256"],pid=self.hostpid,window=self.settings))
+
+    def ui(self):
+        proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,"read",self.control_scope],
+                    capture_output=True,text=True,timeout=4)
+        if proc.returncode and proc.stderr.strip() in ("panel not ordered", "no unique secondary panel"):
+            return {}  # AppKit is still ordering the panel. Read-only polls expire after 8 seconds.
+        check(proc.returncode==0,proc.stderr.strip())
+        r=json.loads(proc.stdout)
+        return {e["id"]:e for e in r["nodes"]}
+
+    def press(self, key):
+        try:
+            wait(lambda:self.ui().get(key,{}).get("enabled"))
+        except TimeoutError:
+            controls = self.ui()
+            put(self.out/"unavailable-control.json", dict(requested=key, controls=controls))
+            verdict = controls.get("admission-verdict", {})
+            raise RuntimeError(f"Settings control {key} unavailable. {verdict.get('value', '')} {verdict.get('name', '')}")
+        check(self.focus(self.observe()),"focus changed before "+key)
+        # Retain the one-shot AXPress rule: this exact helper refusal is emitted
+        # BEFORE AXPress, e.g. when a periodic safety sample temporarily disables a button.
+        for _ in range(8):
+            proc=sp.run(OFF+[WORK/"controls",str(self.hostpid),str(self.settings),self.hostexe,key,self.control_scope],
+                        text=True,timeout=5,capture_output=True)
+            if proc.returncode == 0: break
+            if proc.stderr.strip() != "missing, disabled or ambiguous: "+key:
+                raise ValueError(proc.stderr.strip())
+            time.sleep(.1)
+        else: raise ValueError("control stayed unavailable before AXPress: "+key)
+        result=proc.stdout
+        time.sleep(.22)
+        check(self.focus(self.observe()),"focus changed after "+key)
+        return result
+
+    def action(self, verb, wait_ack=True):
+        self.sequence+=1
+        put(self.session/"management-request.json",dict(run=self.epoch,sequence=self.sequence,action=verb))
+        if wait_ack:
+            wait(lambda:json.loads((self.session/("management-ack-"+self.epoch+".json")).read_text())==self.sequence)
+            time.sleep(.2)
+
+    def checkpoint(self,label,expected, counts=None):
+        if counts is not None:
+            wait(lambda:len(list(self.records.glob("action-*.json")))>=counts)
+        time.sleep(.18)
+        actual=self.sample(label)
+        if getattr(self, "peer", None):
+            other = self.peer.sample(label)
+            check(actual.keys().isdisjoint(other), "window number collision")
+            actual.update(other)
+        check(set(actual)==set(expected) and all(same_rect(actual[k],expected[k]) for k in expected),label+" geometry mismatch")
+        actions=[json.loads(f.read_text()) for f in self.records.glob("action-*.json")]
+        max_error=0
+        operations=set()
+        subjects = [self, self.peer] if getattr(self, "peer", None) else [self]
+        for a in actions:
+            ident=a["id"]
+            check(a["operation"] not in operations and any(ident["pid"] == t.fixture.pid and ident["number"] in t.all_windows for t in subjects),
+                  "wrong action identity")
+            operations.add(a["operation"])
+            for snap in a["readback"].values():
+                check(snap["number"]==snap["axNumber"]==ident["number"] and snap["launch"]==ident["launch"] and snap["element"]==ident["element"],"identity changed during readback")
+                for c in ["axFrame","cgFrame"]:
+                    max_error=max(max_error,max(abs(snap[c][k]-v) for k,v in a["requested"].items()))
+            for step in a["steps"]:
+                for c in ("ax","cg"):
+                    max_error=max(max_error,max(abs(step[c][k]-v) for k,v in step["to"].items()))
+        check(max_error<=1,"receipt outside geometry tolerance")
+        result=dict(label=label,expected=expected,actual=actual,actions=actions,maxErrorPt=max_error,status=self.ui().get("ordinary-status"))
+        self.receipts.append(result)
+        put(self.out/"manager.json",self.receipts)
+        return actions
+
+    def select(self,number):
+        self.press("admission-window-"+str(number))
+        self.press("admission-read")
+        try: self.press("ordinary-confirm")
+        except Exception:
+            put(self.out/"refused.json",self.ui()); raise
+
+    def density(self, original):
+        first, sibling = list(original)
+        managed = [first]
+        self.start_host()
+        self.press("admission-open")
+        self.press("admission-ordinary-app")
+        x,y,width,height = self.run_focus["bounds"]
+        cell_width, cell_height = (width - 160) / 4, height / 2
+        previous = dict(original)
+        receipts = set()
+        summary = []
+
+        def verify(label, expected):
+            changed = {n for n in expected if previous[n] != expected[n]}
+            check(sibling not in changed, "ungiven window in plan")
+            actions = self.checkpoint(label, expected, len(receipts) + len(changed))
+            current = {a["operation"] for a in actions}
+            new = [a for a in actions if a["operation"] not in receipts]
+            check(receipts <= current and len(new) == len(changed)
+                  and {a["id"]["number"] for a in new} == changed, "extra or missing write")
+            check(all(a["id"]["number"] != sibling for a in actions), "unapproved sibling written")
+            observed = self.checkpoints[-1]
+            max_frame_error = max(
+                abs(actual-wanted)
+                for owner, system in zip(observed["owner"]["windows"], observed["system"]["windows"])
+                for frame in (owner["frame"],system["ax"],system["cg"])
+                for actual,wanted in zip(frame,expected[owner["number"]])
+            )
+            summary.append(dict(stage=label, members=list(managed), writes=len(new),
+                                unapprovedSibling=sibling, maxIndependentFrameErrorPt=max_frame_error,
+                                maximumAXCGStepError=self.receipts[-1]["maxErrorPt"]))
+            put(self.out/"density.json", dict(session=self.sid, stages=summary))
+            receipts.update(current)
+            previous.update(expected)
+
+        for count, slots in DENSITY_SLOTS.items():
+            if count > 1:
+                created = self.command("add-small "+str(count))
+                number = next(row["number"] for row in created["windows"] if row["index"] == count)
+                time.sleep(.25)
+                before = self.sample("before-grant-"+str(count))
+                check(set(before) == {*previous,number} and all(before[n] == previous[n] for n in previous),
+                      "membership addition changed an existing window")
+                previous[number] = original[number] = before[number]
+                managed.append(number)
+            self.select(managed[-1])
+            expected = dict(original)
+            for n, (col,row,w,h) in zip(managed,slots):
+                expected[n] = [x + 160 + cell_width*col, y + cell_height*row, cell_width*w, cell_height*h]
+            verify("managed-"+str(count), expected)
+        self.press("ordinary-stop")
+        verify("restored-eight", original)
+        check(not (self.records/"journal.json").exists(), "journal remains after restore")
+
+    def trial(self,original,mode):
+        self.start_host()
+        self.press("admission-open");self.press("admission-ordinary-app")
+        n1=next(iter(original))
+        n2,n3=(list(original)[1:]+[None,None])[:2]
+        x,y,w,h=self.run_focus["bounds"]
+        # Current isolated profile reserves 160 pt along the left edge.
+        rx=x+160; rw=w-160; half=rw/2
+        full=[rx,y,rw,h]
+        single={**original,n1:full}
+        pair={**original,n1:[rx,y,half,h],n2:[rx+half,y,half,h]}
+        triple={n1:[rx+half,y,half,h/2],n2:[rx+half,y+h/2,half,h/2],n3:[rx,y,half,h]}
+        custom={**original,n1:[rx,y,round(rw*.6),h],n2:[rx+round(rw*.6),y,rw-round(rw*.6),h]}
+        if mode in ("boundary", "physical-boundary"):
+            self.boundary(original, n1)
+            return
+        if mode == "exclude-display":
+            for n in (n1,n2): self.press("admission-window-"+str(n))
+            self.press("admission-read");self.press("ordinary-confirm")
+            self.checkpoint("pair-on-shipping",pair,2)
+            self.press("ordinary-pause");self.checkpoint("paused",pair)
+            self.press("ordinary-resume");self.checkpoint("continued",pair)
+            self.press("ordinary-exclude-"+str(n2))
+            retained={**original,n2:pair[n2]}
+            self.checkpoint("excluded-sibling",{**retained,n1:full},3)
+            before={n:sorted(a["operation"] for a in self.receipts[-1]["actions"] if a["id"]["number"]==n) for n in original}
+            # Prove normal exit/restore on this shipping hash before testing the independent display change.
+            self.press("ordinary-stop");self.checkpoint("restored-one-excluded-one",retained,4)
+            self.press("admission-ordinary-app");self.select(n1)
+            self.checkpoint("docked-regrant",{**retained,n1:full},5)
+            self.action("floating");self.checkpoint("floating",{**retained,n1:[x,y,w,h]},6)
+            self.action("docked");self.checkpoint("redocked",{**retained,n1:full},7)
+            self.press("ordinary-stop");self.checkpoint("restored-from-display-changes",retained,8)
+            after={n:sorted(a["operation"] for a in self.receipts[-1]["actions"] if a["id"]["number"]==n) for n in original}
+            check(before[n2]==after[n2] and not after[n3],"write to excluded or unauthorized sibling")
+            put(self.out/"native-result.json",dict(result="completed listed checkpoints",session=self.sid,
+                 actionsBeforeFurtherChanges=before,actionsAfterStop=after))
+            return
+        if mode == "floating":
+            self.select(n1); self.checkpoint("docked", single,1)
+            self.action("floating"); self.checkpoint("floating",{**original,n1:[x,y,w,h]})
+            self.action("docked");self.checkpoint("redocked",single)
+            self.press("ordinary-stop");self.checkpoint("restored",original)
+            return
+        if mode == "fault":
+            self.select(n1);self.checkpoint("before-fault",single,1)
+            self.external_edit_and_crash(original,n1)
+            return
+        if mode == "lifecycle":
+            for n in (n1,n2,n3): self.press("admission-window-"+str(n))
+            self.press("admission-read"); self.press("ordinary-confirm")
+            self.checkpoint("authorized-three",triple,3)
+            custom=pair
+        else:
+            self.select(n1)
+            self.checkpoint("single",single,1)
+            self.press("ordinary-stop")
+            self.checkpoint("restored-single",original,2)
+            self.press("admission-read");self.press("ordinary-confirm")
+            self.checkpoint("single-again",single,3)
+            self.select(n2)
+            self.checkpoint("two",pair,5)
+            self.press("ordinary-pair")
+            self.checkpoint("custom",custom,7)
+            self.select(n3)
+            self.checkpoint("three",triple,10)
+        self.press("ordinary-pause"); self.checkpoint("paused",triple)
+        self.press("ordinary-resume"); self.checkpoint("resumed",triple)
+        if mode == "full":
+            for verb in ("icon","normal-size","hide","show"):
+                self.action(verb); self.checkpoint(verb,triple)
+        self.press("ordinary-exclude-"+str(n3))
+        # An explicitly excluded window stays at its last frame and receives no writes.
+        self.checkpoint("exclude-third",{**custom,n3:triple[n3]})
+        self.press("ordinary-stop");self.checkpoint("stop-pair",{**original,n3:triple[n3]})
+        # Verify the display setting on this same explicit grant. Floating is exercised
+        # only after we can recover the selected ordinary window.
+
+        # Start a new selection. A closed/rebuilt window no longer has the old number.
+        self.press("admission-ordinary-app");self.select(n1)
+        others={**original,n3:triple[n3]}
+        self.checkpoint("regranted-for-display", {**others,n1:full})
+        self.external_edit_and_crash(original,n1)
+
+    def boundary(self, original, number):
+        # Only the enrolled anchor moves. The ungranted sibling is an independent control.
+        x, y, width, height = self.run_focus["usableQuartz"]
+        full = [x + 160, y, width - 160, height]
+        check(full[2] - 48 >= 240 and height - 40 >= 152, "secondary cannot fit the tested layout")
+        self.select(number)
+        grant = self.checkpoint("authorized-inside-docked-boundary", {**original, number:full}, 1)
+        check(len(grant) == 1 and grant[0]["id"]["number"] == number, "unexpected grant write")
+
+        breach = [full[0] - 24, y + 24, full[2] - 48, height - 40]
+        safe = [full[0], *breach[1:]]
+        if self.right_edge:
+            display_x, _, display_width, _ = self.run_focus["bounds"]
+            breach[0] = display_x + display_width + 12 - breach[2]
+            safe[0] = x + width - breach[2]
+        owner = self.command("cross-right-edge" if self.right_edge else "cross-reservation")
+        edited = {w["number"]:w["frame"] for w in owner["windows"]}
+        check(edited.keys() == original.keys() and same_rect(edited[number], breach)
+              and all(edited[n] == original[n] for n in original if n != number), "unexpected fixture edit")
+        put(self.out/"external-boundary-stimulus.json", owner)
+
+        expected = {**original, number:safe}
+        receipts = self.checkpoint("boundary-corrected", expected, 2)
+        reads = [json.loads(p.read_text()) for p in self.records.glob("boundary-*.json")]
+        corrections = [r for r in receipts if r["kind"] == "boundary"]
+        check(len(receipts) == 2 and len(corrections) == len(reads) == 1, "missing or repeated boundary correction")
+        correction, witness = corrections[0], reads[0]
+        check(correction["id"] == witness["id"] == grant[0]["id"]
+              and correction["session"] == witness["session"] == grant[0]["session"], "mismatched window or session")
+        keys = ["x", "y", "width", "height"]
+        def matches(rect, wanted):
+            return same_rect([rect[key] for key in keys], wanted)
+        check(matches(correction["previous"], breach) and matches(correction["requested"], safe),
+              "wrong boundary correction")
+        for sample in witness["observed"].values():
+            check(sample["display"] == self.run_focus["side"] and sample["number"] == sample["axNumber"] == number
+                  and sample["element"] == witness["id"]["element"] and sample["launch"] == witness["id"]["launch"]
+                  and matches(sample["axFrame"], breach) and matches(sample["cgFrame"], breach),
+                  "missing independent AX/CG confirmation of original breach")
+        self.press("ordinary-stop")
+        final = self.checkpoint("stopped-preserving-corrected-layout", expected)
+        check(len(final) == 2 and not (self.records/"journal.json").exists(), "stop replayed or left an open transaction")
+        put(self.out/"native-result.json", dict(session=self.sid, subject=number, externalFrame=breach,
+            correctedFrame=safe, observation=witness["revision"], operation=correction["operation"],
+            maximumAXCGErrorPt=self.receipts[-1]["maxErrorPt"], writes=2, stopWrites=0))
+
+    def external_edit_and_crash(self,original,n1):
+        before_edit=self.action_ids()
+        self.command("edit 1");time.sleep(.4)
+        edited=self.sample("independent-app-edit")
+        self.press("ordinary-stop")
+        self.checkpoint("refused-restore-after-external-edit",edited)
+        check((self.records/"journal.json").exists(),"missing unresolved journal")
+        check(self.action_ids()==before_edit,"layout overwritten on external edit")
+        self.command("close 1");new=self.command("add 1")
+        new_number=new["windows"][0]["number"]
+        check(new_number!=n1,"window number unexpectedly reused")
+        held=self.sample("rebuilt-without-consent")
+        # Use current actual profile and same exact test fixture on restart.
+        check(se.process_path(self.hostpid)==self.hostexe and self.host.poll() is None, "wrong SIGKILL target")
+        before=list(self.records.glob("action-*.json")); self.host.kill();check(self.host.wait(timeout=5)==-9,"wrong kill status")
+        self.start_host(restart=True);time.sleep(.5)
+        self.checkpoint("restart-does-not-replay",held)
+        check(len(list(self.records.glob("action-*.json")))==len(before),"new action on restart")
+        # Finish the actual independent application, then check the disposition
+        # of the unresolved grant while the restarted Host is still running.
+        self.command("quit")
+        def gone():
+            try: return self.fixture.poll() is not None
+            except ValueError: return True
+        wait(gone,4)
+        time.sleep(.45)
+        check(self.action_ids()==before_edit and (self.records/"journal.json").exists(),
+              "new writes or lost unresolved record after application exit")
+        put(self.out/"native-result.json",dict(result="completed listed checkpoints",session=self.sid,
+            beforeEditReceipts=sorted(before_edit),afterProcessExitReceipts=sorted(self.action_ids()),
+            recovery=json.loads((self.records/"journal.json").read_text())))
+
+    def action_ids(self):
+        return {p.name for p in self.records.glob("action-*.json")}
+
+
+    def close(self):
+        if self.host is not None:
+            if self.host.poll() is None and self.hostpid:
+                if getattr(self,"settings",None):
+                    try: self.action("quit", wait_ack=False)
+                    except Exception: pass
+                try: self.host.wait(timeout=4)
+                except sp.TimeoutExpired:
+                    if se.process_path(self.hostpid)==self.hostexe: os.kill(self.hostpid,signal.SIGTERM)
+            try: self.host.wait(timeout=4)
+            except sp.TimeoutExpired: pass
+        try: alive=self.fixture.poll() is None
+        except ValueError: alive=False
+        if alive:
+            put(self.out/"pre-cleanup-focus.json",self.observe())
+            try: self.command("quit")
+            except (BrokenPipeError, ValueError, RuntimeError): pass
+            self.fixture.stdin.close()
+        def ended():
+            try: return self.fixture.poll() is not None
+            except ValueError: return True
+        wait(ended,5)
+        self.pipes.cleanup()
+        (self.app.parent/"sample-pipes").unlink(missing_ok=True)
+        post=self.observe()
+        # Existing process is already gone; enumerate only exact recorded CG numbers.
+        if self.all_windows:
+            vanished=reply(OFF+[WORK/"observe","gone",str(self.fixture.pid),*map(str,self.all_windows)])
+            check(vanished.get("residual")==[],"fixture window remained")
+        else:
+            vanished={"residual":[]}
+        cleanup={"fixtureGone":True,"fixturePID":self.fixture.pid,"windowIDs":sorted(self.all_windows),
+                 "finalFocus":post,"sameFocus":self.focus(post),"CGResidual":vanished['residual']}
+        if self.host is not None: cleanup.update(hostPID=self.hostpid, launcherExit=self.host.poll())
+        put(self.out/"cleanup.json",cleanup)
+        check(cleanup["sameFocus"],"foreground/focused window changed during run")
+
+if __name__ == "__main__":
+    p=ArgumentParser()
+    p.add_argument("--candidate",type=Path,default=Path.home()/"Applications/Nearpane P5.4/Nearpane P5.4 Alpha.app")
+    mode=p.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--probe",action="store_true")
+    mode.add_argument("--mode",choices=["full","lifecycle","fault","floating","exclude-display","density","membership","closure-probe","exclusion-idle","mixed","boundary","physical-boundary","new-window-scope","pair-quit"])
+    p.add_argument("--single-display", action="store_true", help="Require one actual display and nonactivating regular sample windows.")
+    args=p.parse_args()
+    if args.mode == "physical-boundary" and not args.single_display:
+        p.error("right-edge experiment requires one physical display")
+    if args.single_display and not args.probe and args.mode not in ("new-window-scope", "membership", "pair-quit", "boundary", "physical-boundary"):
+        p.error("single display supports only ordinary membership and recovery")
+    if args.single_display:
+        os.environ["NEARPANE_SINGLE_ORDINARY_WITNESS"] = "1"
+    else:
+        os.environ.pop("NEARPANE_SINGLE_ORDINARY_WITNESS", None)
+    if not args.probe:
+        sp.run(["/usr/bin/codesign", "--verify", "--strict", "--deep", '-R=identifier "com.holdsnow.nearpane.alpha"',
+                args.candidate.resolve()], check=True)
+    with (OUT/"run.txt").open("w") as fp: fp.write("probe" if args.probe else args.mode)
+    print(OUT,flush=True)
+    if args.mode in ("boundary", "physical-boundary", "new-window-scope", "pair-quit"):
+        # Require a free Host slot before even launching the disposable fixture.
+        check(sp.run(["pgrep","-x","NearpaneHost"],stdout=sp.DEVNULL).returncode == 1, "existing Host in use")
+    try:
+        t=Trial(args.candidate.resolve(), single=args.single_display, right_edge=args.mode=="physical-boundary")
+    except Exception as error:
+        put(OUT/"startup-refusal.json", dict(error=str(error), hostStarted=False))
+        raise
+    try:
+        t.boundary_review = args.mode in ("boundary", "physical-boundary")
+        count = 2 if args.mode in ("closure-probe","mixed","boundary","physical-boundary","new-window-scope","pair-quit") else (1 if args.mode in ("fault","floating") else 3)
+        original=t.baseline(count, density=args.mode=="density")
+        if args.mode=="mixed":
+            from mixed import run as run_mixed
+            t.peer = Trial(args.candidate.resolve(), palette=True)
+            try:
+                run_mixed(t, original, t.peer.baseline(2), out=OUT, check=check, put=put)
+            except Exception:
+                if t.host is not None and t.host.poll() is None and t.focus(t.observe()):
+                    put(OUT/"mixed-refusal.json",t.ui())
+                raise
+        elif args.mode=="pair-quit":
+            from membership import pair_quit
+            pair_quit(t, original, check=check, put=put, out=OUT)
+        elif args.mode=="new-window-scope":
+            from membership import new_window_scope
+            new_window_scope(t, original, check=check, wait=wait, put=put, out=OUT)
+        elif args.mode=="density": t.density(original)
+        elif args.mode=="exclusion-idle":
+            from exclusion_idle import run
+            run(t, original, check=check, wait=wait, put=put, out=OUT, work=WORK)
+        elif args.mode=="closure-probe":
+            from membership import probe_registration
+            probe_registration(t, original, check=check, put=put, out=OUT)
+        elif args.mode=="membership":
+            from membership import run as run_membership
+            run_membership(t, original, check=check, wait=wait, put=put, out=OUT)
+        elif not args.probe: t.trial(original,args.mode)
+    except Exception as error:
+        put(OUT/"failure.json",dict(error=str(error),session=getattr(t,"sid",None)))
+        if (args.mode=="density" or t.single) and t.host is not None and t.host.poll() is None and t.fixture.poll() is None and t.focus(t.observe()):
+            try:
+                t.sample("refusal-readback")
+                put(OUT/"refused.json",t.ui())
+            except Exception as sample_error:
+                put(OUT/"refusal-readback-failure.json",dict(error=str(sample_error)))
+        raise
+    finally:
+        try:
+            t.close()  # Let the Host finish its recovery while both process identities still exist.
+        finally:
+            if getattr(t, "peer", None) is not None:
+                t.peer.close()

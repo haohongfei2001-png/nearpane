@@ -1,0 +1,9 @@
+{
+  "cleanup": {
+    "reason": "TextEdit has not exposed exactly the two enrolled document windows"
+  },
+  "issued": 0,
+  "passes": 0,
+  "reason": "Owned TextEdit cleanup is incomplete.",
+  "status": "FAIL"
+}

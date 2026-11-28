@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "revision": "32f22cd41793cdbb0299e34877cd189608863959",
+  "runID": 45714010064,
+  "jobID": 139555324928,
+  "artifactID": 15068154266,
+  "artifactSHA256": "38e573ea31e4b94c3ba06904ccd762e6b545c27b218e4b4fa68615de95d0a93c",
+  "qualificationGranted": false,
+  "files": {
+    "engine-result.json": "71a62c885ad322a07e33208698193b2fa5b5bcb10ba1563a52e4b07797e4ba46",
+    "engine.log": "615915b0d1b80ef2e4ba0afff262733444e659c227cd7ec4270b618a82b26eef",
+    "engine.stderr.log": "3dfd3da6184d4a586f68c3f4a1577feda6cc9fbb8665ba8e59888ee566ffc662"
+  }
+}

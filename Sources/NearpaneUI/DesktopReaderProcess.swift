@@ -1,0 +1,107 @@
+import Foundation
+import Darwin
+import NearpaneCore
+
+enum ReaderFailure: Error { case unavailable, invalidResponse, timeout, outputLimit }
+
+/// One disposable read. The parent owns waitpid until reap, so cancellation can never signal a recycled PID.
+enum DesktopReaderProcess {
+    static func read(executable: URL, request: DesktopReadRequest, timeout: Double = 3.8, overview: Bool = false,
+                     didSpawn: (@Sendable (pid_t) -> Void)? = nil) async throws -> DesktopSnapshot {
+        let input = try JSONEncoder().encode(request)
+        guard input.count <= 8192 else { throw ReaderFailure.invalidResponse }
+        let job = Task.detached(priority: .utility) {
+            try collect(executable: executable, mode: overview ? "--window-overview" : "--read-encoded",
+                        argument: input.base64EncodedString(), timeout: timeout, didSpawn: didSpawn)
+        }
+        let bytes = try await withTaskCancellationHandler { try await job.value } onCancel: { job.cancel() }
+        let snapshot = try JSONDecoder().decode(DesktopSnapshot.self, from: bytes)
+        guard snapshot.isStructurallyValid, snapshot.sessionID == request.session, snapshot.revision == request.revision,
+              snapshot.native?.population == (request.fixtureWindows == nil ? .workWindows : .markedFixture),
+              overview || request.experimentalSpaces || snapshot.native?.spaces == .disabled,
+              overview || snapshot.windows.allSatisfy({ $0.metadata?.overviewSpaceID == nil }),
+              !overview || (request.fixtureWindows == nil && snapshot.native?.rows.isEmpty == true),
+              snapshot.native?.rows.allSatisfy({ row in
+                  switch row.anchor.witness {
+                  case .ownedWindow: return request.anchors.contains(row.anchor)
+                  case .appKitActiveList: return request.experimentalSpaces && request.fixtureWindows == nil
+                  }
+              }) == true else { throw ReaderFailure.invalidResponse }
+        if let fixture = request.fixtureWindows {
+            guard snapshot.windows.allSatisfy({ w in
+                w.metadata.map { $0.pid == request.parentPID && fixture.contains($0.number) } == true
+            }) else { throw ReaderFailure.invalidResponse }
+        } else if snapshot.windows.contains(where: { $0.metadata?.pid == request.parentPID }) { throw ReaderFailure.invalidResponse }
+        return snapshot
+    }
+
+    static func collect(executable: URL, mode: String = "--read-encoded", argument: String, timeout: Double, didSpawn: (@Sendable (pid_t) -> Void)? = nil) throws -> Data {
+        try Task.checkCancellation()
+        var fds = [Int32](repeating: -1, count: 2)
+        guard pipe(&fds) == 0 else { throw ReaderFailure.unavailable }
+        defer { close(fds[0]); if fds[1] >= 0 { close(fds[1]) } }
+        guard fcntl(fds[0], F_SETFL, O_NONBLOCK) == 0 else { throw ReaderFailure.unavailable }
+        var actions: posix_spawn_file_actions_t?, attrs: posix_spawnattr_t?
+        guard posix_spawn_file_actions_init(&actions) == 0 else { throw ReaderFailure.unavailable }
+        defer { posix_spawn_file_actions_destroy(&actions) }
+        guard posix_spawnattr_init(&attrs) == 0 else { throw ReaderFailure.unavailable }
+        defer { posix_spawnattr_destroy(&attrs) }
+        guard posix_spawnattr_setflags(&attrs, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT)) == 0,
+              posix_spawn_file_actions_addopen(&actions, STDIN_FILENO, "/dev/null", O_RDONLY, 0) == 0,
+              posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY, 0) == 0,
+              posix_spawn_file_actions_adddup2(&actions, fds[1], STDOUT_FILENO) == 0 else { throw ReaderFailure.unavailable }
+        let path = executable.path(percentEncoded: false)
+        var args: [UnsafeMutablePointer<CChar>?] = [path, mode, argument].map { value in
+            value.withCString { strdup($0) }
+        }
+        var env = [strdup("PATH=/usr/bin:/bin"), nil]
+        defer { args.forEach { free($0) }; env.forEach { free($0) } }
+        guard args.allSatisfy({ $0 != nil }), env[0] != nil else { throw ReaderFailure.unavailable }
+        args.append(nil)
+        var pid: pid_t = 0
+        guard posix_spawn(&pid, path, &actions, &attrs, &args, &env) == 0 else { throw ReaderFailure.unavailable }
+        didSpawn?(pid)
+        close(fds[1]); fds[1] = -1
+        var status: Int32 = 0, reaped = false, eof = false
+        defer {
+            if !reaped {
+                kill(pid, SIGKILL)
+                while waitpid(pid, &status, 0) < 0 && errno == EINTR {}
+            }
+        }
+        let deadline = ProcessInfo.processInfo.systemUptime + timeout
+        var bytes = Data(), buffer = [UInt8](repeating: 0, count: 16_384)
+        while !reaped || !eof {
+            try Task.checkCancellation()
+            guard ProcessInfo.processInfo.systemUptime < deadline else { throw ReaderFailure.timeout }
+            let count = Darwin.read(fds[0], &buffer, buffer.count)
+            if count > 0 {
+                guard bytes.count + count <= 1_048_576 else { throw ReaderFailure.outputLimit }
+                bytes.append(contentsOf: buffer.prefix(count))
+            } else if count == 0 { eof = true }
+            else if errno != EAGAIN && errno != EINTR { throw ReaderFailure.invalidResponse }
+            if !reaped {
+                let result = waitpid(pid, &status, WNOHANG)
+                if result == pid { reaped = true }
+                if result < 0 && errno != EINTR {
+                    if errno == ECHILD { reaped = true }
+                    throw ReaderFailure.unavailable
+                }
+            }
+            if count <= 0 && (!eof || !reaped) {
+                // Wait for pipe data or hangup. The upper bound also lets a
+                // cancellation interrupt a helper stuck in an AX call.
+                let remaining = max(0, deadline - ProcessInfo.processInfo.systemUptime)
+                let milliseconds = Int32(ceil(min(remaining, eof ? 0.008 : 0.10) * 1_000))
+                // A closed pipe is always readable. When only waitpid remains,
+                // ignore the descriptor to avoid spinning on its EOF.
+                var descriptor = pollfd(fd: eof ? -1 : fds[0], events: Int16(POLLIN), revents: 0)
+                if Darwin.poll(&descriptor, 1, milliseconds) < 0 && errno != EINTR {
+                    throw ReaderFailure.unavailable
+                }
+            }
+        }
+        guard status == 0 else { throw ReaderFailure.unavailable }
+        return bytes
+    }
+}

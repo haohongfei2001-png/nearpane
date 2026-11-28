@@ -1,0 +1,6385 @@
+{
+  "admissionReads": [
+    {
+      "appSource": "systemFocusedApplication",
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "birth": 1795271950317697,
+      "cgWindowID": 68518,
+      "nativeScope": {
+        "displayUUID": "physical-uuid-1",
+        "nativeID": 4,
+        "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+        "spaceUUID": "physical-uuid-2",
+        "status": "PASS"
+      },
+      "systemFocusedApplicationError": 0,
+      "uptime": 417802.8398584167,
+      "workspacePID": 48228
+    }
+  ],
+  "build": "26A428",
+  "endedUTC": "2026-11-22T14:35:30Z",
+  "host": {
+    "birth": 1795343882268848,
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team": "ZB9D4T66QB"
+  },
+  "hostRole": "runningRegularInstalledHost",
+  "hostSequenceConfirmed": false,
+  "hostTelemetry": [
+    {
+      "endUptime": 417803.7974125417,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "phase": "before",
+      "pid": 32364,
+      "startUptime": 417803.32943320833
+    },
+    {
+      "endUptime": 417803.99601070833,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "phase": "presented",
+      "pid": 32364,
+      "startUptime": 417803.88928458333
+    },
+    {
+      "endUptime": 417804.88191875,
+      "missionControlObservation": "signedDockMCIdentifier",
+      "missionControlPresented": 1,
+      "phase": "dismissed",
+      "pid": 32364,
+      "startUptime": 417804.77830783336
+    },
+    {
+      "endUptime": 417809.8127209584,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "phase": "terminal",
+      "pid": 32364,
+      "startUptime": 417809.705663
+    }
+  ],
+  "launchedHosts": 0,
+  "measurement": {
+    "currentSpaceID": 4,
+    "dismissals": 1,
+    "expectedCount": 4,
+    "focusAfter": [
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417804.77809545834,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.0041716667,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.10204720835,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.202556125,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.30624995835,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.40650420834,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.50308495836,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.6006160417,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.7007215834,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.80113508337,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417805.90196412505,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.01698783337,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.1177674167,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.2166582917,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.3196342917,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.4174692917,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.5191756667,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.621191625,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.72186908335,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.8173015,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417806.922437125,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.0193513334,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.1188691667,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.22255400004,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.3251701667,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.42159033334,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.51932845835,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.6217822917,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.7241279167,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.82286670833,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417807.92041012505,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.0228309167,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.1216674167,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.222318375,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.3238028334,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.42535833333,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.52085250005,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.61863750004,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.71710912505,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.81662912504,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417808.92072175,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.01624350005,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.1167631667,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.2101999167,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.3038272917,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.40111645835,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.5051432084,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.60258395836,
+        "workspacePID": 56354
+      },
+      {
+        "appSource": "workspaceAndAXFrontmost",
+        "axFocusedWindowError": -25212,
+        "axFrontmost": true,
+        "axFrontmostError": 0,
+        "birth": 1794944389149251,
+        "overviewClosed": true,
+        "reason": "externalFocusedWindowUnavailable",
+        "systemFocusedApplicationError": -25212,
+        "uptime": 417809.7024649167,
+        "workspacePID": 56354
+      }
+    ],
+    "focusBefore": [
+      {
+        "birth": 1795271950317697,
+        "cgWindowID": 68518,
+        "pid": 48228,
+        "sameOriginalAX": true,
+        "uptime": 417803.2118924167
+      },
+      {
+        "birth": 1795271950317697,
+        "cgWindowID": 68518,
+        "pid": 48228,
+        "sameOriginalAX": true,
+        "uptime": 417803.2724281667
+      }
+    ],
+    "hidAfter": [
+      10065,
+      10065,
+      94,
+      94,
+      0,
+      0,
+      1216931,
+      35396,
+      38,
+      0,
+      6460,
+      6460,
+      279,
+      298143
+    ],
+    "hidBefore": [
+      10065,
+      10065,
+      94,
+      94,
+      0,
+      0,
+      1216931,
+      35396,
+      38,
+      0,
+      6460,
+      6460,
+      279,
+      298143
+    ],
+    "hitTestSamples": [
+      {
+        "completeGrid": true,
+        "displayFrame": [
+          0,
+          0,
+          1470,
+          956
+        ],
+        "endUptime": 417804.3202970417,
+        "hits": [
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              21.61764705882353,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": 0,
+              "object": 8
+            },
+            "point": [
+              21.61764705882353,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 8
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": 0,
+              "object": 11
+            },
+            "point": [
+              21.61764705882353,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 11
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              21.61764705882353,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": 0,
+              "object": 12
+            },
+            "point": [
+              21.61764705882353,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 12
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          }
+        ],
+        "inputInterrupted": false,
+        "objects": [
+          {
+            "errors": {
+              "identifier": 0,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              1470,
+              72
+            ],
+            "identifier": "mc.spaces.list",
+            "pid": 647,
+            "role": "AXList"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              416.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              513.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              611.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              862.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": 0,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              1470,
+              72
+            ],
+            "identifier": "mc.spaces",
+            "pid": 647,
+            "role": "AXGroup"
+          },
+          {
+            "errors": {
+              "identifier": 0,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "identifier": "mc.display",
+            "pid": 647,
+            "role": "AXGroup"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXApplication"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              2.628084182739258,
+              61.75836181640625,
+              46.75836181640625,
+              34.75836181640625
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXDockItem"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              8,
+              59,
+              46,
+              871
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXList"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXApplication"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              3.5066776275634766,
+              96.5167236328125,
+              46.75836181640625,
+              34.75836181640625
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXDockItem"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              4.263739585876465,
+              131.27508544921875,
+              46.75836181640625,
+              34.75836181640625
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXDockItem"
+          }
+        ],
+        "parentReads": [
+          {
+            "axError": 0,
+            "object": 0,
+            "parent": 5
+          },
+          {
+            "axError": 0,
+            "object": 5,
+            "parent": 6
+          },
+          {
+            "axError": 0,
+            "object": 6,
+            "parent": 7
+          },
+          {
+            "axError": -25212,
+            "object": 7
+          },
+          {
+            "axError": 0,
+            "object": 1,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 2,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 3,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 4,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 8,
+            "parent": 9
+          },
+          {
+            "axError": 0,
+            "object": 9,
+            "parent": 10
+          },
+          {
+            "axError": -25212,
+            "object": 10
+          },
+          {
+            "axError": 0,
+            "object": 11,
+            "parent": 9
+          },
+          {
+            "axError": 0,
+            "object": 12,
+            "parent": 9
+          }
+        ],
+        "pointsRead": 170,
+        "rootDisagreement": false,
+        "rootTimeoutErrors": {
+          "dock": 0,
+          "systemWide": 0
+        },
+        "startUptime": 417804.14376450004,
+        "stripAttributes": [
+          {
+            "attributes": [
+              {
+                "attribute": "AXChildren",
+                "axError": 0,
+                "objects": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              {
+                "attribute": "AXVisibleChildren",
+                "axError": 0,
+                "objects": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              {
+                "attribute": "AXChildrenInNavigationOrder",
+                "axError": 0,
+                "objects": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              }
+            ],
+            "list": 0
+          }
+        ],
+        "targetPoints": 170,
+        "visibleTiles": []
+      },
+      {
+        "completeGrid": true,
+        "displayFrame": [
+          0,
+          0,
+          1470,
+          956
+        ],
+        "endUptime": 417804.61124508333,
+        "hits": [
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              21.61764705882353,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              32
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": 0,
+              "object": 8
+            },
+            "point": [
+              21.61764705882353,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 8
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              64
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": 0,
+              "object": 11
+            },
+            "point": [
+              21.61764705882353,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 11
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              100
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              21.61764705882353,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 1
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 2
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 3
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 4
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              16
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 0
+            }
+          },
+          {
+            "dock": {
+              "axError": 0,
+              "object": 12
+            },
+            "point": [
+              21.61764705882353,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 12
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              64.8529411764706,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              108.08823529411765,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              151.3235294117647,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              194.55882352941177,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              237.7941176470588,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              281.02941176470586,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              324.2647058823529,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              367.5,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              410.7352941176471,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              453.97058823529414,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              497.20588235294116,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              540.4411764705883,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              583.6764705882352,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              626.9117647058823,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              670.1470588235294,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              713.3823529411765,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              756.6176470588235,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              799.8529411764706,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              843.0882352941177,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              886.3235294117648,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              929.5588235294117,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              972.7941176470588,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1016.0294117647059,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1059.264705882353,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1102.5,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1145.735294117647,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1188.9705882352941,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1232.2058823529412,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1275.4411764705883,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1318.6764705882354,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1361.9117647058824,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1405.1470588235295,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          },
+          {
+            "dock": {
+              "axError": -25212
+            },
+            "point": [
+              1448.3823529411766,
+              136
+            ],
+            "systemWide": {
+              "axError": 0,
+              "object": 6
+            }
+          }
+        ],
+        "inputInterrupted": false,
+        "objects": [
+          {
+            "errors": {
+              "identifier": 0,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              1470,
+              72
+            ],
+            "identifier": "mc.spaces.list",
+            "pid": 647,
+            "role": "AXList"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              416.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              513.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              611.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              862.5,
+              -0.5,
+              168.38912133891213,
+              129
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXButton"
+          },
+          {
+            "errors": {
+              "identifier": 0,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              1470,
+              72
+            ],
+            "identifier": "mc.spaces",
+            "pid": 647,
+            "role": "AXGroup"
+          },
+          {
+            "errors": {
+              "identifier": 0,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              1470,
+              956
+            ],
+            "identifier": "mc.display",
+            "pid": 647,
+            "role": "AXGroup"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "identifier": null,
+            "pid": 647,
+            "role": "AXApplication"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              5,
+              61.75836181640625,
+              46.75836181640625,
+              34.75836181640625
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXDockItem"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              10,
+              59,
+              47,
+              871
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXList"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXApplication"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              5,
+              96.5167236328125,
+              46.75836181640625,
+              34.75836181640625
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXDockItem"
+          },
+          {
+            "errors": {
+              "identifier": -25212,
+              "pid": 0,
+              "position": 0,
+              "role": 0,
+              "size": 0
+            },
+            "frame": [
+              5,
+              131.27508544921875,
+              46.75836181640625,
+              34.75836181640625
+            ],
+            "identifier": null,
+            "pid": 697,
+            "role": "AXDockItem"
+          }
+        ],
+        "parentReads": [
+          {
+            "axError": 0,
+            "object": 0,
+            "parent": 5
+          },
+          {
+            "axError": 0,
+            "object": 5,
+            "parent": 6
+          },
+          {
+            "axError": 0,
+            "object": 6,
+            "parent": 7
+          },
+          {
+            "axError": -25212,
+            "object": 7
+          },
+          {
+            "axError": 0,
+            "object": 1,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 2,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 3,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 4,
+            "parent": 0
+          },
+          {
+            "axError": 0,
+            "object": 8,
+            "parent": 9
+          },
+          {
+            "axError": 0,
+            "object": 9,
+            "parent": 10
+          },
+          {
+            "axError": -25212,
+            "object": 10
+          },
+          {
+            "axError": 0,
+            "object": 11,
+            "parent": 9
+          },
+          {
+            "axError": 0,
+            "object": 12,
+            "parent": 9
+          }
+        ],
+        "pointsRead": 170,
+        "rootDisagreement": false,
+        "rootTimeoutErrors": {
+          "dock": 0,
+          "systemWide": 0
+        },
+        "startUptime": 417804.47212237504,
+        "stripAttributes": [
+          {
+            "attributes": [
+              {
+                "attribute": "AXChildren",
+                "axError": 0,
+                "objects": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              {
+                "attribute": "AXVisibleChildren",
+                "axError": 0,
+                "objects": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              },
+              {
+                "attribute": "AXChildrenInNavigationOrder",
+                "axError": 0,
+                "objects": [
+                  1,
+                  2,
+                  3,
+                  4
+                ]
+              }
+            ],
+            "list": 0
+          }
+        ],
+        "targetPoints": 170,
+        "visibleTiles": []
+      }
+    ],
+    "inputEventsPosted": 0,
+    "inputUninterrupted": true,
+    "managedIDsAfter": [
+      4,
+      5568,
+      6,
+      5184
+    ],
+    "managedIDsBefore": [
+      4,
+      5568,
+      6,
+      5184
+    ],
+    "nativeAfter": {
+      "current": {
+        "id": 4,
+        "type": 0,
+        "uuid": "physical-uuid-2"
+      },
+      "display": "physical-uuid-1",
+      "roster": [
+        {
+          "id": 4,
+          "type": 0,
+          "uuid": "physical-uuid-2"
+        },
+        {
+          "id": 5568,
+          "type": 4,
+          "uuid": "physical-uuid-3"
+        },
+        {
+          "id": 6,
+          "type": 0,
+          "uuid": "physical-uuid-4"
+        },
+        {
+          "id": 5184,
+          "type": 4,
+          "uuid": "physical-uuid-5"
+        }
+      ]
+    },
+    "nativeBefore": {
+      "current": {
+        "id": 4,
+        "type": 0,
+        "uuid": "physical-uuid-2"
+      },
+      "display": "physical-uuid-1",
+      "roster": [
+        {
+          "id": 4,
+          "type": 0,
+          "uuid": "physical-uuid-2"
+        },
+        {
+          "id": 5568,
+          "type": 4,
+          "uuid": "physical-uuid-3"
+        },
+        {
+          "id": 6,
+          "type": 0,
+          "uuid": "physical-uuid-4"
+        },
+        {
+          "id": 5184,
+          "type": 4,
+          "uuid": "physical-uuid-5"
+        }
+      ]
+    },
+    "nativeInventoryRestored": true,
+    "observedTileHits": [
+      0,
+      0
+    ],
+    "originalFocus": {
+      "birth": 1795271950317697,
+      "pid": 48228,
+      "window": 68518
+    },
+    "originalFocusConfirmedReads": 0,
+    "overviewClosed": true,
+    "presentations": 1,
+    "rawManagedDictionaryEqual": true,
+    "reason": "originalFocusOrOverviewDismissalUnconfirmed",
+    "restored": false,
+    "scopeType": 0,
+    "spaceWrites": 0,
+    "stableHitLayout": false,
+    "stage": "beforeWindowWrites",
+    "status": "UNKNOWN",
+    "tileCounts": [],
+    "windowWrites": 0
+  },
+  "media": {
+    "audio": false,
+    "cursor": false,
+    "frames": [
+      {
+        "file": "frame-000.png",
+        "pts": 417803.062556583,
+        "receivedUptime": 417803.0637365417
+      },
+      {
+        "file": "frame-001.png",
+        "pts": 417803.129223208,
+        "receivedUptime": 417803.1393344167
+      },
+      {
+        "file": "frame-002.png",
+        "pts": 417803.229223208,
+        "receivedUptime": 417803.22266525
+      },
+      {
+        "file": "frame-003.png",
+        "pts": 417803.295889791,
+        "receivedUptime": 417803.30823508336
+      },
+      {
+        "file": "frame-004.png",
+        "pts": 417803.39588975,
+        "receivedUptime": 417803.39102825004
+      },
+      {
+        "file": "frame-005.png",
+        "pts": 417803.479223,
+        "receivedUptime": 417803.47462775005
+      },
+      {
+        "file": "frame-006.png",
+        "pts": 417803.56255625,
+        "receivedUptime": 417803.55981025
+      },
+      {
+        "file": "frame-007.png",
+        "pts": 417803.629222875,
+        "receivedUptime": 417803.64227475005
+      },
+      {
+        "file": "frame-008.png",
+        "pts": 417803.729222791,
+        "receivedUptime": 417803.728018375
+      },
+      {
+        "file": "frame-009.png",
+        "pts": 417803.812556083,
+        "receivedUptime": 417803.81296333333
+      },
+      {
+        "file": "frame-010.png",
+        "pts": 417803.895889333,
+        "receivedUptime": 417803.894615125
+      },
+      {
+        "file": "frame-011.png",
+        "pts": 417803.979222666,
+        "receivedUptime": 417803.9781520417
+      },
+      {
+        "file": "frame-012.png",
+        "pts": 417804.062555916,
+        "receivedUptime": 417804.0625760417
+      },
+      {
+        "file": "frame-013.png",
+        "pts": 417804.145889166,
+        "receivedUptime": 417804.145215375
+      },
+      {
+        "file": "frame-014.png",
+        "pts": 417804.2292225,
+        "receivedUptime": 417804.2288603334
+      },
+      {
+        "file": "frame-015.png",
+        "pts": 417804.31255575,
+        "receivedUptime": 417804.31207445834
+      },
+      {
+        "file": "frame-016.png",
+        "pts": 417804.379222208,
+        "receivedUptime": 417804.39601525
+      },
+      {
+        "file": "frame-017.png",
+        "pts": 417804.745888625,
+        "receivedUptime": 417804.73868062504
+      },
+      {
+        "file": "frame-018.png",
+        "pts": 417804.829221875,
+        "receivedUptime": 417804.8210170417
+      },
+      {
+        "file": "frame-019.png",
+        "pts": 417804.912555125,
+        "receivedUptime": 417804.904741875
+      },
+      {
+        "file": "frame-020.png",
+        "pts": 417804.9958885,
+        "receivedUptime": 417804.988430375
+      },
+      {
+        "file": "frame-021.png",
+        "pts": 417805.079221666,
+        "receivedUptime": 417805.07056712505
+      },
+      {
+        "file": "frame-022.png",
+        "pts": 417805.112555083,
+        "receivedUptime": 417805.15634075005
+      },
+      {
+        "file": "frame-023.png",
+        "pts": 417805.245888208,
+        "receivedUptime": 417805.23934220837
+      },
+      {
+        "file": "frame-024.png",
+        "pts": 417805.3292215,
+        "receivedUptime": 417805.3226
+      },
+      {
+        "file": "frame-025.png",
+        "pts": 417805.41255475,
+        "receivedUptime": 417805.4068901667
+      },
+      {
+        "file": "frame-026.png",
+        "pts": 417805.495888041,
+        "receivedUptime": 417805.4921523334
+      },
+      {
+        "file": "frame-027.png",
+        "pts": 417805.579221291,
+        "receivedUptime": 417805.57559195836
+      },
+      {
+        "file": "frame-028.png",
+        "pts": 417805.662554583,
+        "receivedUptime": 417805.66017183335
+      },
+      {
+        "file": "frame-029.png",
+        "pts": 417805.745887833,
+        "receivedUptime": 417805.74364425003
+      },
+      {
+        "file": "frame-030.png",
+        "pts": 417805.829221125,
+        "receivedUptime": 417805.82674745837
+      },
+      {
+        "file": "frame-031.png",
+        "pts": 417805.912554375,
+        "receivedUptime": 417805.91080141667
+      },
+      {
+        "file": "frame-032.png",
+        "pts": 417805.995887708,
+        "receivedUptime": 417805.99571658333
+      },
+      {
+        "file": "frame-033.png",
+        "pts": 417806.079220916,
+        "receivedUptime": 417806.07869600004
+      },
+      {
+        "file": "frame-034.png",
+        "pts": 417806.16255425,
+        "receivedUptime": 417806.16183475003
+      },
+      {
+        "file": "frame-035.png",
+        "pts": 417806.2458875,
+        "receivedUptime": 417806.24513645837
+      },
+      {
+        "file": "frame-036.png",
+        "pts": 417806.329220833,
+        "receivedUptime": 417806.3289960417
+      },
+      {
+        "file": "frame-037.png",
+        "pts": 417806.412554041,
+        "receivedUptime": 417806.4140406667
+      },
+      {
+        "file": "frame-038.png",
+        "pts": 417806.479220708,
+        "receivedUptime": 417806.4990725417
+      },
+      {
+        "file": "frame-039.png",
+        "pts": 417806.579220625,
+        "receivedUptime": 417806.58258075005
+      },
+      {
+        "file": "frame-040.png",
+        "pts": 417806.679220541,
+        "receivedUptime": 417806.6742526667
+      },
+      {
+        "file": "frame-041.png",
+        "pts": 417806.745887208,
+        "receivedUptime": 417806.7547817917
+      },
+      {
+        "file": "frame-042.png",
+        "pts": 417806.845887083,
+        "receivedUptime": 417806.841807375
+      },
+      {
+        "file": "frame-043.png",
+        "pts": 417806.929220416,
+        "receivedUptime": 417806.925188625
+      },
+      {
+        "file": "frame-044.png",
+        "pts": 417807.012553625,
+        "receivedUptime": 417807.00857212505
+      },
+      {
+        "file": "frame-045.png",
+        "pts": 417807.095886916,
+        "receivedUptime": 417807.0920783334
+      },
+      {
+        "file": "frame-046.png",
+        "pts": 417807.179220208,
+        "receivedUptime": 417807.1753377084
+      },
+      {
+        "file": "frame-047.png",
+        "pts": 417807.2625535,
+        "receivedUptime": 417807.26019966666
+      },
+      {
+        "file": "frame-048.png",
+        "pts": 417807.345886833,
+        "receivedUptime": 417807.34543079167
+      },
+      {
+        "file": "frame-049.png",
+        "pts": 417807.429220125,
+        "receivedUptime": 417807.4293284584
+      },
+      {
+        "file": "frame-050.png",
+        "pts": 417807.512553333,
+        "receivedUptime": 417807.5139431667
+      },
+      {
+        "file": "frame-051.png",
+        "pts": 417807.595886625,
+        "receivedUptime": 417807.5977874167
+      },
+      {
+        "file": "frame-052.png",
+        "pts": 417807.679219916,
+        "receivedUptime": 417807.68087745836
+      },
+      {
+        "file": "frame-053.png",
+        "pts": 417807.762553125,
+        "receivedUptime": 417807.76494170836
+      },
+      {
+        "file": "frame-054.png",
+        "pts": 417807.8458865,
+        "receivedUptime": 417807.8486710417
+      },
+      {
+        "file": "frame-055.png",
+        "pts": 417807.929219833,
+        "receivedUptime": 417807.93265612505
+      },
+      {
+        "file": "frame-056.png",
+        "pts": 417808.012553041,
+        "receivedUptime": 417808.0164378334
+      },
+      {
+        "file": "frame-057.png",
+        "pts": 417808.095886291,
+        "receivedUptime": 417808.0995220417
+      },
+      {
+        "file": "frame-058.png",
+        "pts": 417808.179219583,
+        "receivedUptime": 417808.1831522917
+      },
+      {
+        "file": "frame-059.png",
+        "pts": 417808.279219458,
+        "receivedUptime": 417808.2717677917
+      },
+      {
+        "file": "frame-060.png",
+        "pts": 417808.362552791,
+        "receivedUptime": 417808.3561721667
+      },
+      {
+        "file": "frame-061.png",
+        "pts": 417808.445886041,
+        "receivedUptime": 417808.43823300005
+      },
+      {
+        "file": "frame-062.png",
+        "pts": 417808.529219333,
+        "receivedUptime": 417808.52107975003
+      },
+      {
+        "file": "frame-063.png",
+        "pts": 417808.612552666,
+        "receivedUptime": 417808.60705370834
+      },
+      {
+        "file": "frame-064.png",
+        "pts": 417808.695885833,
+        "receivedUptime": 417808.68947333336
+      },
+      {
+        "file": "frame-065.png",
+        "pts": 417808.779219083,
+        "receivedUptime": 417808.77253525
+      },
+      {
+        "file": "frame-066.png",
+        "pts": 417808.862552375,
+        "receivedUptime": 417808.8568915417
+      },
+      {
+        "file": "frame-067.png",
+        "pts": 417808.929219,
+        "receivedUptime": 417808.9407492084
+      },
+      {
+        "file": "frame-068.png",
+        "pts": 417809.01255225,
+        "receivedUptime": 417809.02536670835
+      },
+      {
+        "file": "frame-069.png",
+        "pts": 417809.112552208,
+        "receivedUptime": 417809.10730675
+      },
+      {
+        "file": "frame-070.png",
+        "pts": 417809.195885458,
+        "receivedUptime": 417809.19093758333
+      },
+      {
+        "file": "frame-071.png",
+        "pts": 417809.279218666,
+        "receivedUptime": 417809.273828
+      },
+      {
+        "file": "frame-072.png",
+        "pts": 417809.362552083,
+        "receivedUptime": 417809.3580255417
+      },
+      {
+        "file": "frame-073.png",
+        "pts": 417809.445885333,
+        "receivedUptime": 417809.44235533336
+      },
+      {
+        "file": "frame-074.png",
+        "pts": 417809.529218583,
+        "receivedUptime": 417809.52825545834
+      },
+      {
+        "file": "frame-075.png",
+        "pts": 417809.612551833,
+        "receivedUptime": 417809.6107407917
+      },
+      {
+        "file": "frame-076.png",
+        "pts": 417809.695885083,
+        "receivedUptime": 417809.6943784167
+      },
+      {
+        "file": "frame-077.png",
+        "pts": 417809.779218416,
+        "receivedUptime": 417809.778132
+      }
+    ],
+    "height": 16,
+    "reason": "timestampedSystemStripSamples",
+    "scope": "Dock and WindowManager only, upper 160 points",
+    "status": "CAPTURED",
+    "width": 144
+  },
+  "observerAXTrusted": true,
+  "observerSHA256": "92ae262bed2b1ad6c3171d1ac3f93edc7893cc9cc338472befc0a49bddc7c665",
+  "reason": "originalFocusOrOverviewDismissalUnconfirmed",
+  "sameHostAtEnd": true,
+  "schema": 1,
+  "scope": {
+    "displayUUID": "physical-uuid-1",
+    "nativeID": 4,
+    "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+    "spaceUUID": "physical-uuid-2",
+    "status": "PASS"
+  },
+  "scopeImmediatelyBeforeOverview": {
+    "displayUUID": "physical-uuid-1",
+    "nativeID": 4,
+    "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+    "spaceUUID": "physical-uuid-2",
+    "status": "PASS"
+  },
+  "sip": "System Integrity Protection status: enabled.",
+  "spaceWrites": 0,
+  "stage": "physicalP0BeforeWrites",
+  "startedUTC": "2026-11-22T14:35:22Z",
+  "status": "UNKNOWN",
+  "systemVersion": "27.0",
+  "windowWrites": 0
+}

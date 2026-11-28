@@ -1,0 +1,103 @@
+{
+  "attributeTimeoutMS" : 250,
+  "axError" : -25200,
+  "directEngineInvocation" : false,
+  "discoveryBudgetMS" : 6000,
+  "issued" : false,
+  "nonce" : "b9c4b6fb-59e3-49da-be3c-96b2eaa5cea7",
+  "panelFrame" : [
+    784,
+    31,
+    240,
+    679
+  ],
+  "physicalPointerGesture" : false,
+  "prePressRediscoveries" : 0,
+  "qualificationGranted" : false,
+  "reason" : "prePressContextChanged",
+  "schema" : 1,
+  "status" : "BLOCKED",
+  "tree" : {
+    "complete" : true,
+    "matchingButtons" : 1,
+    "nodes" : [
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXWindow",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : 0,
+        "role" : "AXScrollArea",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "<redacted-or-absent>",
+        "identifierRead" : -25212,
+        "role" : "AXGroup",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "current-desktop-window:38243:55",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "identifier" : "current-desktop-window:38239:54",
+        "identifierRead" : 0,
+        "role" : "AXButton",
+        "roleRead" : 0
+      },
+      {
+        "actionRead" : 0,
+        "batchFieldCount" : 6,
+        "batchRead" : 0,
+        "enabled" : true,
+        "enabledRead" : 0,
+        "frame" : [
+          800,
+          47,
+          208,
+          122
+        ],
+        "frameRead" : 0,
+        "identifier" : "current-desktop-window:38239:52",
+        "identifierRead" : 0,
+        "insidePanel" : true,
+        "ownerMatches" : true,
+        "ownerRead" : 0,
+        "positionRead" : 0,
+        "pressSupported" : true,
+        "role" : "AXButton",
+        "roleRead" : 0,
+        "sizeRead" : 0,
+        "windowMatches" : true,
+        "windowRead" : 0
+      }
+    ],
+    "visited" : 7
+  },
+  "uptime" : 1358.5920552083335,
+  "windowListRead" : 0
+}

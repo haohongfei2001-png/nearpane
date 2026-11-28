@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "baseline": "82a7c467",
+  "builtUTC": "2026-11-20T19:30:42.140705+00:00",
+  "reusedSources": [
+    "1de8b63",
+    "baa28fe"
+  ],
+  "productVersion": "5.22 (90)",
+  "offline": {
+    "nativeTests": {
+      "status": "PASS",
+      "tests": 44,
+      "suites": 10,
+      "executor": "repository native Swift Testing wrapper"
+    },
+    "serviceProof": {
+      "status": "PASS",
+      "assertions": 8
+    },
+    "voicePython": {
+      "status": "PASS",
+      "tests": 7
+    },
+    "p3ProfileGuards": {
+      "status": "PASS",
+      "tests": 2
+    },
+    "compiledSignedSelectionObserver": "8d4010800d1a2354cf6c2023c247c8508ad10ce62b3dd4bc6491ebce535fe758",
+    "compiledSignedFixture": "e102525c9a442726005a56422a8db80d24c796a4d9e140c2e7eaa8813ead040d",
+    "firstPCMAndArchive": {
+      "cloudCancelledBeforeGrace": true,
+      "delayedFinal": {
+        "audioSHA256": "1f62dbb105782a1b742bc54366b77acec07d3924a20a60cc0dd8cab2a3c5c72f",
+        "finalSHA256": "537656b5d2e88d544ea75881977f8a8e3c8bd6ba8a65258c9e521d9ae2f3a872",
+        "frames": 1600,
+        "recording": "A1F6B855-16F3-4007-8A23-C12FB0D35278",
+        "state": "final"
+      },
+      "inputs": "synthetic PCM and two controlled RecognitionSession completions; no audio device",
+      "path": "AudioController.shutdown → pinned CaptureWorker → PCMJournal/SaytileStore → close/reopen",
+      "selectedProviderTested": false,
+      "timeout": {
+        "audioSHA256": "c43fc866621fb5e1210a2c7cb4d5fab10dae9e8e7b8402d82430a947b884745c",
+        "finalSHA256": null,
+        "frames": 1600,
+        "recording": "D8E8045E-0A56-4627-B06F-E5A2EC3FBDD3",
+        "state": "recoverable"
+      }
+    },
+    "currentTranslationFramework": {
+      "framework": "Apple.Translation",
+      "installedServicesEntryAndPanel": "NOT_RUN",
+      "languagePair": [
+        "en",
+        "zh-Hans"
+      ],
+      "model": "supported, not installed",
+      "privateTextLogged": false,
+      "resultSHA256": null,
+      "sourceSHA256": "92b6dfdd5fdd2e93b3f95e792c54652cc733e612d0f8e96dbbbc32b9ea5bc84a",
+      "wordReopened": false
+    }
+  },
+  "initialFailures": [
+    {
+      "run": "broad 43, first run",
+      "issues": 5,
+      "causes": [
+        "Three credential-profile readback assertions failed. Same missing/existing directory produced different Foundation path hashes in /private/tmp; profile path validation itself succeeded. Reproduced with a single test.",
+        "Two shutdown timing assertions failed. A synthetic 180ms nonlocal recognizer could finish before shutdown was invoked. Now the final waits for confirmed synchronous nonlocal cancellation, independent of the scheduler."
+      ]
+    }
+  ],
+  "installed": {
+    "oldCandidateServices": {
+      "sourceReceipt": "engineering/verification/native-spaces/5.22-90-installed-contract/runs/tools-final/translation/result.json",
+      "status": "FAIL",
+      "dispatchObserved": true,
+      "model": "supportedButNotInstalled",
+      "reason": "No new installed-Host bubble next to the selected fixture text"
+    },
+    "newRequestBoundVisiblePanel": "NOT_RUN",
+    "reopenedTranslatedWord": "BLOCKED_CURRENT_EN_ZH_HANS_MODEL_NOT_INSTALLED",
+    "physicalMandarinColdStarts": {
+      "status": "NOT_RUN",
+      "executed": 0,
+      "contract": 60
+    }
+  },
+  "qualification": {
+    "service": "one explicit synthetic Services request; same source digest, request UUID, installed Host PID/CG id, result hash, ordered stages and foreground fixture before/after visible panel capture; same isolated profile, new kernel Host generation and disk/Host word readback",
+    "voice": "one intent/recording linkage, first PCM before linkage, full WAV bytes in journal order and preferred native final matched across reopen, local file/controlled recognizer only"
+  },
+  "rollback": "Revert this P4 integration alone. Existing notebook fields remain backwards-readable; preserve journal, recordings, queued translation requests and original profile directory."
+}

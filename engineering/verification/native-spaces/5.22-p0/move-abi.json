@@ -1,0 +1,21 @@
+{
+  "classPresent" : 1,
+  "dispatchedMoves" : 0,
+  "instantiations" : 0,
+  "legacyExportPresent" : 0,
+  "methods" : {
+    "initWithWindows:spaceID:" : {
+      "argumentsIncludingSelfAndSelector" : 4,
+      "encoding" : "@32@0:8@16Q24",
+      "present" : true
+    },
+    "performWithWMBridgeDelegate" : {
+      "argumentsIncludingSelfAndSelector" : 2,
+      "encoding" : "v16@0:8",
+      "present" : true
+    },
+    "performWithWMBridgeDelegate:" : {
+      "present" : false
+    }
+  }
+}

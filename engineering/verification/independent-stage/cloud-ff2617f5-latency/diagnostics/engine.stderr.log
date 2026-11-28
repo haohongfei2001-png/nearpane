@@ -1,0 +1,116 @@
+{"event":"spacesLaunchPlatform","phase":"complete","operation":0,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":0,"window":0,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":0,"result":1,"mainQueueMS":0.081,"panelCallMS":3.492}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":1,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":1,"result":1,"mainQueueMS":0.027,"panelCallMS":94.390}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.376,"panelCallMS":2.605}
+{"event":"spacesLaunchHome","phase":"membership","window":70,"memberships":[12],"currentOrdinary":[12]}
+{"event":"spacesLaunchHome","phase":"sample","window":70,"confirmedHome":12,"previousHome":0,"deadlineReached":false,"twoMatchingHomes":false,"iteration":1,"elapsedMS":12,"budgetMS":650,"waitMS":0,"panelReadMS":3,"systemReadMS":8,"reverseContains":true}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.034,"panelCallMS":4.908}
+{"event":"spacesLaunchHome","phase":"membership","window":70,"memberships":[12],"currentOrdinary":[12]}
+{"event":"spacesLaunchHome","phase":"sample","window":70,"confirmedHome":12,"previousHome":12,"deadlineReached":false,"twoMatchingHomes":true,"iteration":2,"elapsedMS":27,"budgetMS":650,"waitMS":4,"panelReadMS":10,"systemReadMS":1,"reverseContains":true}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":2.977,"panelCallMS":6.158}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.045,"panelCallMS":1.705}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.084,"panelCallMS":3.299}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.049,"panelCallMS":1.943}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.011,"panelCallMS":1.373}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.084,"panelCallMS":2.179}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.031,"panelCallMS":1.254}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.026,"panelCallMS":1.004}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.027,"panelCallMS":1.049}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.021,"panelCallMS":2.146}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.028,"panelCallMS":0.946}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.178,"panelCallMS":1.066}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.064,"panelCallMS":1.450}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.022,"panelCallMS":3.023}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.023,"panelCallMS":3.693}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.035,"panelCallMS":1.006}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.015,"panelCallMS":0.815}
+{"event":"spacesLaunchEngine","phase":"hidden-view","status":0,"detail":200,"window":70,"home":12,"parking":13}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.022,"panelCallMS":0.980}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.029,"panelCallMS":1.166}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.011,"panelCallMS":1.381}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.024,"panelCallMS":1.631}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.019,"panelCallMS":1.242}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.067,"panelCallMS":3.685}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.024,"panelCallMS":1.475}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.042,"panelCallMS":1.543}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.029,"panelCallMS":1.522}
+{"event":"spacesLaunchEngine","phase":"restore-member","status":0,"detail":200,"window":70,"home":12,"parking":13}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.053,"panelCallMS":1.891}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.070,"panelCallMS":1.871}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.015,"panelCallMS":0.887}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.018,"panelCallMS":1.307}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.017,"panelCallMS":1.529}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":0}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.016,"panelCallMS":1.001}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":3,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":1}
+{"event":"spacesLaunchScheduling","operation":3,"result":1,"mainQueueMS":0.024,"panelCallMS":1.208}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":1}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":1.329,"panelCallMS":0.959}
+{"event":"spacesLaunchPlatform","phase":"complete","operation":2,"result":1,"mainThread":1,"appRunning":1,"prepared":1,"opened":1,"window":70,"closeIssued":1}
+{"event":"spacesLaunchScheduling","operation":2,"result":1,"mainQueueMS":0.061,"panelCallMS":2.197}
+{"event":"spacesLaunchEngine","phase":"finish-canary","status":0,"detail":200,"window":70,"home":12,"parking":13}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedReadFailure","axError":-25204,"valuePresent":false,"valueType":0,"booleanValue":false,"retainedPID":5815,"pidRead":0,"retainedWindow":null,"windowRead":null,"windowReadAttempted":false}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":15,"home":12,"forward":[15],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[],"cg":{"onscreen":false,"frame":[120.0, 386.0, 250.0, 202.0]},"cgError":null,"minimized":null,"minimizedError":230,"elapsedMS":315}
+{"event":"spacesMinimizedReadFailure","axError":-25204,"valuePresent":false,"valueType":0,"booleanValue":false,"retainedPID":5815,"pidRead":0,"retainedWindow":null,"windowRead":null,"windowReadAttempted":false}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":15,"home":12,"forward":[15, 16],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[{"space":16,"reportedType":3}],"cg":{"onscreen":true,"frame":[120.0, 386.0, 439.0, 203.0]},"cgError":null,"minimized":null,"minimizedError":230,"elapsedMS":581}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":15,"home":12,"forward":[15],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[],"cg":{"onscreen":false,"frame":[120.0, 386.0, 250.0, 202.0]},"cgError":null,"minimized":false,"minimizedError":null,"elapsedMS":655}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":15,"home":12,"forward":[15],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[],"cg":{"onscreen":false,"frame":[120.0, 386.0, 250.0, 202.0]},"cgError":null,"minimized":false,"minimizedError":null,"elapsedMS":738}
+{"event":"spacesMiniCompletionFinal","window":52,"parking":15,"completeObservations":2,"expired":false,"elapsedMS":742,"budgetMS":1000}
+{"event":"spacesMinimizedReadFailure","axError":-25204,"valuePresent":false,"valueType":0,"booleanValue":false,"retainedPID":5815,"pidRead":0,"retainedWindow":null,"windowRead":null,"windowReadAttempted":false}
+{"event":"spacesLeaseFault","phase":"view-minimized-read","status":2,"detail":230,"pid":5815,"birth":1795790288643462,"window":54,"home":12,"parking":27}
+{"event":"spacesLeaseFault","phase":"health-ax-unavailable","status":2,"detail":230,"pid":5815,"birth":1795790288643462,"window":54,"home":12,"parking":27}
+{"event":"spacesHealthReadUnavailable","window":54,"pid":5815,"parking":27,"elapsedMS":164,"budgetMS":1000}
+{"event":"spacesHealthReadRecovered","window":54,"pid":5815,"completeObservations":2,"elapsedMS":238,"budgetMS":1000}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMinimizedSubrole","window":52,"pid":5815,"axError":0,"subrole":"AXDialog","originalMinimized":true,"accepted":true}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":30,"home":12,"forward":[30],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[],"cg":{"onscreen":false,"frame":[120.0, 386.0, 250.0, 202.0]},"cgError":null,"minimized":true,"minimizedError":null,"elapsedMS":2}
+{"event":"spacesMinimizedReadFailure","axError":-25204,"valuePresent":false,"valueType":0,"booleanValue":false,"retainedPID":5815,"pidRead":0,"retainedWindow":null,"windowRead":null,"windowReadAttempted":false}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":30,"home":12,"forward":[30, 31],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[{"space":31,"reportedType":3}],"cg":{"onscreen":true,"frame":[916.0, 720.0, 35.0, 33.0]},"cgError":null,"minimized":null,"minimizedError":230,"elapsedMS":261}
+{"event":"spacesMinimizedReadFailure","axError":-25204,"valuePresent":false,"valueType":0,"booleanValue":false,"retainedPID":5815,"pidRead":0,"retainedWindow":null,"windowRead":null,"windowReadAttempted":false}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":30,"home":12,"forward":[30, 31],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[{"space":31,"reportedType":3}],"cg":{"onscreen":true,"frame":[169.0, 442.0, 659.0, 203.0]},"cgError":null,"minimized":null,"minimizedError":230,"elapsedMS":510}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":30,"home":12,"forward":[30, 31],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[{"space":31,"reportedType":3}],"cg":{"onscreen":true,"frame":[120.0, 386.0, 251.0, 202.0]},"cgError":null,"minimized":false,"minimizedError":null,"elapsedMS":593}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":30,"home":12,"forward":[30],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[],"cg":{"onscreen":false,"frame":[120.0, 386.0, 250.0, 202.0]},"cgError":null,"minimized":false,"minimizedError":null,"elapsedMS":611}
+{"event":"spacesMiniCompletionMembership","window":52,"parking":30,"home":12,"forward":[30],"hiddenContains":true,"homeContains":false,"escaped":false,"lostHidden":false,"managedClear":true,"managedRoster":[[1,0],[12,0]],"managedPresence":[{"space":1,"contains":false},{"space":12,"contains":false}],"additional":[],"cg":{"onscreen":false,"frame":[120.0, 386.0, 250.0, 202.0]},"cgError":null,"minimized":false,"minimizedError":null,"elapsedMS":640}
+{"event":"spacesMiniCompletionFinal","window":52,"parking":30,"completeObservations":2,"expired":false,"elapsedMS":644,"budgetMS":1000}

@@ -1,0 +1,31 @@
+{
+  "status": "REPLAY_MATCH",
+  "original": "PASS",
+  "latencyMs": {
+    "n": 12,
+    "lower": {
+      "p50": 12.77,
+      "p95": 29.73,
+      "p99": 29.73,
+      "max": 29.73
+    },
+    "upper": {
+      "p50": 46.32,
+      "p95": 63.33,
+      "p99": 63.33,
+      "max": 63.33
+    },
+    "firstConfirmedPresentationDifference": {
+      "p50": 29.45,
+      "p95": 46.41,
+      "p99": 46.41,
+      "max": 46.41
+    },
+    "intervalWidth": {
+      "p50": 33.59,
+      "p95": 36.16,
+      "p99": 36.16,
+      "max": 36.16
+    }
+  }
+}

@@ -1,0 +1,158 @@
+{
+  "admissionReads": [
+    {
+      "appSource": "workspaceAndAXFrontmost",
+      "axFocusedWindowError": -25212,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "birth": 1794932452405415,
+      "reason": "externalFocusedWindowUnavailable",
+      "systemFocusedApplicationError": -25212,
+      "uptime": 416174.81691495836,
+      "workspacePID": 49381
+    },
+    {
+      "appSource": "systemFocusedApplication",
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "birth": 1794944389149251,
+      "cgWindowID": 17742,
+      "systemFocusedApplicationError": 0,
+      "uptime": 416283.91073483333,
+      "workspacePID": 56354
+    },
+    {
+      "appSource": "systemFocusedApplication",
+      "axFocusedWindowError": 0,
+      "axFrontmost": true,
+      "axFrontmostError": 0,
+      "birth": 1794944389149251,
+      "cgWindowID": 17742,
+      "systemFocusedApplicationError": 0,
+      "uptime": 416283.91073483333,
+      "workspacePID": 56354
+    }
+  ],
+  "build": "26A428",
+  "endedUTC": "2026-11-22T14:10:05Z",
+  "host": {
+    "birth": 1795343882268848,
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team": "ZB9D4T66QB"
+  },
+  "hostRole": "runningRegularInstalledHost",
+  "hostSequenceConfirmed": false,
+  "hostTelemetry": [
+    {
+      "endUptime": 416285.207268,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "phase": "terminal",
+      "pid": 32364,
+      "startUptime": 416284.35048070835
+    }
+  ],
+  "launchedHosts": 0,
+  "measurement": {
+    "dismissals": 0,
+    "inputEventsPosted": 0,
+    "presentations": 0,
+    "reason": "physicalScopeChangedAfterCanary",
+    "restored": true,
+    "spaceWrites": 0,
+    "stage": "beforeWindowWrites",
+    "status": "BLOCKED",
+    "tileCounts": [],
+    "windowWrites": 0
+  },
+  "media": {
+    "audio": false,
+    "cursor": false,
+    "frames": [
+      {
+        "file": "frame-000.png",
+        "pts": 416284.364019875,
+        "receivedUptime": 416284.38614662504
+      },
+      {
+        "file": "frame-001.png",
+        "pts": 416284.447353041,
+        "receivedUptime": 416284.43815212505
+      },
+      {
+        "file": "frame-002.png",
+        "pts": 416284.530686333,
+        "receivedUptime": 416284.52490870835
+      },
+      {
+        "file": "frame-003.png",
+        "pts": 416284.614019583,
+        "receivedUptime": 416284.6044007917
+      },
+      {
+        "file": "frame-004.png",
+        "pts": 416284.697352875,
+        "receivedUptime": 416284.693666375
+      },
+      {
+        "file": "frame-005.png",
+        "pts": 416284.780686166,
+        "receivedUptime": 416284.77934083337
+      },
+      {
+        "file": "frame-006.png",
+        "pts": 416284.864019416,
+        "receivedUptime": 416284.86222408334
+      },
+      {
+        "file": "frame-007.png",
+        "pts": 416284.947352708,
+        "receivedUptime": 416284.9461914167
+      },
+      {
+        "file": "frame-008.png",
+        "pts": 416285.030686041,
+        "receivedUptime": 416285.03377595835
+      },
+      {
+        "file": "frame-009.png",
+        "pts": 416285.114019375,
+        "receivedUptime": 416285.113226125
+      },
+      {
+        "file": "frame-010.png",
+        "pts": 416285.197352666,
+        "receivedUptime": 416285.19722508336
+      }
+    ],
+    "height": 16,
+    "reason": "timestampedSystemStripSamples",
+    "scope": "Dock and WindowManager only, upper 160 points",
+    "status": "CAPTURED",
+    "width": 144
+  },
+  "observerAXTrusted": true,
+  "observerSHA256": "49f8a0409dc563c564c0f1b808c21183479653262af05f74e8c86d352c9bd943",
+  "reason": "physicalScopeChangedAfterCanary",
+  "sameHostAtEnd": true,
+  "schema": 1,
+  "scope": {
+    "displayUUID": "physical-uuid-1",
+    "nativeID": 4,
+    "reason": "sameHostLoginScreenAndOrdinarySpaceTwice",
+    "spaceUUID": "physical-uuid-2",
+    "status": "PASS"
+  },
+  "sip": "System Integrity Protection status: enabled.",
+  "spaceWrites": 0,
+  "stage": "physicalP0BeforeWrites",
+  "startedUTC": "2026-11-22T14:08:14Z",
+  "status": "BLOCKED",
+  "systemVersion": "27.0",
+  "windowWrites": 0
+}

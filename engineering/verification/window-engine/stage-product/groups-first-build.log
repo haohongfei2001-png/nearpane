@@ -1,0 +1,1 @@
+DesktopSurface.swift:203:69: error: converting non-Sendable function value to '@MainActor @Sendable () -> Bool' may introduce data races

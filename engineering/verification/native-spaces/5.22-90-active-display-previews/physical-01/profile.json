@@ -1,0 +1,15 @@
+{
+  "installed": "/Applications/Nearpane.app",
+  "build": "90",
+  "source": "f50d6ac5394be994e657abd77e7fdca79a77b4bc",
+  "startedWithDailyHost": true,
+  "normalLaunch": true,
+  "isolatedLockConfirmed": true,
+  "isolatedPID": 37938,
+  "commandExit": 2,
+  "dailyHostRestored": true,
+  "dailyProfileAndConfigurationUnchanged": true,
+  "isolatedHomeRemoved": true,
+  "dailyFocusReceipt": "daily-focus.json",
+  "dailyFocusStatus": "UNKNOWN"
+}

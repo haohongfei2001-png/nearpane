@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "recordedUTC": "2026-11-23T07:48:43+00:00",
+  "auditBase": "e44d028912fb443e05622163a146225020745b2c",
+  "previousProductSource": "d81329d5b829630f10bae4f4bb8edf39d9824171",
+  "productSource": "0e66086c46218f4b1a453ce79a0db333d2763cc4",
+  "machine": {
+    "macOS": "27.0",
+    "build": "26A428",
+    "architecture": "arm64"
+  },
+  "groupSelection": {
+    "source": "4b27abd472e6650194efdbcaa16ec8d85f7aa077",
+    "status": "PASS",
+    "tests": 45,
+    "suites": {
+      "CurrentCardFocusPreparationTests": 7,
+      "NativeSidebarNavigationTests": 13,
+      "StageGroupStoreTests": 12,
+      "StageGroupWindowLifetimesTests": 2,
+      "StageHostGroupProjectionTests": 8,
+      "TargetedCurrentCardTests": 3
+    },
+    "xUnit": "group-tests.xml",
+    "scope": "Production group projection, overlap choices, appearance and group binding, focus dispatch guards with an in-memory store and fixture snapshots.",
+    "newCaptionClickOnInstalledSidebar": "NOT_RUN",
+    "installedKeyboardLandingOnNewSource": "NOT_RUN",
+    "wholeGroupSwitch": "NOT_RUN",
+    "firstRegressionFixture": {
+      "test": "overlappingMembersRemainSelectableByIdentityUntilRemovedFromTheirGroup",
+      "status": "FAIL",
+      "observed": "Expectation failed: await feed.readNow()",
+      "cause": "Both synthetic windows initially had the same Z-order rank; the input also declared AX denied. Fixed the fixture to supply distinct ranks and partial AX. The production reader validation was preserved."
+    },
+    "ci": [
+      {
+        "name": "StageGroup window engine",
+        "conclusion": "success",
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45127745597"
+      },
+      {
+        "name": "Nearpane native 5.22 protocol",
+        "conclusion": "success",
+        "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45127745579"
+      }
+    ]
+  },
+  "tools": {
+    "status": "PASS",
+    "tests": 21,
+    "suites": {
+      "IntegratedHostTests": 10,
+      "TranslationHandoffTests": 5,
+      "TranslationSelectionOriginTests": 6
+    },
+    "xUnit": "tool-tests.xml",
+    "scope": "Private temporary profiles. Shipping speech and tray modules mounted in a never-ordered panel; search by either column, restart, conflicting saved answers, corrupt and legacy data, and Services-origin guards.",
+    "savedRequest": {
+      "status": "PASS",
+      "scope": "The production translation consumer reopened a seeded exact entry after the model was unavailable; no new word and no fresh translation. Request-scoped product log from the test process.",
+      "framework": "translation-framework.json",
+      "stages": [
+        "hostReceived",
+        "panelUnavailable",
+        "modelMissing",
+        "savedWordMatched",
+        "panelUnavailable"
+      ],
+      "rawLog": "saved-word.log",
+      "installedServicesAndVisibleBubble": "NOT_RUN",
+      "newSettingsSearchFromInstalledHost": "NOT_RUN"
+    },
+    "physicalDictation": "NOT_RUN",
+    "authorizedBrowserLiveDraft": "NOT_RUN"
+  },
+  "developmentBundle": {
+    "status": "PASS",
+    "flavor": "debug development identity",
+    "bundleID": "com.holdsnow.nearpane.host",
+    "shortVersion": "0.2.0",
+    "build": "1",
+    "source": "0e66086c46218f4b1a453ce79a0db333d2763cc4",
+    "sourceState": "clean",
+    "engineABI": 1,
+    "resourceCount": 37,
+    "resourcesSHA256": "e173fc2ee50e6fc4c21137362436ecc512fd326266bbce1b6498bafb4f405678",
+    "hostExecutableSHA256": "6943cdfcc1e6273cf5ed6be969406a8b7065093193071424cc1b5f3cad36c72a",
+    "verification": "scripts/verify-packages.py with isolated build cache, upstream sources, daily application support and network denied to the resource self-check",
+    "installed": false,
+    "notarization": "NOT_RUN"
+  },
+  "environmentLimitations": {
+    "restrictedDesktopRunner": {
+      "status": "FAIL",
+      "countOfImageErrors": 9,
+      "completion": "Interrupted before the restricted suite completed. Same test binary and synthetic PNGs passed in the normal macOS process.",
+      "log": "sandbox-errors.log"
+    },
+    "nestedVerifier": {
+      "status": "BLOCKED",
+      "reason": "sandbox-exec: sandbox_apply: Operation not permitted",
+      "normalSandboxedVerifier": "PASS"
+    },
+    "offscreenAXObservation": {
+      "status": "UNKNOWN",
+      "scope": "A never-ordered sample SwiftUI panel exposed a root AXGroup without descendants. It did not establish user clicks or focus on a production sidebar."
+    }
+  },
+  "ci": [
+    {
+      "name": "Nearpane native 5.22 protocol",
+      "conclusion": "success",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45131131954"
+    },
+    {
+      "name": "StageGroup window engine",
+      "conclusion": "success",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45131132081"
+    },
+    {
+      "name": "Embedded tool integration",
+      "conclusion": "success",
+      "url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/45131132119"
+    }
+  ],
+  "windowIsolation": {
+    "productionDecision": "NO-GO",
+    "reason": "No independently qualified Corner visibility provider for this target build. Historical mask leakage remains FAIL.",
+    "guardianAdmission": "BLOCKED",
+    "guardianSurvival": "NOT_RUN",
+    "postExitWindowReads": "NOT_RUN",
+    "durableRestorationLease": "NOT_RUN",
+    "singleWindowIsolation": "NOT_RUN",
+    "spacesMigration": "OUT_OF_SCOPE",
+    "retryThisRun": false
+  },
+  "changedDailyInstall": false,
+  "changedSystemSettings": false
+}

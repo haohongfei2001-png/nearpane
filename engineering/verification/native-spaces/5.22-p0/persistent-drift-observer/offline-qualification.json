@@ -1,0 +1,79 @@
+{
+  "backendSHA256": "eb6d299b2231c908d089825142b10f8f5ec3e37d47ab96de8fb1a542343f5adf",
+  "baseline": "f50d6ac5394be994e657abd77e7fdca79a77b4bc",
+  "compiled": {
+    "checkedFor": [
+      "_AXUIElementPerformAction",
+      "_AXUIElementSetAttributeValue",
+      "_CGEventPost",
+      "_CGWarpMouseCursorPosition",
+      "_SLSManagedDisplaySetCurrentSpace",
+      "_SLSMoveWindowsToManagedSpace"
+    ],
+    "dedicatedReader": "PASS",
+    "existingP0CardCompatibility": "PASS",
+    "inputAndMutationSymbolImports": [],
+    "strictLocalCodeVerification": "PASS"
+  },
+  "continuousPhysicalTen": "NOT_RUN",
+  "formalHostLaunched": false,
+  "historicalCausalAttribution": "UNKNOWN",
+  "liveObserverLaunched": false,
+  "macOSBuild": "26A428",
+  "oneConfirmedLandingWithTenPostConfirmationSeconds": "NOT_RUN",
+  "physicalFifty": "NOT_RUN",
+  "productionInputCount": 0,
+  "quarantine": "DISABLED",
+  "replaySHA256": "6cc7766e4119d406c9330bc17a1cf387d1e59ade9fa2698c95b9211aa7087caa",
+  "restorationRequests": 0,
+  "scope": "offline dedicated read-only acceptance observer",
+  "sourceSHA256": {
+    "build-p0-drift.sh": "34efbe15d7dad273574de8afc65fb0e7e24ad1a12f46d0c2389a3df5cf323d95",
+    "p0-build.sh": "1c509d76b018b681ed9f03df91e2b9df7b8a97a7a87a70271ba57226524ab82f",
+    "p0-card.swift": "7f062b9aa4cc20a86eea12b41a0bc215978549422e7473e081aff31fbe0a291b",
+    "p0-drift-reader.swift": "2bf2b47fec849d927befa3a413642fae0f219809df6f603248a83afea55b9458",
+    "p0-drift.py": "979f15b4f79e185139d95047908c3858ea3580d957693647f561b949f674c074",
+    "p0-read-state.swift": "2fd9780812cbefb2b9463a298b3bfaa79b585205b08d84caad5be47b0bf98b56",
+    "p0_drift_classification.py": "3e294e527fbef30fa9154cd2f427b7b780dc7fc1b3578660e544594eaf316ee3",
+    "test_p0_drift.py": "c681f69c63cac1c90699abae097353b8d116b60b9099f0640c433bfb511dac4d"
+  },
+  "sourceUnchangedForProduction": true,
+  "swift": "swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+  "targetBuild": "26A428",
+  "testSuites": [
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/acceptance/native-spaces",
+        "-p",
+        "test_p0_drift.py"
+      ],
+      "passed": 12
+    },
+    {
+      "command": [
+        "python3",
+        "scripts/acceptance/native-spaces/p0-tests.py"
+      ],
+      "passed": 27
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "scripts/acceptance/native-spaces",
+        "-p",
+        "test_verify_p0_receipts.py"
+      ],
+      "passed": 8
+    }
+  ],
+  "testsPassed": 47
+}

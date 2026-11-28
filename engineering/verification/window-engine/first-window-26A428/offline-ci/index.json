@@ -1,0 +1,68 @@
+{
+  "scope": "development of the CI wrapper",
+  "suite": "automatedSourceTests",
+  "failures": [
+    {
+      "run": "prior-1-clt",
+      "status": "FAIL",
+      "reason": "CLT TestingMacros unavailable before using the production test wrapper",
+      "originalFailureReceiptSHA256": "8aacab65e8338628e9882a3048e83f078283f5f7a451fce9d59d069337593439",
+      "errors": [
+        {
+          "phase": "swift",
+          "exit": 1,
+          "validatorReason": null,
+          "logSHA256": "8edd7aee7544707d79860d221b920568e8d9dfd09c3bb6d9f65ffc1b115f004d",
+          "excerpt": [
+            "<checkout>/Package.swift: CReadOnlySpaces: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found",
+            "<checkout>/Package.swift: CNativeSpaceActions: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found",
+            "<checkout>/Package.swift: WindowGeometryCore: ld: warning: search path '/Library/Developer/CommandLineTools/Developer/Library/Frameworks' not found"
+          ]
+        },
+        {
+          "phase": "ci-tests",
+          "exit": 5,
+          "validatorReason": null,
+          "logSHA256": "e70fec2825d9bf206d27463a792768195039599cb39bcca66339f47283f84cce",
+          "excerpt": []
+        }
+      ]
+    },
+    {
+      "run": "prior-2-changing-integration",
+      "status": "FAIL",
+      "reason": "worktree changed during Swift module compilation; StageHostAccess and StageHostWindow absent from the dependency graph",
+      "originalFailureReceiptSHA256": "02f4caeb85978443413916c529775ac11ae3e72308725fe0a64e5e683c5aefc9",
+      "errors": [
+        {
+          "phase": "swift",
+          "exit": 1,
+          "validatorReason": null,
+          "logSHA256": "c9bb2b5a9b6af33f0d0ea2b7b97ee3663202a76d5299c10b2dd8737ea959359e",
+          "excerpt": [
+            "warning: 'nearpane': Invalid Source '<checkout>/Sources/NearpaneOrdinaryWindowController/StageHostWindow.swift': File not found.",
+            "warning: 'nearpane': Invalid Exclude '<checkout>/Sources/NearpaneOrdinaryWindowController/StageHostWindow.swift': File not found.",
+            "error: emit-module command failed with exit code 1 (use -v to see invocation)"
+          ]
+        }
+      ]
+    },
+    {
+      "run": "prior-3-combined-log",
+      "status": "FAIL",
+      "reason": "Swift tests passed; merged console stream interleaved a warning into a suite name and the old text validator refused",
+      "originalFailureReceiptSHA256": "da78c7d0607048e93bb9c527081cb3307b6bf1ca39723762290aa824f74088ce",
+      "errors": [
+        {
+          "phase": "swift",
+          "exit": null,
+          "validatorReason": "missingSwiftSuiteResults StageWindowEngineTests",
+          "logSHA256": "aa7f40ba17dd5d0670612619c63824bd965ca3a9b5b9965413e1dc540d8eb99d",
+          "excerpt": []
+        }
+      ]
+    }
+  ],
+  "finalBaselineReceipt": "source.json",
+  "baseline": "48866a91c808b6754a30e664cce675e647e2cebf"
+}

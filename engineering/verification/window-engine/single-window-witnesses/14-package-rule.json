@@ -1,0 +1,12 @@
+{
+  "scope": "staticReadOnlyPackageRule",
+  "status": "PASS",
+  "productSource": "4a8411326e00eef0109c94444e0176a8b9f3ccc3",
+  "hostSHA256": "2ac5aff1ef683745f5d0d8d099b163ca303062c5c360ae7e9bec79a32bdafcf6",
+  "legacyStaticResult": "FAIL",
+  "exactDeveloperIDRuleOccurrences": 1,
+  "pinnedCDHashPresent": true,
+  "standaloneFixtureEntrypointPresent": false,
+  "unqualifiedOrderingPresent": false,
+  "candidateLaunches": 0
+}

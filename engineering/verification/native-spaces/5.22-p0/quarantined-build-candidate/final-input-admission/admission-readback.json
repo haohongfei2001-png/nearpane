@@ -1,0 +1,25 @@
+{
+  "candidate": "b55ed965428b32de09e33b3ff5f6360848ac7bd2",
+  "status": "BLOCKED",
+  "stage": "launch",
+  "reasonAsRecorded": "test Space, user input or installed Host identity changed",
+  "span": "before isolated Host launch through its shutdown",
+  "physicalInputDelta": [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "operatorInputObserved": true,
+  "causalAttributionToExactRefusal": "UNKNOWN",
+  "confirmedProductPresses": 0,
+  "confirmedMarkers": 0,
+  "TextEditRunningAfterward": false,
+  "outstandingTemporarySpaces": [],
+  "dailyProfileAndConfigurationUnchanged": true,
+  "dailyFocusStatus": "NEWER_FOCUS_CONFIRMED"
+}

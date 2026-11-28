@@ -1,0 +1,8 @@
+{
+  "status": "BLOCKED",
+  "reason": "expectedActiveOrdinaryDisplaySpaceOrStageOffUnavailable",
+  "realApplicationFixturesLaunched": 0,
+  "stageAndDesktopValidatedByLease": true,
+  "isolatedCause": "The native AppKit display bounds are in an array of CGFloat values. An in-process Swift cast to [Double] returns nil. The earlier probe used that cast for both display and window bounds.",
+  "correction": "explicit CGFloat-to-Double conversion; keep display UUID, Space UUID and scope checks"
+}

@@ -1,0 +1,217 @@
+{
+  "targetBuild": "26A428",
+  "status": "PASS",
+  "scope": "read-only wallpaper material for the complete Corner sliver and its shadow on one ordinary display",
+  "releaseQualified": false,
+  "nativeSpacesWritten": 0,
+  "resourceMetadata": [
+    {
+      "appleAsset": "/System/Library/Wallpapers/.default/DefaultAerial.heic",
+      "clip": null,
+      "frames": 1,
+      "primaryImage": 0,
+      "resolvedWithinSystemLibrary": 1,
+      "scale": null,
+      "sealedSystemFile": true
+    }
+  ],
+  "productionCrop": {
+    "displays": [
+      {
+        "active": 1,
+        "builtIn": 1,
+        "center8ptInImage": true,
+        "corner8ptInImage": false,
+        "hasImageOptions": 1,
+        "mirrored": 0,
+        "selectedURLIsFile": true,
+        "underSealedWallpaperSourceRoots": false
+      }
+    ],
+    "scope": "installedDesktopReadOnlyProductCornerSource",
+    "screenshots": 0,
+    "windowsCreated": 0,
+    "windowWrites": 0
+  },
+  "firstWindowSample": {
+    "challenge": "F4EB7EAC-28CA-4FC1-8350-963502F5807B",
+    "productionQualified": false,
+    "reason": "sampleUnavailable",
+    "scope": "appleWallpaperWindowOnly",
+    "sourceBirth": 1794786957296752,
+    "sourcePID": 678,
+    "sourceWindow": 28,
+    "status": "BLOCKED",
+    "storedFrames": 0,
+    "windowWrites": 0
+  },
+  "explicitOutputWindowSamples": {
+    "challenge": "35914EEF-49F8-499E-9A21-49107D48C17A",
+    "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "observationsNS": [
+      505443709810875,
+      505445330322333
+    ],
+    "opaquePixelsOf64": [
+      56,
+      56
+    ],
+    "productionQualified": false,
+    "reason": "sampleUnavailable",
+    "scope": "appleWallpaperWindowOnly",
+    "sourceBirth": 1794786957296752,
+    "sourcePID": 678,
+    "sourceWindow": 28,
+    "status": "BLOCKED",
+    "storedFrames": 0,
+    "windowWrites": 0
+  },
+  "offline": {
+    "groupRetirementPreflight": {
+      "swiftCommand": "scripts/test.sh --filter 'StageGroupCoordinatorTests|StageWindowEngineTests'",
+      "swiftTestsPassed": 41,
+      "rustTestPassed": "corner::worker::tests::display_material_preflight_has_no_window_or_write_authority",
+      "unavailableMaterialRegression": "original focus, all window states and directory preserved; no dispatch, ownership or pending journal",
+      "realGroupSwitch": "NOT_RUN"
+    },
+    "staticlibBuild": "PASS",
+    "cornerTests": 72,
+    "cropAndEventRegression": "PASS",
+    "osInputPosted": 0
+  },
+  "conclusion": "On ordinary native desktop 4, the production Rust read-only operation validated an 86 by 176 point footprint, including the projected shadow, in 354565333 ns. The signed QA process held its own screen permission. The earlier direct Apple wallpaper-window samples remain below. No real window was moved, covered, or probed for input in this trial.",
+  "positiveDisplayWindowSamples": {
+    "challenge": "5C7FA3A7-7F42-41BF-8A04-391A1E39760F",
+    "displayUUID": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+    "observationsNS": [
+      507653731226500,
+      507654250106916
+    ],
+    "opaquePixels": [
+      256,
+      256
+    ],
+    "productionQualified": false,
+    "sampledPixelCount": 256,
+    "scope": "positiveDisplayFilterAppleWallpaperOnly",
+    "sourceBirth": 1794786957296752,
+    "sourcePID": 678,
+    "sourceWindow": 28,
+    "status": "PASS",
+    "storedFrames": 0,
+    "windowWrites": 0
+  },
+  "productShadowFootprint": {
+    "after": {
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "native": 4,
+      "space": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+    },
+    "before": {
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "native": 4,
+      "space": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+    },
+    "challenge": "53A917ED-9C61-476B-83AE-48F2DE3BDD11",
+    "elapsedNS": 354565333,
+    "flags": 0,
+    "handleClosed": 1,
+    "inputEvents": 0,
+    "nativeDetail": 0,
+    "nativeStatus": 0,
+    "observerScreenCapturePreflight": true,
+    "owned": 0,
+    "productionQualified": false,
+    "scope": "readOnlyProductCornerMaterial",
+    "shadowFootprint": [
+      1384,
+      780,
+      86,
+      176
+    ],
+    "status": "PASS",
+    "storedFrames": 0,
+    "transport": 0,
+    "windowWrites": 0
+  },
+  "singleWindowHideRestore": "NOT_RUN",
+  "actualPointerRecipients": "NOT_RUN",
+  "productSourceAndWarmRead": {
+    "after": {
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "native": 4,
+      "space": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+    },
+    "before": {
+      "display": "37D8832A-2D66-02CA-B9F7-8F30A301B230",
+      "native": 4,
+      "space": "0695C8A7-8344-4AEC-A780-2FE0562E63B9"
+    },
+    "challenge": "0E85D110-A448-4394-85CE-9B3F83C23531",
+    "cold": {
+      "challenge": "0E85D110-A448-4394-85CE-9B3F83C23531",
+      "elapsedNS": 359177000,
+      "flags": 0,
+      "nativeDetail": 50,
+      "nativeStatus": 0,
+      "owned": 0,
+      "shadowFootprint": [
+        1384,
+        780,
+        86,
+        176
+      ],
+      "status": "PASS",
+      "transport": 0
+    },
+    "handleClosed": 1,
+    "inputEvents": 0,
+    "observerScreenCapturePreflight": true,
+    "productionQualified": false,
+    "scope": "readOnlyProductCornerMaterial",
+    "status": "PASS",
+    "storedFrames": 0,
+    "warm": {
+      "challenge": "4252B73C-8DA9-43F7-A533-0B76847BBB71",
+      "elapsedNS": 34181833,
+      "flags": 0,
+      "nativeDetail": 50,
+      "nativeStatus": 0,
+      "owned": 0,
+      "shadowFootprint": [
+        1384,
+        780,
+        86,
+        176
+      ],
+      "status": "PASS",
+      "transport": 0
+    },
+    "windowWrites": 0,
+    "observerIdentity": {
+      "Identifier": "net.example.nearpane.p2-observer",
+      "CDHash": "ef6c3c4fa1d6864584ce72107d897260b695c5af",
+      "TeamIdentifier": "ZB9D4T66QB"
+    },
+    "observerSHA256": "17b1436f855e3cf43573f8fcded931617a85ba02f427275cd417dc273b956a02",
+    "sourceDetail50": "NP_CORNER_MATERIAL_WALLPAPER_SURFACE"
+  },
+  "productRegression": {
+    "swiftPassed": 803,
+    "swiftSkipped": 3,
+    "swiftFailed": 0,
+    "rustCornerCases": 73,
+    "actualProductWindowHide": "NOT_RUN"
+  },
+  "sealedDefaultAspectFill": {
+    "status": "FAIL",
+    "raw": "sealed-default-comparison.json",
+    "observer": {
+      "pidBinding": "own signed acceptance process",
+      "teamID": "ZB9D4T66QB",
+      "cdhash": "5b50fcf3367adddad4e92f5db2124e4b5556dba5"
+    },
+    "rawSHA256": "65badc60e7be5f35e562aa73d6d83973ede7a070d3875fe75fff68f73ff4a0dd",
+    "scope": "Actual Apple wallpaper surface against the sealed default file at the exact Corner footprint."
+  }
+}

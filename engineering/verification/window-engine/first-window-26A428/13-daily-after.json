@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "scope": "installedHostOwnReadOnlyPermissions",
+  "recordedUTC": "2026-11-21T10:32:51.912173+00:00",
+  "observerSource": "93fad82058adb323502c5faa885f2c59437300a6",
+  "installed": {
+    "Identifier": "com.holdsnow.nearpane.alpha",
+    "CDHash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "TeamIdentifier": "ZB9D4T66QB",
+    "version": "5.22",
+    "build": "90",
+    "source": "d2d0bb633a0f0480554025fdfdf4165267d22f65",
+    "engineABI": null,
+    "hostSHA256": "db90cd647b30a4a63a5d851c6af65586ab70f0d3765ed6cea34d99cddf224de6"
+  },
+  "macOS": "27.0",
+  "osBuild": "26A428",
+  "sip": "System Integrity Protection status: enabled.",
+  "targetHostCount": 1,
+  "permissionPrompts": 0,
+  "windowActions": 0,
+  "hostLaunched": false,
+  "status": "PASS",
+  "permissions": {
+    "screenCapture": true,
+    "accessibility": true,
+    "postEvent": true,
+    "listenEvent": null
+  },
+  "subject": {
+    "birth": 1795224294017017,
+    "cdhash": "27a6616d7c6d916e94633986a81ba488dba21e2d",
+    "nonce": "0FCFFAB4-0991-402C-9DEB-AC741B511D59",
+    "pid": 59938
+  },
+  "hostLog": {
+    "timestamp": "2026-11-21 18:32:52.814414+0800",
+    "processID": 59938,
+    "subsystem": "com.holdsnow.nearpane.alpha",
+    "category": "PermissionCheck",
+    "eventMessage": "Permission check 0FCFFAB4-0991-402C-9DEB-AC741B511D59 screen=true accessibility=true postEvent=true"
+  },
+  "reason": "signedLiveHostAnswered"
+}

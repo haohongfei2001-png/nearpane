@@ -1,0 +1,728 @@
+import Foundation
+import Testing
+@testable import NearpaneCore
+
+@MainActor private final class Session: StageWindowSession {
+    var generation = UUID(), sequence: UInt64 = 0
+    var qualifiedHiddenState: StageWindowState.Visibility? = .parked
+    let evidence = UUID()
+    var engineOwner: StageEngineOwner? {
+        let env = StageEngineEnvironment(osBuild:"26A428", engineRevision:String(repeating:"1",count:40), hostCDHash:String(repeating:"2",count:40),
+            hardware:"test", topology:"test", windowClass:"ordinary-standard", sipEnabled:true)
+        return .init(qualification:.init(backend:.corner, environment:env, evidence:evidence, checks:[:]), generation:generation)
+    }
+    let scope = StageGroupScope(display: UUID(), nativeSpace: UUID())
+    let work = SurfaceRect(width: 900, height: 700)
+    var windows = [NativeSpaceWindow: StageWindowState](), focus: NativeSpaceWindow?
+    var foreignFocusScope: StageGroupScope?
+    var writes = [(StageWindowAction, NativeSpaceWindow)]()
+    var excluded = Set<NativeSpaceWindow>()
+    var retirementSurfaceAvailable = true
+    var checkedBottomSites = [Bool]()
+    func checkHealth() throws {
+        guard qualifiedHiddenState == .parked else { throw StageSwitchError.unavailable }
+    }
+    func checkRetirementSurface(_ sample: StageWindowSample, bottomOnly: Bool) throws {
+        checkedBottomSites.append(bottomOnly)
+        guard retirementSurfaceAvailable else { throw StageSwitchError.unavailable }
+    }
+    func mayManage(_ state: StageWindowState) -> Bool { !excluded.contains(state.window) }
+    var afterWrite: (() throws -> Void)?
+    var beforeRead: (() -> Void)?
+    func read(_ scope: StageGroupScope) throws -> StageWindowSample {
+        sequence += 1
+        beforeRead?()
+        return .init(scope: self.scope, generation: generation, sequence: sequence, workArea: work,
+                     windows: windows, focus: focus, nativeID: 4, foreignFocusScope: foreignFocusScope)
+    }
+    func apply(_ action: StageWindowAction, to before: StageWindowState, in scope: StageGroupScope, generation: UUID) throws {
+        guard before == windows[before.window], self.generation == generation, self.scope == scope else { throw StageSwitchError.interrupted }
+        writes.append((action, before.window))
+        switch action {
+        case .hide: windows[before.window]?.visibility = .parked
+        case .show: windows[before.window]?.visibility = .visible
+        case .place(let r): windows[before.window]?.frame = r
+        case .focus: focus = before.window
+        }
+        try afterWrite?()
+    }
+}
+
+@Suite @MainActor struct StageGroupCoordinatorTests {
+    private func fixture() throws -> (URL, StageGroupStore, StageGroupCoordinator, Session, [StageGroupDirectory.Group]) {
+        let profile = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().appendingPathComponent(UUID().uuidString)
+        let store = StageGroupStore(profile: profile), runtime = Session()
+        for n in 1...5 {
+            let id = NativeSpaceWindow(pid: n == 2 ? 11 : Int32(10+n), birth: 100, number: UInt32(n))
+            let frame = SurfaceRect(x: Double(n*50), y: 30, width: 200, height: 120)
+            let live = StageGroupWindow(display: runtime.scope.display, identity: id, lifetime: UUID(),
+                                        layout: StageGroupWindow.relativeFrame(frame, in: runtime.work), nativeSpace: runtime.scope.nativeSpace)
+            runtime.windows[id] = .init(window: id, lifetime: live.lifetime, frame: frame, visibility: n == 5 ? .minimized : .visible)
+            if n <= 3 { try store.observe([live]) }
+            if n == 1 { runtime.focus = id }
+        }
+        return (profile, store, try StageGroupCoordinator(store: store, profile: profile), runtime, store.groups(in: runtime.scope))
+    }
+
+    @Test func coldStartupReleasesOnlyADischargedDeadOwnerWithoutWindowWrites() throws {
+        let (profile, store, _, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let owner = try #require(session.engineOwner), group = groups[0], member = group.members[0]
+        let before = try #require(session.windows[member.windowHint])
+        let marker = StageGroupCoordinator.HidePrimitive(transaction: UUID(), intent: UUID(), group: group.id,
+            member: member.id, owner: owner, scope: session.scope, nativeID: 4, before: before)
+        var ledger = StageGroupCoordinator.Ledger()
+        ledger.owner = owner; ledger.activeScopes = [session.scope]
+        let hide = StageGroupCoordinator.Entry(action: .hide, before: before, intent: marker.intent,
+                                               group: group.id, member: member.id)
+        ledger.pending = .init(scope: session.scope, generation: owner.generation, target: group.id, preferred: before.window,
+            originalFocus: before.window, before: Array(session.windows.values), ownedBefore: [], entries: [hide],
+            owner: owner, intent: marker.transaction, nativeID: 4)
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        try JSONEncoder().encode(ledger).write(to: file)
+        let cold = try StageGroupCoordinator(store: store, profile: profile)
+        try cold.finishExitedGuardianReturn { _ in false }
+        #expect(cold.retainedOwner == owner)
+        try cold.finishExitedGuardianReturn { $0 == marker }
+        #expect(!cold.hasWindowAuthority && session.writes.isEmpty)
+        #expect(try !StageGroupCoordinator(store: store, profile: profile).hasWindowAuthority)
+        let saved = try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
+        #expect(saved.lastGuardianReturn == marker)
+        let other = try #require(session.windows.values.first { $0.window != before.window })
+        let prior = StageGroupCoordinator.Entry(action: .focus, before: other, after: other, intent: UUID())
+        ledger.pending?.entries = [prior, hide]
+        try JSONEncoder().encode(ledger).write(to: file)
+        let withPrefix = try StageGroupCoordinator(store: store, profile: profile)
+        try withPrefix.finishExitedGuardianReturn { $0 == marker }
+        let partial = try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
+        #expect(partial.pending?.entries.map(\.intent) == [prior.intent] && withPrefix.requiresRecovery)
+        #expect(withPrefix.retainedOwner == owner && session.writes.isEmpty)
+        ledger.pending?.entries = [hide]
+        var parked = before; parked.visibility = .parked
+        ledger.owned = [.init(scope: session.scope, original: before, hidden: parked, owner: owner, group: group.id,
+                              member: member.id, nativeID: 4)]
+        try JSONEncoder().encode(ledger).write(to: file)
+        let alreadyClaimed = try StageGroupCoordinator(store: store, profile: profile)
+        try alreadyClaimed.finishExitedGuardianReturn { _ in Issue.record("The window already has committed ownership"); return true }
+        #expect(alreadyClaimed.retainedOwner == owner && alreadyClaimed.requiresRecovery && session.writes.isEmpty)
+    }
+
+    @Test func coldSpacesOwnerWithAnEmptyWindowWALStillNeedsCompletedWorkerAndPhysicalProof() throws {
+        let (profile, store, _, runtime, _) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let former = try #require(runtime.engineOwner)
+        let owner = StageEngineOwner(spacesCandidate: former.environment, generation: former.generation, evidence: former.evidence)
+        var ledger = StageGroupCoordinator.Ledger(); ledger.owner = owner; ledger.activeScopes = [runtime.scope]
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        try JSONEncoder().encode(ledger).write(to: file)
+        let cold = try StageGroupCoordinator(store: store, profile: profile)
+        let plan = try #require(try cold.coldSpacesReturn())
+        #expect(plan.windows.isEmpty && plan.hiddenSpaces.isEmpty && cold.hasWindowAuthority)
+        #expect(throws: StageSwitchError.recoveryRequired) {
+            try cold.finishColdSpacesReturn(plan, workerFinished: false, physicalReturnConfirmed: true)
+        }
+        #expect(throws: StageSwitchError.recoveryRequired) {
+            try cold.finishColdSpacesReturn(plan, workerFinished: true, physicalReturnConfirmed: false)
+        }
+        #expect(cold.hasWindowAuthority)
+        try cold.finishColdSpacesReturn(plan, workerFinished: true, physicalReturnConfirmed: true)
+        #expect(!cold.hasWindowAuthority && runtime.writes.isEmpty)
+        #expect(try !StageGroupCoordinator(store: store, profile: profile).hasWindowAuthority)
+    }
+
+    @Test func coldSpacesReadPlanIncludesUncertainMinimizeAndCannotClearAChangedJournal() throws {
+        let (profile, store, _, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let former = try #require(runtime.engineOwner)
+        let owner = StageEngineOwner(spacesCandidate: former.environment, generation: former.generation, evidence: former.evidence)
+        let first = groups[0].members[0], second = groups[1].members[0]
+        let visible = try #require(runtime.windows[first.windowHint])
+        var hidden = visible; hidden.visibility = .stageSpace; hidden.hiddenSpaceID = 77
+        var minimized = try #require(runtime.windows[second.windowHint]); minimized.visibility = .minimized
+        let owned = StageGroupCoordinator.Ownership(scope: runtime.scope, original: visible, hidden: hidden,
+            owner: owner, group: groups[0].id, member: first.id, nativeID: 4)
+        var ledger = StageGroupCoordinator.Ledger(); ledger.owner = owner; ledger.owned = [owned]
+        ledger.pending = .init(scope: runtime.scope, generation: owner.generation, target: groups[1].id,
+            preferred: minimized.window, originalFocus: visible.window, before: [hidden, minimized], ownedBefore: [owned],
+            entries: [.init(action: .hide, before: minimized, intent: UUID(), group: groups[1].id, member: second.id)],
+            owner: owner, intent: UUID(), nativeID: 4)
+        let file = profile.appendingPathComponent("stage-visibility-v1.json"), bytes = try JSONEncoder().encode(ledger)
+        try bytes.write(to: file)
+        let cold = try StageGroupCoordinator(store: store, profile: profile), plan = try #require(try cold.coldSpacesReturn())
+        #expect(plan.hiddenSpaces == [77] && plan.windows.count == 2)
+        #expect(plan.windows.first(where: { $0.original.window == minimized.window })?.original.visibility == .minimized)
+        #expect(plan.windows.first(where: { $0.original.window == visible.window })?.original == visible)
+        try (bytes + Data([32])).write(to: file)
+        #expect(throws: StageSwitchError.recoveryRequired) {
+            try cold.finishColdSpacesReturn(plan, workerFinished: true, physicalReturnConfirmed: true)
+        }
+        #expect(cold.hasWindowAuthority && runtime.writes.isEmpty)
+        #expect(try Data(contentsOf: file) == bytes + Data([32]))
+    }
+
+    enum RecoveryInterruption: CaseIterable { case none, originalBecameUnmanaged, lostFocusReply, takeoverAfterFocus }
+
+    @Test(arguments: RecoveryInterruption.allCases)
+    func recoveryReturnsKeyboardBeforeRetiringTheShownSibling(_ interruption: RecoveryInterruption) async throws {
+        let (profile, store, _, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let oldFocus = try #require(runtime.focus)
+        let sibling = try #require(runtime.windows.values.first { $0.window.pid == oldFocus.pid && $0.window != oldFocus })
+        let target = try #require(groups.first { $0.members.first?.windowHint == sibling.window })
+        let owner = try #require(runtime.engineOwner)
+        var parked = sibling
+        parked.visibility = .parked
+        var initial = runtime.windows
+        initial[sibling.window] = parked
+        let held = StageGroupCoordinator.Ownership(scope: runtime.scope, original: sibling, hidden: parked,
+            owner: owner, group: target.id, member: target.members[0].id, nativeID: 4)
+        let show = StageGroupCoordinator.Entry(action: .show, before: parked, after: sibling, intent: UUID(),
+            group: target.id, member: target.members[0].id)
+        let focus = StageGroupCoordinator.Entry(action: .focus, before: sibling, after: sibling, intent: UUID(),
+            group: target.id, member: target.members[0].id)
+        var ledger = StageGroupCoordinator.Ledger()
+        ledger.owner = owner
+        ledger.pending = .init(scope: runtime.scope, generation: runtime.generation, target: target.id,
+            preferred: sibling.window, originalFocus: oldFocus, before: Array(initial.values), ownedBefore: [held],
+            entries: [show, focus], owner: owner, intent: UUID(), nativeID: 4, workArea: runtime.work)
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        try JSONEncoder().encode(ledger).write(to: file)
+        runtime.focus = sibling.window
+        let resumed = try StageGroupCoordinator(store: store, profile: profile)
+        func pending() throws -> StageGroupCoordinator.Transaction? {
+            try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file)).pending
+        }
+        switch interruption {
+        case .originalBecameUnmanaged:
+            runtime.excluded.insert(oldFocus)
+            await #expect(throws: StageSwitchError.recoveryRequired) { try await resumed.recover(runtime) }
+            #expect(runtime.writes.isEmpty && resumed.requiresRecovery)
+            let last = try pending()?.entries.last
+            #expect(last?.after == sibling && last?.undoIntent == nil)
+        case .lostFocusReply, .takeoverAfterFocus:
+            let bystander = try #require(runtime.windows.keys.first { $0.number == 4 })
+            runtime.afterWrite = {
+                if interruption == .lostFocusReply { throw StageSwitchError.interrupted }
+                runtime.focus = bystander
+            }
+            await #expect(throws: StageSwitchError.self) { try await resumed.recover(runtime) }
+            let last = try pending()?.entries.last
+            #expect(last?.after == nil && last?.undoIntent != nil && last?.undoBefore == initial[oldFocus])
+            let reopened = try StageGroupCoordinator(store: store, profile: profile)
+            await #expect(throws: StageSwitchError.recoveryRequired) { try await reopened.recover(runtime) }
+            #expect(runtime.writes.map(\.0) == [.focus] && reopened.requiresRecovery)
+            #expect(runtime.windows[sibling.window]?.visibility == .visible)
+        case .none:
+            runtime.afterWrite = {
+                if runtime.writes.last?.0 == .hide {
+                    #expect(runtime.focus == oldFocus)
+                    let last = try pending()?.entries.last
+                    #expect(last?.intent == show.intent && last?.undoIntent != nil && last?.undoBefore == sibling)
+                }
+            }
+            try await resumed.recover(runtime)
+            #expect(runtime.writes.map(\.0) == [.focus, .hide])
+            #expect(runtime.writes.map(\.1) == [oldFocus, sibling.window])
+            #expect(runtime.windows == initial && runtime.focus == oldFocus && !resumed.requiresRecovery)
+        }
+    }
+
+    @Test func unavailableRetirementSurfacePreservesKeyboardAndDirectoryBeforeAnyGroupWrite() async throws {
+        let (profile, store, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let directory = store.directory, windows = session.windows, focus = session.focus
+        session.retirementSurfaceAvailable = false
+        await #expect(throws: StageSwitchError.unavailable) {
+            try await coordinator.activate(groups[1].id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(session.writes.isEmpty && focus == session.focus && windows == session.windows)
+        #expect(session.checkedBottomSites == [false])
+        #expect(directory == store.directory && !coordinator.hasWindowAuthority && !coordinator.requiresRecovery)
+    }
+
+    @Test(arguments: [false, true]) func tallWindowsRestrictCornerSelectionOnlyWhenTheyMustRetire(tallOutgoing: Bool) async throws {
+        let (profile, _, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let target = groups[1], outgoing = try #require(groups[0].members.first)
+        let tall = try #require(tallOutgoing ? outgoing : target.members.first)
+        let bystander = try #require(session.windows.keys.first { $0.number == 4 })
+        for key in [tall.windowHint, bystander] {
+            let original = try #require(session.windows[key]?.frame)
+            session.windows[key]?.frame = .init(x: original.x, y: original.y, width: original.width, height: 600)
+        }
+        session.retirementSurfaceAvailable = false
+        await #expect(throws: StageSwitchError.unavailable) {
+            try await coordinator.activate(target.id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(session.checkedBottomSites == [tallOutgoing])
+        #expect(session.writes.isEmpty && !coordinator.hasWindowAuthority)
+    }
+
+    @Test func engineActionsSeeThePrivateCommittedIntentOnDisk() async throws {
+        let (profile, store, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let file = profile.appendingPathComponent("stage-visibility-v1.json")
+        var inspected = 0
+        session.afterWrite = {
+            let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+            #expect((attributes[.posixPermissions] as? NSNumber)?.uint16Value == 0o600)
+            let disk = try JSONDecoder().decode(StageGroupCoordinator.Ledger.self, from: Data(contentsOf: file))
+            let entry = try #require(disk.pending?.entries.last)
+            let issued = try #require(session.writes.last)
+            #expect(entry.intent != nil && entry.before.window == issued.1 && entry.action == issued.0 && entry.after == nil)
+            inspected += 1
+        }
+        defer { session.afterWrite = nil }
+        try await coordinator.activate(groups[1].id, member: nil, in: session.scope, consent: true, session: session)
+        #expect(inspected == session.writes.count && inspected > 0)
+        let reopened = try StageGroupCoordinator(store: store, profile: profile)
+        #expect(!reopened.requiresRecovery && reopened.retainedOwner == coordinator.retainedOwner)
+        let files = try FileManager.default.contentsOfDirectory(atPath: profile.path)
+        #expect(!files.contains(where: { $0.hasPrefix(".stage-visibility-") }))
+    }
+
+    @Test func threeGroupsRequireConsentFocusOwnershipAndFullReadback() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let untouched = runtime.windows.filter { $0.key.number >= 4 }
+        await #expect(throws: StageSwitchError.unavailable) { try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: false, session: runtime) }
+        runtime.focus = untouched.keys.first { $0.number == 4 }
+        await #expect(throws: StageSwitchError.incomplete) { try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime) }
+        #expect(runtime.writes.isEmpty)
+        runtime.focus = groups[0].members[0].windowHint
+        for i in [0,1,2,0] {
+            try await engine.activate(groups[i].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+            let id = groups[i].members[0].windowHint
+            #expect(runtime.focus == id && runtime.windows[id]?.visibility == .visible)
+            #expect(runtime.windows.filter { $0.key != id && $0.key.number <= 3 }.values.allSatisfy { $0.visibility == .parked })
+            #expect(runtime.windows.filter { $0.key.number >= 4 } == untouched)
+            #expect(store.activeGroup(in: runtime.scope) == groups[i].id)
+        }
+        #expect(!engine.requiresRecovery)
+    }
+
+    @Test func switchAwayAndBackPreservesBothManuallyMovedFramesOfTheComposite() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let a = groups[0].members[0], b = groups[1].members[0], other = groups[2]
+        func live(_ m: StageGroupDirectory.Member) throws -> StageGroupWindow {
+            let w = try #require(runtime.windows[m.windowHint])
+            return .init(display: runtime.scope.display, identity: w.window, lifetime: w.lifetime,
+                         layout: m.layout, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.join(try live(b), to: try live(a))
+        let group = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        try store.rename(group, in: runtime.scope, to: "两份文档")
+        try await engine.activate(group.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        let left = SurfaceRect(x: 21, y: 34, width: 420, height: 510)
+        let right = SurfaceRect(x: 461, y: 54, width: 376, height: 482)
+        runtime.windows[a.windowHint]?.frame = left
+        runtime.windows[b.windowHint]?.frame = right
+        let bystanders = runtime.windows.filter { $0.key.number > 3 }
+        try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let saved = try #require(StageGroupStore(profile: p).groups(in: runtime.scope).first { $0.id == group.id })
+        #expect(saved.name == "两份文档" && saved.members.map(\.layout) ==
+                [StageGroupWindow.relativeFrame(left, in: runtime.work), StageGroupWindow.relativeFrame(right, in: runtime.work)])
+        runtime.writes.removeAll()
+        try await engine.activate(group.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.windows[a.windowHint]?.frame == left && runtime.windows[b.windowHint]?.frame == right)
+        #expect(!runtime.writes.contains { if case .place = $0.0 { true } else { false } })
+        #expect(runtime.windows.filter { $0.key.number > 3 } == bystanders && runtime.focus == b.windowHint)
+    }
+
+    @Test func anUnconfirmedHideNeverPublishesTheDepartingLayout() async throws {
+        let (p, _, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let a = groups[0].members[0]
+        runtime.windows[a.windowHint]?.frame.x += 150
+        runtime.afterWrite = { [unowned runtime] in
+            if case .hide? = runtime.writes.last?.0 { runtime.generation = UUID() }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(StageGroupStore(profile: p).groups(in: runtime.scope).first?.members.first?.layout == a.layout)
+        #expect(runtime.writes.filter { $0.0 == .hide }.count == 1)
+    }
+
+    @Test func selectingTheAlreadyVisibleSingletonKeepsItsCurrentFrameAndDoesNotDispatch() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let group = groups[0], a = group.members[0]
+        try await engine.activate(group.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        let moved = SurfaceRect(x: 73, y: 59, width: 518, height: 408)
+        runtime.windows[a.windowHint]?.frame = moved
+        runtime.writes.removeAll()
+        try await engine.activate(group.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.writes.isEmpty && runtime.windows[a.windowHint]?.frame == moved)
+        #expect(store.groups(in: runtime.scope).first?.members.first?.layout == StageGroupWindow.relativeFrame(moved, in: runtime.work))
+    }
+
+    @Test func reselectingTheFocusedWorksetKeepsBothFilesAndYieldsToAFocusChange() async throws {
+        let (profile, store, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let group = groups[0]
+        try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        let directory = store.directory, windows = session.windows
+        let files = ["stage-visibility-v1.json", "stage-groups-v2.json"].map { profile.appendingPathComponent($0) }
+        let stamp = Date(timeIntervalSince1970: 1000)
+        for file in files { try FileManager.default.setAttributes([.modificationDate: stamp], ofItemAtPath: file.path) }
+        let before = session.sequence
+        session.writes.removeAll()
+        try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        #expect(session.sequence >= before + 5)
+        #expect(store.directory == directory && session.windows == windows)
+
+        let interruptAt = session.sequence + 4
+        let bystander = try #require(session.windows.keys.first { $0.number == 4 })
+        session.beforeRead = { [unowned session] in if session.sequence == interruptAt { session.focus = bystander } }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(session.focus == bystander && session.writes.isEmpty && !coordinator.requiresRecovery)
+        for file in files {
+            let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
+            #expect(attributes[.modificationDate] as? Date == stamp)
+        }
+    }
+
+    @Test func reselectingAWorksetCannotAcknowledgeAnExternallyChangedDirectory() async throws {
+        let (profile, _, coordinator, session, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let group = groups[0]
+        try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        let directory = profile.appendingPathComponent("stage-groups-v2.json")
+        let original = try Data(contentsOf: directory)
+        let external = original + Data([0x0a])
+        try external.write(to: directory, options: .atomic)
+        session.writes.removeAll()
+        await #expect(throws: StageGroupError.changedFile) {
+            try await coordinator.activate(group.id, member: nil, in: session.scope, consent: true, session: session)
+        }
+        #expect(try Data(contentsOf: directory) == external)
+        #expect(session.writes.isEmpty && !coordinator.requiresRecovery)
+    }
+
+    @Test func firstClickFocusesSelectedGroupBeforeHidingOutgoingWindow() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let other = StageGroupWindow(display: UUID(), identity: .init(pid: 14, birth: 101, number: 13),
+                                     lifetime: UUID(), nativeSpace: UUID())
+        runtime.afterWrite = { try store.observe([other], preserving: runtime.scope.display) }
+        try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.writes.first?.0 == .focus && runtime.writes.first?.1 == groups[1].members[0].windowHint)
+        #expect(store.activeGroup(in: runtime.scope) == groups[1].id)
+        #expect(store.groups(on: other.display).first?.members.first?.windowHint == other.identity)
+        #expect(!engine.requiresRecovery)
+    }
+
+    @Test func supersededLastReadCannotPublishLayoutAndNextSelectionCanProceed() async throws {
+        let (p, _, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let a = groups[0], member = a.members[0]
+        try await engine.activate(a.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        runtime.windows[member.windowHint]?.frame.x += 48
+        runtime.writes.removeAll()
+        let original = StageGroupStore(profile: p).groups(in: runtime.scope)
+        var reads = 0
+        runtime.beforeRead = { reads += 1 }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(a.id, member: nil, in: runtime.scope, consent: true, session: runtime,
+                                      current: { reads < 5 })
+        }
+        #expect(reads == 5 && runtime.writes.isEmpty && !engine.requiresRecovery)
+        #expect(StageGroupStore(profile: p).groups(in: runtime.scope) == original)
+        runtime.beforeRead = nil
+        try await engine.activate(groups[2].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(StageGroupStore(profile: p).activeGroup(in: runtime.scope) == groups[2].id)
+    }
+
+    @Test func supersededAfterFocusDoesNotHideOrRefocusUnasked() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        var current = true
+        runtime.afterWrite = { current = false }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime,
+                                      current: { current })
+        }
+        #expect(runtime.writes.map(\.0) == [.focus] && runtime.focus == groups[1].members[0].windowHint)
+        #expect(store.activeGroup(in: runtime.scope) == nil)
+        #expect(try StageGroupCoordinator(store: store, profile: p).requiresRecovery)
+    }
+
+    @Test(arguments: [1, 2], [false, true])
+    func queuedHeldSelectionCanRefocusEitherMemberAfterASealedShowPrefix(_ shows: Int, takeover: Bool) async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let active = groups[0]
+        func live(_ index: Int) throws -> StageGroupWindow {
+            let state = try #require(runtime.windows[groups[index].members[0].windowHint])
+            return .init(display: runtime.scope.display, identity: state.window, lifetime: state.lifetime, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.join(live(2), to: live(1))
+        let held = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        let first = held.members[0], last = held.members[1]
+        try await engine.activate(active.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let owner = try #require(runtime.engineOwner)
+        let bystander = try #require(runtime.windows.values.first { $0.window.number == 4 })
+        runtime.writes.removeAll()
+        var waiting = false
+        runtime.afterWrite = {
+            if runtime.writes.filter({ $0.0 == .show }).count == shows { waiting = true }
+        }
+        await #expect(throws: StageSwitchError.superseded) {
+            try await engine.activate(held.id, member: first.id, in: runtime.scope, consent: true, session: runtime,
+                                      current: { !waiting }, newerChoice: { waiting })
+        }
+        #expect(runtime.writes.map(\.0) == Array(repeating: .show, count: shows))
+        #expect(store.activeGroup(in: runtime.scope) == nil && !engine.requiresRecovery)
+        let sample = try runtime.read(runtime.scope)
+        for m in held.members {
+            let state = try #require(sample.windows[m.windowHint])
+            #expect(engine.confirmsYieldedHeldMember(group: held.id, member: m.id, window: m.windowHint,
+                lifetime: state.lifetime, owner: owner, observed: sample))
+            #expect(!engine.confirmsYieldedHeldMember(group: held.id, member: m.id, window: m.windowHint,
+                lifetime: UUID(), owner: owner, observed: sample))
+        }
+        let before = runtime.writes.count
+        runtime.afterWrite = nil
+        if takeover {
+            runtime.focus = bystander.window
+            let changed = try runtime.read(runtime.scope)
+            let selected = try #require(changed.windows[last.windowHint])
+            #expect(!engine.confirmsYieldedHeldMember(group: held.id, member: last.id, window: last.windowHint,
+                lifetime: selected.lifetime, owner: owner, observed: changed))
+            await #expect(throws: StageSwitchError.interrupted) {
+                try await engine.activate(held.id, member: last.id, in: runtime.scope, consent: true, session: runtime, resumingFrom: sample)
+            }
+            #expect(runtime.writes.count == before && runtime.focus == bystander.window)
+            return
+        }
+        var admission = sample
+        if shows == 1 {
+            var later = false
+            runtime.afterWrite = { later = runtime.writes.last?.0 == .show }
+            await #expect(throws: StageSwitchError.superseded) {
+                try await engine.activate(held.id, member: first.id, in: runtime.scope, consent: true, session: runtime,
+                    resumingFrom: admission, current: { !later }, newerChoice: { later })
+            }
+            admission = try runtime.read(runtime.scope)
+            runtime.afterWrite = nil
+            for m in held.members {
+                let state = try #require(admission.windows[m.windowHint])
+                #expect(engine.confirmsYieldedHeldMember(group: held.id, member: m.id, window: m.windowHint,
+                    lifetime: state.lifetime, owner: owner, observed: admission))
+            }
+        }
+        try await engine.activate(held.id, member: last.id, in: runtime.scope, consent: true, session: runtime, resumingFrom: admission)
+        #expect(store.activeGroup(in: runtime.scope) == held.id && runtime.focus == last.windowHint)
+        #expect(runtime.writes.dropFirst(before).filter { $0.0 == .show }.count == 2 - shows)
+        #expect(runtime.writes.dropFirst(before).filter { $0.0 == .focus }.map(\.1) == [last.windowHint])
+        #expect(runtime.windows[bystander.window] == bystander && runtime.windows[active.members[0].windowHint]?.visibility == .parked)
+        let terminal = try runtime.read(runtime.scope)
+        let selected = try #require(terminal.windows[last.windowHint])
+        #expect(!engine.confirmsYieldedHeldMember(group: held.id, member: last.id, window: last.windowHint,
+            lifetime: selected.lifetime, owner: owner, observed: terminal))
+    }
+
+    @Test func focusCannotTakeOwnershipOfUserGeometry() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let target = groups[1].members[0].windowHint
+        runtime.afterWrite = { [unowned runtime] in
+            if runtime.writes.last?.0 == .focus { runtime.windows[target]?.frame.x += 30 }
+        }
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.map(\.0) == [.focus] && store.activeGroup(in: runtime.scope) == nil && engine.requiresRecovery)
+    }
+
+    @Test func lossOfAnIndividualWindowLeaseStopsEvenWhenItsGeometryIsUnchanged() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let target = groups[1].members[0].windowHint
+        runtime.afterWrite = { [unowned runtime] in runtime.excluded.insert(target) }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.map(\.0) == [.focus] && engine.requiresRecovery && store.activeGroup(in: runtime.scope) == nil)
+    }
+
+    @Test func changedDisplayOfFocusCannotPassTheBackendStartReadback() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let other = StageGroupScope(display: UUID(), nativeSpace: UUID())
+        runtime.beforeRead = { [unowned runtime] in
+            if runtime.sequence == 2 { runtime.foreignFocusScope = other }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.isEmpty && !engine.requiresRecovery && store.activeGroup(in: runtime.scope) == nil)
+    }
+
+    @Test func movingParkedWindowBetweenReadbacksLeavesHideUnconfirmed() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        var postHideReads = 0
+        runtime.beforeRead = { [unowned runtime] in
+            if let (action, window) = runtime.writes.last, action == .hide {
+                postHideReads += 1
+                if postHideReads == 2 { runtime.windows[window]?.frame.y += 12 }
+            }
+        }
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.map(\.0) == [.hide] && store.activeGroup(in: runtime.scope) == nil && engine.requiresRecovery)
+    }
+
+    @Test func focusTakeoverAfterHideNeverRefocusesOrCommitsTheSwitch() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let user = try #require(runtime.windows.keys.first { $0.number == 4 })
+        runtime.afterWrite = { runtime.focus = user }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.focus == user && runtime.writes.count == 1 && engine.requiresRecovery)
+        #expect(store.activeGroup(in: runtime.scope) == nil)
+    }
+
+    @Test func unknownAfterIssuedIsDurableAndNeverReplayed() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        runtime.afterWrite = { throw StageSwitchError.interrupted }
+        await #expect(throws: StageSwitchError.self) { try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: true, session: runtime) }
+        let restarted = try StageGroupCoordinator(store: store, profile: p)
+        #expect(restarted.requiresRecovery && store.activeGroup(in: runtime.scope) == nil && runtime.writes.count == 1)
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await restarted.recover(runtime) }
+        #expect(runtime.writes.count == 1)
+    }
+
+    @Test func groupSelectionUsesItsLastExactMemberAndPreservesSiblingFocusChoices() async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        func live(_ member: StageGroupDirectory.Member) throws -> StageGroupWindow {
+            let s = try #require(runtime.windows[member.windowHint])
+            return .init(display: runtime.scope.display, identity: s.window, lifetime: s.lifetime, nativeSpace: runtime.scope.nativeSpace)
+        }
+        let a = groups[0].members[0], b = groups[1].members[0]
+        try store.join(live(b), to: live(a))
+        let both = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        try await engine.activate(both.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        try await engine.activate(groups[2].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let saved = try #require(store.groups(in: runtime.scope).first { $0.id == both.id })
+        #expect(saved.focusMember()?.id == b.id && saved.focusMember(requested: UUID()) == nil)
+        try await engine.activate(both.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.focus == b.windowHint && runtime.windows[a.windowHint]?.visibility == .visible &&
+                runtime.windows[b.windowHint]?.visibility == .visible && runtime.windows[groups[2].members[0].windowHint]?.visibility == .parked)
+        try await engine.activate(groups[2].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let bystanders = runtime.windows.filter { $0.key.number >= 4 }
+        try await engine.activate(both.id, member: a.id, in: runtime.scope, consent: true, session: runtime)
+        #expect(a.windowHint.pid == b.windowHint.pid && a.windowHint.number != b.windowHint.number)
+        #expect(runtime.focus == a.windowHint && runtime.windows[a.windowHint]?.visibility == .visible &&
+                runtime.windows[b.windowHint]?.visibility == .visible && store.activeGroup(in: runtime.scope) == both.id)
+        #expect(runtime.windows.filter { $0.key.number >= 4 } == bystanders)
+    }
+
+    @Test func enrolledUserMinimizedSiblingKeepsItsStateAndLayoutDuringOtherWorksetSwitches() async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let a = groups[0].members[0], b = groups[1].members[0], other = groups[2]
+        func live(_ m: StageGroupDirectory.Member) throws -> StageGroupWindow {
+            let state = try #require(runtime.windows[m.windowHint])
+            return .init(display: runtime.scope.display, identity: state.window, lifetime: state.lifetime,
+                         layout: m.layout, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.join(live(b), to: live(a))
+        let both = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        try await engine.activate(both.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        let originalLayout = store.groups(in: runtime.scope).first { $0.id == both.id }?.members.first { $0.id == b.id }?.layout
+        runtime.windows[b.windowHint]?.visibility = .minimized
+        runtime.focus = a.windowHint
+        let protected = try #require(runtime.windows[b.windowHint]), owner = try #require(runtime.engineOwner)
+        runtime.writes.removeAll()
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(both.id, member: b.id, in: runtime.scope, consent: true, session: runtime)
+        }
+        try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(engine.observesActiveGroup(try runtime.read(runtime.scope), owner: owner))
+        try await engine.activate(both.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        #expect(runtime.focus == a.windowHint && runtime.windows[b.windowHint] == protected)
+        #expect(runtime.writes.allSatisfy { $0.1 != b.windowHint })
+        #expect(store.groups(in: runtime.scope).first { $0.id == both.id }?.members.first { $0.id == b.id }?.layout == originalLayout)
+        try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        runtime.windows[b.windowHint]?.visibility = .visible
+        runtime.writes.removeAll()
+        #expect(!engine.observesActiveGroup(try runtime.read(runtime.scope), owner: owner))
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(other.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.isEmpty && !engine.requiresRecovery)
+    }
+
+    @Test(arguments: [1, 3]) func userFocusBetweenPrimitivesOrAtFinalReadSurvivesRecovery(_ boundary: Int) async throws {
+        let (profile, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let bystander = try #require(runtime.windows.keys.first { $0.number == 4 })
+        var readsAfterWrite = 0
+        runtime.beforeRead = { [unowned runtime] in
+            guard runtime.writes.count == boundary else { return }
+            readsAfterWrite += 1
+            if readsAfterWrite == 3 { runtime.focus = bystander }
+        }
+        await #expect(throws: StageSwitchError.interrupted) {
+            try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.count == boundary && runtime.focus == bystander && store.activeGroup(in: runtime.scope) == nil)
+        let restarted = try StageGroupCoordinator(store: store, profile: profile)
+        #expect(restarted.requiresRecovery)
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await restarted.recover(runtime) }
+        #expect(runtime.writes.count == boundary && runtime.focus == bystander)
+    }
+
+    @Test func reservedMemberProtectsWholeCompositeWhileOtherGroupsSwitch() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        let protected = groups[2].members[0].windowHint
+        let sibling = try #require(runtime.windows.values.first { $0.window.number == 4 })
+        func live(_ state: StageWindowState) -> StageGroupWindow {
+            .init(display: runtime.scope.display, identity: state.window, lifetime: state.lifetime, nativeSpace: runtime.scope.nativeSpace)
+        }
+        try store.observe([live(sibling)])
+        try store.join(live(sibling), to: live(try #require(runtime.windows[protected])))
+        runtime.excluded = [protected]
+        let composite = try #require(store.groups(in: runtime.scope).first { $0.members.count == 2 })
+        let before = runtime.windows
+        await #expect(throws: StageSwitchError.incomplete) {
+            try await engine.activate(composite.id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        }
+        #expect(runtime.writes.isEmpty)
+        for index in [0, 1, 0] {
+            try await engine.activate(groups[index].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+            #expect(store.activeGroup(in: runtime.scope) == groups[index].id)
+            #expect(runtime.windows[protected] == before[protected] && runtime.windows[sibling.window] == sibling)
+        }
+        #expect(runtime.writes.allSatisfy { ![protected, sibling.window].contains($0.1) })
+    }
+
+    @Test func latePhysicalChangeProtectsBystandersAndTheLastVerifiedGroup() async throws {
+        let (p, store, engine, runtime, groups) = try fixture()
+        defer { try? FileManager.default.removeItem(at: p) }
+        try await engine.activate(groups[0].id, member: nil, in: runtime.scope, consent: true, session: runtime)
+        let userWindow = try #require(runtime.windows.keys.first { $0.number == 4 })
+        runtime.afterWrite = {
+            runtime.generation = UUID()
+            runtime.windows[userWindow]?.frame.x = 317
+            engine.invalidate()
+        }
+        await #expect(throws: StageSwitchError.self) { try await engine.activate(groups[1].id, member: nil, in: runtime.scope, consent: true, session: runtime) }
+        let count = runtime.writes.count
+        await #expect(throws: StageSwitchError.recoveryRequired) { try await engine.recover(runtime) }
+        #expect(runtime.writes.count == count && runtime.windows[userWindow]?.frame.x == 317)
+        #expect(store.activeGroup(in: runtime.scope) == groups[0].id)
+    }
+}

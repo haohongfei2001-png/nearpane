@@ -1,0 +1,14 @@
+{"event": "fixture-opened", "monotonic": 241973.964854791, "windows": [{"birth": 1795168581682121, "executable": "/private/tmp/nearpane-d01.7tOad1ih/Lifecycle Window.app/Contents/MacOS/Lifecycle", "hash": "88646d96c6618f0df115957b2a74d6f4decae364", "identifier": "org.nearpane.acceptance.LifecycleWindow", "pid": 12209, "number": 48119}, {"birth": 1795168581682121, "executable": "/private/tmp/nearpane-d01.7tOad1ih/Lifecycle Window.app/Contents/MacOS/Lifecycle", "hash": "88646d96c6618f0df115957b2a74d6f4decae364", "identifier": "org.nearpane.acceptance.LifecycleWindow", "pid": 12209, "number": 48120}]}
+{"event": "system-fixture-command", "monotonic": 241974.099752041, "nonce": "5d3d7bd3-838b-47d4-bfed-5e83b13884f4", "action": "activate", "index": 0}
+{"event": "creation-ledger", "monotonic": 241975.231762291, "path": "/private/tmp/nearpane-p0-cards-20261120/build/verification/secondary-route-followup/ded2c375-bf2b-4037-9c73-a4cc5016c794/provision", "operation": "127e339e-0ab7-403c-8662-2ede67f635ce"}
+{"event": "system-fixture-intent", "monotonic": 241975.356205041, "operation": "add", "current": 6, "target": null, "other": null}
+{"event": "system-fixture-result", "monotonic": 241976.315804041, "operation": "add", "target": null, "overviewCloseAction": "native launcher", "overviewDismissed": true, "issued": true, "acknowledged": true, "windowServerConfirmedBeforeClose": true}
+{"event": "system-fixture-created", "monotonic": 241976.659425791, "desktop": {"id": 4963, "type": 0, "uuid": "336BBE71-9D0A-3D48-866E-54550430D75B"}, "oldCurrent": 6, "newCurrent": 6}
+{"event": "stopped", "monotonic": 241976.729315875, "reason": "unrelated foreground app appeared before fixture operation"}
+{"event": "recovery-protected-order", "monotonic": 241977.035018541, "ids": [4, 2000, 6], "originalOrderMatches": true}
+{"event": "cleanup-host-bound", "monotonic": 241977.065223791, "original": {"codeHash": "4fc08dca1df42c083c6ee926dac4597f3b928eaa", "launch": 1795168580.9520311, "pid": 12144}, "current": {"codeHash": "4fc08dca1df42c083c6ee926dac4597f3b928eaa", "launch": 1795168580.9520311, "pid": 12144}}
+{"event": "recovery-protected-order", "monotonic": 241977.9064335, "ids": [4, 2000, 6], "originalOrderMatches": true}
+{"event": "system-fixture-intent", "monotonic": 241978.290111, "operation": "remove", "current": 6, "target": 4963, "other": null}
+{"event": "system-fixture-result", "monotonic": 241979.267275875, "operation": "remove", "target": 4963, "windowServerConfirmedBeforeClose": true, "acknowledged": true, "issued": true, "overviewCloseAction": "native launcher", "overviewDismissed": true, "overviewComposite": {"owner": "com.apple.WindowManager", "newSinceOverview": true, "otherOrdinary": 0, "pid": 647, "number": 48147}}
+{"event": "system-fixture-removal-reconciled", "monotonic": 241979.596273541, "target": 4963}
+{"event": "system-fixture-removed", "monotonic": 241979.596373833, "target": 4963}

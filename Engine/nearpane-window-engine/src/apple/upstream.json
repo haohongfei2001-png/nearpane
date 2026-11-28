@@ -1,0 +1,80 @@
+{
+  "repository": "https://github.com/eugene-tea/stage-manager",
+  "commit": "69a73665488243bf78982c6d523ac4e0850c1ddb",
+  "license": {
+    "spdx": "MIT",
+    "upstreamPath": "LICENSE",
+    "blob": "afcd9230ee12e85e3ffd84bfefd79261e08db939",
+    "distributedFile": "Engine/nearpane-window-engine/LICENSE.upstream"
+  },
+  "files": [
+    {
+      "upstreamPath": "src/engine/apple/mirror.rs",
+      "blob": "158c096510a2905afda89f033c7f362b7e10600f",
+      "destinations": [
+        "src/apple/grouping.rs",
+        "src/apple/mirror.rs",
+        "src/apple/upstream-capture.txt",
+        "src/apple/tests.rs"
+      ],
+      "adaptation": "items and undrawn ported with Nearpane Rect. has_twin, off_left, fold, remembered, by_ax and settle timing adapted to immutable per-display and native-desktop sessions with explicit scope, process checks, normalized input and a read-only ABI. Uses actual AX item frame on correction. Action geometry and input dispatch omitted. Three original CAPTURE snapshots are replayed through the C ABI in tests."
+    },
+    {
+      "upstreamPath": "src/engine/apple/mod.rs",
+      "blob": "840aa8d8de6e472bc0ec6d32ad3cd2df71fa8882",
+      "destinations": [
+        "src/apple/mirror.rs"
+      ],
+      "adaptation": "Thumbnail-size cutoff (240 points) applied to supplied in-scope observations."
+    },
+    {
+      "upstreamPath": "src/engine/apple/plan.rs",
+      "blob": "56739452623ab08ff3a6054461403a92315df1dd",
+      "destinations": [
+        "Sources/NearpaneUI/AppleStageMerge.swift"
+      ],
+      "adaptation": "Gather into the already confirmed current stage. One exact source-window transfer followed by two independent membership readings; stop on partial or interrupted state."
+    },
+    {
+      "upstreamPath": "src/engine/apple/gate.rs",
+      "blob": "f2edd478f68c47a42a3f64fe96f9d49ac04c64a6",
+      "destinations": [
+        "Sources/NearpaneUI/AppleStageMerge.swift"
+      ],
+      "adaptation": "Mirror settle, one in-flight operation, unlocked foreground, physical button, modifier, pointer and key-idle gates."
+    },
+    {
+      "upstreamPath": "src/engine/apple/points.rs",
+      "blob": "35e6a2aeab0753594da6b1054662a063340a26f8",
+      "destinations": [
+        "src/apple/merge.rs"
+      ],
+      "adaptation": "Select only the front thumbnail with an adjacent matching WindowManager twin. Bounded interior grid at least six points into the drawn plane, with conservative box-based cover rejection."
+    },
+    {
+      "upstreamPath": "src/engine/perspective.rs",
+      "blob": "fb0836dfc0cfe5bd97a681a594a81d51e0327eab",
+      "destinations": [
+        "src/apple/merge.rs"
+      ],
+      "adaptation": "Measured perspective calibration, projection, inversion from CG bounds and signed quadrilateral edge distances."
+    },
+    {
+      "upstreamPath": "src/platform/apple/routes/shift_click.rs",
+      "blob": "4445ff7c19425df50849a1e1f1ae02f102e6ac2f",
+      "destinations": [
+        "src/apple/merge.rs",
+        "Sources/NearpaneWindowEngine/AppleStageMergeProbe.swift"
+      ],
+      "adaptation": "Visible strip/front thumbnail eligibility plus independent full AX membership, exact on-screen CG twin, coordinates and system-wide AX hit."
+    },
+    {
+      "upstreamPath": "src/platform/apple/post.rs",
+      "blob": "da2e235ac247fe5a639b5104215e2f3cfb8a7626",
+      "destinations": [
+        "Sources/NearpaneUI/AppleStageMerge.swift"
+      ],
+      "adaptation": "Physical modifier press, guarded mouse down/up, pointer return only when still owned, release and same-stage membership confirmation between transfers."
+    }
+  ]
+}

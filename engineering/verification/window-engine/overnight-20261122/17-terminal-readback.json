@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "scope": "passiveTerminalTelemetryEnvelope",
+  "status": "PASS",
+  "startedUTC": "2026-11-22T16:45:32Z",
+  "endedUTC": "2026-11-22T16:45:33Z",
+  "systemVersion": "27.0",
+  "build": "26A428",
+  "sip": "System Integrity Protection status: enabled.",
+  "host": {
+    "birth": 1795343882268848,
+    "bundle": "com.holdsnow.nearpane.alpha",
+    "cdhash": "cefff1e30ec9c0e51c52c91197b92d22e39737bf",
+    "path": "/Applications/Nearpane.app/Contents/MacOS/NearpaneHost",
+    "pid": 32364,
+    "source": "bec6cb21ea77e7d024ee188d22d7f1d6699497c4",
+    "team": "ZB9D4T66QB"
+  },
+  "sameHostAtEnd": true,
+  "observerSHA256": "1d5f22d5bc70042b4310169d0dab775dfd236699f35d571174312a22a27e6ffd",
+  "sourceBlobs": {
+    "Sources/NearpaneHost/StageCanaryOverview.swift": "5e5491a14f660e9a66d55148049690a80beeb485",
+    "scripts/acceptance/window-engine/host/overview-witness.swift": "f02b691f44ebf57e416500ad3d0b94aee5ba3caa",
+    "scripts/acceptance/window-engine/host/overview_admission.py": "c159c486362ed9f2f8198a9768dfa1d4ab4ced24"
+  },
+  "hostTelemetry": [
+    {
+      "attempts": [
+        {
+          "endUptime": 425613.1185143334,
+          "exit": 0,
+          "missionControlObservation": "signedDockAXListWithoutMC",
+          "missionControlPresented": 0,
+          "pid": 32364,
+          "source": "installedHostPreviewMetrics",
+          "status": "observed",
+          "targetBirth": 1795343882268848,
+          "targetPID": 32364,
+          "uptime": 425612.79860833334
+        }
+      ],
+      "endUptime": 425613.1186611667,
+      "missionControlObservation": "signedDockAXListWithoutMC",
+      "missionControlPresented": 0,
+      "phase": "passive",
+      "pid": 32364,
+      "startUptime": 425612.7986029584
+    }
+  ],
+  "terminalFocusReadStartUptime": 425613.14456858335,
+  "terminalFocusReadStatus": "UNKNOWN",
+  "terminalFocusReason": "regularForegroundApplicationRequired",
+  "terminalReadbackUptime": 425613.146041375,
+  "inputChannels": 14,
+  "inputCountsEqual": true,
+  "deviceScope": {
+    "status": "BLOCKED",
+    "reason": "fullscreenType4"
+  },
+  "presentations": 0,
+  "dismissals": 0,
+  "windowWrites": 0,
+  "spaceWrites": 0,
+  "launchedHosts": 0,
+  "physicalP0Qualification": "NOT_RUN",
+  "privateReceiptSHA256": "deba8e520db22f3b080030e89d4830fe83eba04e2f3075400bce2edff2fd02d1"
+}
