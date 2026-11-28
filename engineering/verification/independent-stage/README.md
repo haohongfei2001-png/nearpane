@@ -4,7 +4,26 @@ Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github
 Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: caa2e0aa
+## Current source/runtime checkpoint: 987215dc
+
+Exact source passes **180 Rust, 258 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete release build/signature pass. Unsampled full
+receives two real inputs and records external physical confirmations at
+**2183.082 / 4398.461 ms**. Three HIDE, one SHOW and focus confirmation pass,
+but the second transaction subsequently fails in its final roster confirmation.
+Two physical confirmations are not two committed transactions. Unsampled fast
+exercises the existing initial retry, then loses its original intent before
+the complete retry result can finish validation.
+
+[Original 9872 evidence, initial publication race and late role-access failure](cloud-987215dc-latency/README.md).
+[Previous 2d7d source/runtime evidence and distinct prewrite failures](cloud-2d7d1beb-latency/README.md).
+The next product change stages only the qualifying first incomplete prebinding
+result before shared mutations/publication; it preserves the existing fresh
+retry, all subsequent failure rules and the original hidden-Space backend.
+Both recoveries pass, but continuous R4 and exact-target GUI acceptance remain
+incomplete. Release qualification remains false.
+
+## Earlier source/runtime checkpoint: caa2e0aa
 
 Exact source passes **180 Rust, 255 Swift (one existing skip), and 25 native
 AX decoder checks**; the complete release build/signature pass. Unsampled full

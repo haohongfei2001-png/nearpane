@@ -1,0 +1,2500 @@
+{
+  "schema": 3,
+  "createdUTC": "2026-11-28T06:14:49.265208+00:00",
+  "provenance": {
+    "artifactID": 15251641168,
+    "runID": 46115081664,
+    "commit": "987215dcbc79f1b50e22ceed1fc707b526acf3df",
+    "artifactName": "nearpane-independent-stage-987215dcbc79f1b50e22ceed1fc707b526acf3df-r4-fast",
+    "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15251641168",
+    "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast.zip",
+    "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast",
+    "downloadBytes": 25086940,
+    "downloadSHA256": "e396e8662b97210dccdd2624c406a1874c6f4539c0a7bf1efc68ef5125794b6e",
+    "providerDigest": "sha256:e396e8662b97210dccdd2624c406a1874c6f4539c0a7bf1efc68ef5125794b6e",
+    "digestMatches": true,
+    "downloadedUTC": "2026-11-28T06:11:58.160871+00:00"
+  },
+  "jobID": 140886971483,
+  "rawManifest": {
+    "path": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast-raw-manifest.json",
+    "fileCount": 85,
+    "sha256": "78e733b8a5e94b95e5bac3142eeaa4ff6b2fa7b46554b10a35533e5c2ecbd9f6"
+  },
+  "result": {
+    "overall": "INCOMPLETE",
+    "directEngine": "PASS",
+    "formalR4Status": "FAIL",
+    "reason": "R4SwitchReadbackFailed",
+    "actualR4Inputs": 1,
+    "confirmedR4Switches": 0,
+    "hostBindings": 0,
+    "visibilityClaims": 0,
+    "completeWitnesses": 0,
+    "managedWindowBindingReached": false,
+    "focusOrHideOrShowIssued": false,
+    "workerRequestsBeforeFailure": [],
+    "cleanup": true,
+    "stageWindowShutdown": {
+      "end": 784.5000281666668,
+      "milliseconds": 2.1775833333776973,
+      "released": true,
+      "start": 784.4978505833334
+    },
+    "shutdownReturnedHomeConfirmed": true,
+    "shutdownReturnReadback": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 784.5161111666667,
+          "readStart": 784.50253175,
+          "received": 784.5323848333334,
+          "uptime": 784.5323848333334,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 53,
+              "onScreen": true,
+              "pid": 19941,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 19941,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 19946,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 784.633586875,
+          "readStart": 784.6302157916667,
+          "received": 784.6345327500001,
+          "uptime": 784.6345327500001,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 53,
+              "onScreen": true,
+              "pid": 19941,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 55,
+              "onScreen": true,
+              "pid": 19941,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 56,
+              "onScreen": true,
+              "pid": 19946,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "remainingLifecycleGates": {
+      "newWindowLifecycle": "NOT_RUN",
+      "windowCloseLifecycle": "NOT_RUN",
+      "applicationExitLifecycle": "NOT_RUN",
+      "groupMergeSplit": "NOT_RUN",
+      "hostCrashRecovery": "NOT_RUN"
+    }
+  },
+  "sampling": {
+    "runtimePolicy": "disabledByRequest",
+    "productPolicy": "disabledByRequest",
+    "receipts": [
+      {
+        "path": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product/host-main-thread-sample.json",
+        "receipt": {
+          "diagnosticOnly": true,
+          "reason": "diagnosticsDisabled",
+          "status": "NOT_RUN"
+        }
+      },
+      {
+        "path": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+        "receipt": {
+          "diagnosticOnly": true,
+          "reason": "diagnosticsDisabled",
+          "status": "NOT_RUN"
+        }
+      },
+      {
+        "path": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+        "receipt": {
+          "diagnosticOnly": true,
+          "reason": "diagnosticsDisabled",
+          "status": "NOT_RUN"
+        }
+      },
+      {
+        "path": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+        "receipt": {
+          "diagnosticOnly": true,
+          "reason": "diagnosticsDisabled",
+          "status": "NOT_RUN"
+        }
+      }
+    ],
+    "actualStackCaptureFiles": []
+  },
+  "firstDirectoryAnomaly": {
+    "record": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 114,
+      "event": {
+        "completed": true,
+        "durationMS": 830.6640833333176,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 21.293249999985164,
+        "incompleteCatalog": {
+          "catalogComplete": false,
+          "catalogIssueCount": 2,
+          "catalogIssues": [
+            "windowRosterChanged",
+            "windowIdentityOrBounds:pid=19941,window=79"
+          ],
+          "catalogIssuesTruncated": false,
+          "catalogIssueWindows": [
+            {
+              "issueIndex": 1,
+              "left": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "number": 79,
+              "right": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "role": {
+                "ownerRead": false,
+                "source": "notRequested",
+                "windowRead": false
+              },
+              "second": {
+                "active": true,
+                "birth": 1795846232556312,
+                "frame": {
+                  "height": 20,
+                  "width": 66,
+                  "x": 126,
+                  "y": 392
+                },
+                "frameValid": true,
+                "observedOnscreen": true,
+                "ordered": true,
+                "ownerUnhidden": true,
+                "pid": 19941,
+                "reportedOnscreen": true
+              }
+            }
+          ]
+        },
+        "nativeAgeOnReturnMS": 742.6218749999407,
+        "nativeBeganUptime": 776.5173553333334,
+        "nativeBeginAfterRequestMS": 6.094833333349925,
+        "nativeDurationMS": 739.3387500000017,
+        "nativeEndedUptime": 777.2566940833334,
+        "nativeEndToReturnMS": 3.283124999938991,
+        "observeDirectoryMS": 0.10925000003680907,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 748.7167083332906,
+        "readerAwaitStartedUptime": 776.5112605,
+        "readerReturnedUptime": 777.2599772083333,
+        "readSession": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+        "receivedReply": true,
+        "remainingProcessingMS": 60.54487500000505,
+        "requestRevision": 5,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 776.5069782916668,
+        "taskPriority": 25,
+        "taskQueueMS": 1.7980416665750454,
+        "taskStartedUptime": 776.5087763333333,
+        "uptime": 777.3395565416668
+      }
+    },
+    "observation": "Window number 79 is absent from the first CG roster and present in the second, with a valid 66x20 frame, positive onscreen/active/ordered observations and the fixture process identity.",
+    "classificationLimits": [
+      "First sample is absent; first and last boundary memberships for this newly appearing window are unavailable, not known-empty or conflicting known memberships.",
+      "The role was not requested: no owner/window AX role was read for this number. Shape/size does not identify its purpose or establish that it is nonordinary.",
+      "The parent PID also owns authorized documents 53 and 55; number 79 is not one of the selected/enrolled document numbers."
+    ]
+  },
+  "firstTerminalRejection": {
+    "record": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 130,
+      "event": {
+        "bindings": 0,
+        "claims": 0,
+        "durationMS": 2024.2268333332731,
+        "event": "independentStageProduct",
+        "expectedDisplay": "2109FE05-700B-4D86-963C-08B091DE5E60",
+        "expectedSession": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+        "expectedSpace": "0ECB47DD-8510-682B-B033-DC272E366B8D",
+        "guardRejection": {
+          "ordinary": {
+            "availability": {
+              "expectedRevision": 0,
+              "observedRevision": 1,
+              "reason": "host-revision"
+            },
+            "reason": "availability"
+          },
+          "reason": "permission",
+          "restoring": {
+            "availability": {
+              "reason": "management/native-catalog"
+            },
+            "reason": "availability"
+          }
+        },
+        "phase": "witness-read-rejected",
+        "pid": 0,
+        "rosterSnapshot": {
+          "catalogComplete": "true",
+          "catalogIssueCount": 0,
+          "catalogIssues": [],
+          "catalogIssuesTruncated": false,
+          "displayCount": 1,
+          "displayPresent": true,
+          "freshness": "fresh",
+          "matchingScopeCount": 1,
+          "nativeBeganUptime": 777.5343967916667,
+          "nativeEndedUptime": 778.5006863750001,
+          "population": "workWindows",
+          "revision": 6,
+          "sampledFrom": 1795846261.886835,
+          "sampledTo": 1795846262.852871,
+          "scopeCount": 1,
+          "scopeFactsTruncated": false,
+          "scopes": [
+            {
+              "recordCount": 2,
+              "records": [
+                {
+                  "current": false,
+                  "fullscreenUUID": "unavailable",
+                  "id": "1",
+                  "ordinaryUUID": "unavailable"
+                },
+                {
+                  "current": true,
+                  "fullscreenUUID": "unavailable",
+                  "id": "12",
+                  "ordinaryUUID": "0ECB47DD-8510-682B-B033-DC272E366B8D"
+                }
+              ]
+            }
+          ],
+          "separateSpaces": "true",
+          "session": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+          "spaces": "observed",
+          "stageManagerEnabled": "false",
+          "topologyConsistent": true,
+          "windowCount": 6,
+          "windowLimitReached": false
+        },
+        "sequence": 0,
+        "step": "initial-opening-directory-retry",
+        "unchangedPermitTiming": {
+          "count": 3,
+          "maxMS": 28.483125000093423,
+          "nestedInPhaseDurations": true,
+          "totalMS": 28.748583333481292
+        },
+        "uptime": 778.5236097083334,
+        "window": 0
+      }
+    },
+    "origin": "Initial directory retry returned a complete fresh directory, then the original current/permission guard rejected before validating that fresh directory's identity and membership constraints.",
+    "guardRejection": {
+      "ordinary": {
+        "availability": {
+          "expectedRevision": 0,
+          "observedRevision": 1,
+          "reason": "host-revision"
+        },
+        "reason": "availability"
+      },
+      "reason": "permission",
+      "restoring": {
+        "availability": {
+          "reason": "management/native-catalog"
+        },
+        "reason": "availability"
+      }
+    },
+    "beforeBackendRejected": [],
+    "navigationFailure": [
+      {
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+        "line": 134,
+        "event": {
+          "event": "independentStageProduct",
+          "phase": "navigation-job-failed",
+          "reason": "窗口或焦点已变化，本次切换已停止。",
+          "uptime": 778.5246137083334
+        }
+      }
+    ],
+    "workerFirstFault": null
+  },
+  "initialRetry": {
+    "entered": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 116,
+      "event": {
+        "event": "independentStageProduct",
+        "phase": "witness-initial-directory-retry",
+        "revision": 5,
+        "sequence": 0,
+        "uptime": 777.4660731666667
+      }
+    },
+    "firstDirectory": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 114,
+      "event": {
+        "completed": true,
+        "durationMS": 830.6640833333176,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 21.293249999985164,
+        "incompleteCatalog": {
+          "catalogComplete": false,
+          "catalogIssueCount": 2,
+          "catalogIssues": [
+            "windowRosterChanged",
+            "windowIdentityOrBounds:pid=19941,window=79"
+          ],
+          "catalogIssuesTruncated": false,
+          "catalogIssueWindows": [
+            {
+              "issueIndex": 1,
+              "left": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "number": 79,
+              "right": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unavailable",
+                "truncated": false
+              },
+              "role": {
+                "ownerRead": false,
+                "source": "notRequested",
+                "windowRead": false
+              },
+              "second": {
+                "active": true,
+                "birth": 1795846232556312,
+                "frame": {
+                  "height": 20,
+                  "width": 66,
+                  "x": 126,
+                  "y": 392
+                },
+                "frameValid": true,
+                "observedOnscreen": true,
+                "ordered": true,
+                "ownerUnhidden": true,
+                "pid": 19941,
+                "reportedOnscreen": true
+              }
+            }
+          ]
+        },
+        "nativeAgeOnReturnMS": 742.6218749999407,
+        "nativeBeganUptime": 776.5173553333334,
+        "nativeBeginAfterRequestMS": 6.094833333349925,
+        "nativeDurationMS": 739.3387500000017,
+        "nativeEndedUptime": 777.2566940833334,
+        "nativeEndToReturnMS": 3.283124999938991,
+        "observeDirectoryMS": 0.10925000003680907,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 748.7167083332906,
+        "readerAwaitStartedUptime": 776.5112605,
+        "readerReturnedUptime": 777.2599772083333,
+        "readSession": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+        "receivedReply": true,
+        "remainingProcessingMS": 60.54487500000505,
+        "requestRevision": 5,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 776.5069782916668,
+        "taskPriority": 25,
+        "taskQueueMS": 1.7980416665750454,
+        "taskStartedUptime": 776.5087763333333,
+        "uptime": 777.3395565416668
+      }
+    },
+    "freshDirectory": {
+      "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+      "line": 128,
+      "event": {
+        "completed": true,
+        "durationMS": 1016.2860416667172,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 1.4081250000117507,
+        "nativeAgeOnReturnMS": 967.5342916666523,
+        "nativeBeganUptime": 777.5343967916667,
+        "nativeBeginAfterRequestMS": 26.631041666632882,
+        "nativeDurationMS": 966.2895833333778,
+        "nativeEndedUptime": 778.5006863750001,
+        "nativeEndToReturnMS": 1.2447083332745024,
+        "observeDirectoryMS": 0.03983333328960725,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 994.1653333332852,
+        "readerAwaitStartedUptime": 777.5077657500001,
+        "readerReturnedUptime": 778.5019310833334,
+        "readSession": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+        "receivedReply": true,
+        "remainingProcessingMS": 20.67275000013069,
+        "requestRevision": 6,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 777.4911537916668,
+        "taskPriority": 25,
+        "taskQueueMS": 8.365041666593243,
+        "taskStartedUptime": 777.4995188333334,
+        "uptime": 778.5159107083334
+      }
+    },
+    "freshRosterFactsFromRejectedRead": {
+      "catalogComplete": "true",
+      "catalogIssueCount": 0,
+      "catalogIssues": [],
+      "catalogIssuesTruncated": false,
+      "displayCount": 1,
+      "displayPresent": true,
+      "freshness": "fresh",
+      "matchingScopeCount": 1,
+      "nativeBeganUptime": 777.5343967916667,
+      "nativeEndedUptime": 778.5006863750001,
+      "population": "workWindows",
+      "revision": 6,
+      "sampledFrom": 1795846261.886835,
+      "sampledTo": 1795846262.852871,
+      "scopeCount": 1,
+      "scopeFactsTruncated": false,
+      "scopes": [
+        {
+          "recordCount": 2,
+          "records": [
+            {
+              "current": false,
+              "fullscreenUUID": "unavailable",
+              "id": "1",
+              "ordinaryUUID": "unavailable"
+            },
+            {
+              "current": true,
+              "fullscreenUUID": "unavailable",
+              "id": "12",
+              "ordinaryUUID": "0ECB47DD-8510-682B-B033-DC272E366B8D"
+            }
+          ]
+        }
+      ],
+      "separateSpaces": "true",
+      "session": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+      "spaces": "observed",
+      "stageManagerEnabled": "false",
+      "topologyConsistent": true,
+      "windowCount": 6,
+      "windowLimitReached": false
+    },
+    "freshCompleteButRemainingRetryChecksNotReached": true,
+    "permitTiming": {
+      "count": 3,
+      "maxMS": 28.483125000093423,
+      "nestedInPhaseDurations": true,
+      "totalMS": 28.748583333481292
+    },
+    "openingAndClosingRosterMetrics": "not reached",
+    "physicalBeforeClosing": null
+  },
+  "revocation": {
+    "observedHostRevision": {
+      "expected": 0,
+      "observed": 1
+    },
+    "earliestRetryGuardPassedByUptime": 777.4660731666667,
+    "rejectionObservedUptime": 778.5236097083334,
+    "inference": "A consumer of the coalesced revision 5 task published the incomplete sample through the feed event loop while initialOpeningDirectory was obtaining revision 6. observeEnvironment then revoked Host revision. The trace does not timestamp the actual snapshot assignment/freeze call.",
+    "support": [
+      "Revision 5 task was initiated at priority 25 with dispatching=true; it is not a separately identified background-native read.",
+      "CurrentDesktopWindows.readNow can return the same pending Task to the feed event loop, which assigns snapshot and calls observeEnvironment.",
+      "observeEnvironment calls systemTakesOver for incomplete catalog; freeze is the sole increment of Host revision.",
+      "CandidateWorkRect reads feed.snapshot. Its restoring native-catalog rejection means that published snapshot is still incomplete, even though the local revision 6 fresh read is complete.",
+      "No other incomplete catalog is logged in this raw run and no Dock observation expiration precedes the refusal."
+    ],
+    "sourceFiles": [
+      "/workspace/scratch/519883d1dfd8/nearpane/Sources/NearpaneUI/CurrentDesktopWindows.swift",
+      "/workspace/scratch/519883d1dfd8/nearpane/Sources/NearpaneUI/StageWindowEngineHost.swift",
+      "/workspace/scratch/519883d1dfd8/nearpane/Sources/NearpaneUI/CandidateWorkRect.swift",
+      "/workspace/scratch/519883d1dfd8/nearpane/Sources/NearpaneUI/StageWindowEngineWitness.swift"
+    ],
+    "limits": [
+      "No exact freeze timestamp/callstack is logged; producer-consumer ordering above is a source-supported inference.",
+      "No later sample or retry result restores an expired authorization or proves that all initial retry checks would have passed.",
+      "These observations belong only to run 46115081664. They do not identify the missing revision 14 issue from run 46114302429."
+    ]
+  },
+  "timing": {
+    "pressUptime": 776.353698125,
+    "pressToDequeueMS": 9.02929166670674,
+    "pressToTerminalRejectionMS": 2169.9115833333735,
+    "groupPreparation": [
+      {
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+        "line": 65,
+        "event": {
+          "appearanceMatches": true,
+          "awaits": [
+            {
+              "durationMS": 41.23104166660596,
+              "resultPresent": true,
+              "revision": 4,
+              "step": "first-directory"
+            }
+          ],
+          "cancelled": false,
+          "completed": true,
+          "durationMS": 42.695958333411,
+          "epochMatches": true,
+          "event": "independentStageProduct",
+          "groupLifetimePresent": true,
+          "holdsDispatch": false,
+          "pendingRead": false,
+          "phase": "group-selection-preparation-exit",
+          "rejectedBy": "none",
+          "revision": 4,
+          "step": "existing-group-binding",
+          "uptime": 776.4080186250001,
+          "window": 53
+        }
+      }
+    ],
+    "failedInitialWitnessMS": 2024.2268333332731,
+    "revision5NativeMS": 739.3387500000017,
+    "revision6NativeMS": 966.2895833333778,
+    "twoNonOverlappingNativeSamplesMS": 1705.6283333333795,
+    "nativeShareOfFailedWitness": 0.8426073131955963,
+    "twoAfterActionReadsMS": 1941.4724166666701,
+    "otherWitnessEnvelopeMS": 82.75441666660299,
+    "permissionTimingIsNested": true,
+    "callerResumption": [
+      {
+        "revision": 4,
+        "taskExitToCallerMS": 0.592791666690573,
+        "directory": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 63,
+          "event": {
+            "completed": true,
+            "durationMS": 39.909083333327544,
+            "event": "independentStageProduct",
+            "groupProjectionMS": 0.36158333330149617,
+            "nativeAgeOnReturnMS": 37.04016666665666,
+            "nativeBeganUptime": 776.3670607916667,
+            "nativeBeginAfterRequestMS": 0.5669583333656192,
+            "nativeDurationMS": 36.22508333330643,
+            "nativeEndedUptime": 776.403285875,
+            "nativeEndToReturnMS": 0.8150833333502305,
+            "observeDirectoryMS": 0.059708333424168814,
+            "phase": "desktop-read-task-exit",
+            "readerAwaitMS": 37.60712500002228,
+            "readerAwaitStartedUptime": 776.3664938333334,
+            "readerReturnedUptime": 776.4041009583334,
+            "readSession": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+            "receivedReply": true,
+            "remainingProcessingMS": 1.8806666665796001,
+            "requestRevision": 4,
+            "sidebarHistoryMS": 0,
+            "step": "complete",
+            "taskCreatedUptime": 776.3658039166667,
+            "taskPriority": 25,
+            "taskQueueMS": 0.22416666672597785,
+            "taskStartedUptime": 776.3660280833334,
+            "uptime": 776.4060160416667
+          }
+        },
+        "afterAction": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 64,
+          "event": {
+            "boundaryDate": 1795846260.718004,
+            "boundaryRevision": 3,
+            "boundaryUptime": 776.365566625,
+            "cancelled": false,
+            "completed": true,
+            "durationMS": 40.77716666665765,
+            "epochMatches": true,
+            "event": "independentStageProduct",
+            "freshReadMS": 40.73404166661021,
+            "hadPrior": false,
+            "pendingRead": false,
+            "phase": "after-action-directory-read",
+            "priorWaitMS": 0,
+            "receivedRevision": 4,
+            "reusedPrior": false,
+            "revision": 4,
+            "step": "complete",
+            "uptime": 776.4066088333334
+          }
+        }
+      },
+      {
+        "revision": 5,
+        "taskExitToCallerMS": 50.54733333327022,
+        "directory": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 114,
+          "event": {
+            "completed": true,
+            "durationMS": 830.6640833333176,
+            "event": "independentStageProduct",
+            "groupProjectionMS": 21.293249999985164,
+            "incompleteCatalog": {
+              "catalogComplete": false,
+              "catalogIssueCount": 2,
+              "catalogIssues": [
+                "windowRosterChanged",
+                "windowIdentityOrBounds:pid=19941,window=79"
+              ],
+              "catalogIssuesTruncated": false,
+              "catalogIssueWindows": [
+                {
+                  "issueIndex": 1,
+                  "left": {
+                    "recordCount": 0,
+                    "recordIDs": [],
+                    "state": "unavailable",
+                    "truncated": false
+                  },
+                  "number": 79,
+                  "right": {
+                    "recordCount": 0,
+                    "recordIDs": [],
+                    "state": "unavailable",
+                    "truncated": false
+                  },
+                  "role": {
+                    "ownerRead": false,
+                    "source": "notRequested",
+                    "windowRead": false
+                  },
+                  "second": {
+                    "active": true,
+                    "birth": 1795846232556312,
+                    "frame": {
+                      "height": 20,
+                      "width": 66,
+                      "x": 126,
+                      "y": 392
+                    },
+                    "frameValid": true,
+                    "observedOnscreen": true,
+                    "ordered": true,
+                    "ownerUnhidden": true,
+                    "pid": 19941,
+                    "reportedOnscreen": true
+                  }
+                }
+              ]
+            },
+            "nativeAgeOnReturnMS": 742.6218749999407,
+            "nativeBeganUptime": 776.5173553333334,
+            "nativeBeginAfterRequestMS": 6.094833333349925,
+            "nativeDurationMS": 739.3387500000017,
+            "nativeEndedUptime": 777.2566940833334,
+            "nativeEndToReturnMS": 3.283124999938991,
+            "observeDirectoryMS": 0.10925000003680907,
+            "phase": "desktop-read-task-exit",
+            "readerAwaitMS": 748.7167083332906,
+            "readerAwaitStartedUptime": 776.5112605,
+            "readerReturnedUptime": 777.2599772083333,
+            "readSession": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+            "receivedReply": true,
+            "remainingProcessingMS": 60.54487500000505,
+            "requestRevision": 5,
+            "sidebarHistoryMS": 0,
+            "step": "complete",
+            "taskCreatedUptime": 776.5069782916668,
+            "taskPriority": 25,
+            "taskQueueMS": 1.7980416665750454,
+            "taskStartedUptime": 776.5087763333333,
+            "uptime": 777.3395565416668
+          }
+        },
+        "afterAction": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 115,
+          "event": {
+            "boundaryDate": 1795846260.857644,
+            "boundaryRevision": 4,
+            "boundaryUptime": 776.505208625,
+            "cancelled": false,
+            "completed": true,
+            "durationMS": 884.7700000000032,
+            "epochMatches": true,
+            "event": "independentStageProduct",
+            "freshReadMS": 884.7518750000063,
+            "hadPrior": false,
+            "pendingRead": false,
+            "phase": "after-action-directory-read",
+            "priorWaitMS": 0,
+            "receivedRevision": 5,
+            "reusedPrior": false,
+            "revision": 5,
+            "step": "complete",
+            "uptime": 777.390103875
+          }
+        }
+      },
+      {
+        "revision": 6,
+        "taskExitToCallerMS": 7.137208333347189,
+        "directory": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 128,
+          "event": {
+            "completed": true,
+            "durationMS": 1016.2860416667172,
+            "event": "independentStageProduct",
+            "groupProjectionMS": 1.4081250000117507,
+            "nativeAgeOnReturnMS": 967.5342916666523,
+            "nativeBeganUptime": 777.5343967916667,
+            "nativeBeginAfterRequestMS": 26.631041666632882,
+            "nativeDurationMS": 966.2895833333778,
+            "nativeEndedUptime": 778.5006863750001,
+            "nativeEndToReturnMS": 1.2447083332745024,
+            "observeDirectoryMS": 0.03983333328960725,
+            "phase": "desktop-read-task-exit",
+            "readerAwaitMS": 994.1653333332852,
+            "readerAwaitStartedUptime": 777.5077657500001,
+            "readerReturnedUptime": 778.5019310833334,
+            "readSession": "53F6B137-B930-4C6C-ACB5-6106C57AE957",
+            "receivedReply": true,
+            "remainingProcessingMS": 20.67275000013069,
+            "requestRevision": 6,
+            "sidebarHistoryMS": 0,
+            "step": "complete",
+            "taskCreatedUptime": 777.4911537916668,
+            "taskPriority": 25,
+            "taskQueueMS": 8.365041666593243,
+            "taskStartedUptime": 777.4995188333334,
+            "uptime": 778.5159107083334
+          }
+        },
+        "afterAction": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 129,
+          "event": {
+            "boundaryDate": 1795846261.818664,
+            "boundaryRevision": 5,
+            "boundaryUptime": 777.4662270416667,
+            "cancelled": false,
+            "completed": true,
+            "durationMS": 1056.702416666667,
+            "epochMatches": true,
+            "event": "independentStageProduct",
+            "freshReadMS": 1056.693375000009,
+            "hadPrior": false,
+            "pendingRead": false,
+            "phase": "after-action-directory-read",
+            "priorWaitMS": 0,
+            "receivedRevision": 6,
+            "reusedPrior": false,
+            "revision": 6,
+            "step": "complete",
+            "uptime": 778.5230479166668
+          }
+        }
+      }
+    ],
+    "nativeDirectoryPhaseLimit": "Reader native begin/end are available; internal role/CG/Space subdivisions are not timed. Do not label the entire native sample as AX or scheduling delay.",
+    "hostOriginalAXAndWorkerHealth": "not reached"
+  },
+  "worker": {
+    "trace": [
+      {
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-135ac7db-9566-44cd-b686-6e797571082d.jsonl",
+        "line": 1,
+        "event": {
+          "event": "spacesWorker",
+          "phase": "ready",
+          "pid": 21062,
+          "parentPID": 20755,
+          "birth": 1795846260809933,
+          "parentBirth": 1795846258770053,
+          "lifecycleNonce": "135ac7db-9566-44cd-b686-6e797571082d",
+          "engineDestroyed": false,
+          "pendingDrained": true,
+          "transport": 0,
+          "status": 0,
+          "detail": 0,
+          "flags": 0,
+          "owned": 0
+        }
+      },
+      {
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-135ac7db-9566-44cd-b686-6e797571082d.jsonl",
+        "line": 2,
+        "event": {
+          "event": "spacesWorker",
+          "phase": "closed",
+          "pid": 21062,
+          "parentPID": 20755,
+          "birth": 1795846260809933,
+          "parentBirth": 1795846258770053,
+          "lifecycleNonce": "135ac7db-9566-44cd-b686-6e797571082d",
+          "engineDestroyed": true,
+          "pendingDrained": true,
+          "transport": 0,
+          "status": 0,
+          "detail": 0,
+          "flags": 0,
+          "owned": 0
+        }
+      }
+    ],
+    "requests": [
+      {
+        "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+        "line": 168,
+        "event": {
+          "cancelled": false,
+          "completedPollCount": 2,
+          "detail": 225,
+          "durationMS": 28.157666666629666,
+          "epoch": 2,
+          "event": "spacesHostLifecycle",
+          "flags": 32,
+          "intent": "3D2D69ED-FD12-461D-9C02-3E6D83190127",
+          "maxPollQueueMS": 0.007583333285765548,
+          "operation": 13,
+          "owned": 0,
+          "phase": "worker-request-exit",
+          "pollCount": 2,
+          "pollPriorities": [
+            21
+          ],
+          "requestedPriority": 21,
+          "requestStartUptime": 778.9641084583334,
+          "returnPriority": 21,
+          "status": 0,
+          "step": "complete",
+          "terminalReceipt": true,
+          "uptime": 778.9924066250001,
+          "waitPriorities": [
+            21
+          ]
+        }
+      }
+    ],
+    "firstFault": null,
+    "limitation": "Only op13 release of an empty owner was submitted after rejection; ready/closed show owned=0 and clean destruction. This is not a hidden-window restoration write."
+  },
+  "dock": {
+    "requests": [
+      {
+        "beforeFirstFailure": true,
+        "requestID": "3C4E34D6-CB37-4819-85A8-E09E084932AC",
+        "queueMS": 78.17041666658042,
+        "nativeMS": 10.19858333324919,
+        "nativeEndToCallbackMS": 0.14158333340219542,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 1,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "96247748-0FBD-46A1-95FE-7B52EE78C187",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "3C4E34D6-CB37-4819-85A8-E09E084932AC",
+            "requestStart": 774.6848553333334,
+            "uptime": 774.6851259166667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 2,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "96247748-0FBD-46A1-95FE-7B52EE78C187",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "3C4E34D6-CB37-4819-85A8-E09E084932AC",
+            "requestStart": 774.6848553333334,
+            "taskPriority": 17,
+            "uptime": 774.76302575
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 3,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "96247748-0FBD-46A1-95FE-7B52EE78C187",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 774.773933875,
+            "readStart": 774.7637352916668,
+            "requestID": "3C4E34D6-CB37-4819-85A8-E09E084932AC",
+            "requestStart": 774.6848553333334,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 774.7740754583334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "861A6C45-3927-4A47-84EE-9433013E634A",
+        "queueMS": 271.73849999996946,
+        "nativeMS": 11.399833333257448,
+        "nativeEndToCallbackMS": 77.38879166674906,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 38,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "861A6C45-3927-4A47-84EE-9433013E634A",
+            "requestStart": 775.5839765416667,
+            "uptime": 775.5841622500001
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 40,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "861A6C45-3927-4A47-84EE-9433013E634A",
+            "requestStart": 775.5839765416667,
+            "taskPriority": 17,
+            "uptime": 775.8557150416667
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 42,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 775.8701380416667,
+            "readStart": 775.8587382083334,
+            "requestID": "861A6C45-3927-4A47-84EE-9433013E634A",
+            "requestStart": 775.5839765416667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 775.9475268333334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "7D0D7038-18BA-4D10-9C91-286039EBF88D",
+        "queueMS": 17.4622916666749,
+        "nativeMS": 3.9410000000543732,
+        "nativeEndToCallbackMS": 0.6052916666021702,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 43,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "7D0D7038-18BA-4D10-9C91-286039EBF88D",
+            "requestStart": 775.9485601250001,
+            "uptime": 775.9486792083334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 44,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "7D0D7038-18BA-4D10-9C91-286039EBF88D",
+            "requestStart": 775.9485601250001,
+            "taskPriority": 17,
+            "uptime": 775.9660224166668
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 45,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 775.9706338333334,
+            "readStart": 775.9666928333334,
+            "requestID": "7D0D7038-18BA-4D10-9C91-286039EBF88D",
+            "requestStart": 775.9485601250001,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 775.971239125,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "F473FB49-9F50-4F69-915A-CE718421F8F5",
+        "queueMS": 0.36012500004289905,
+        "nativeMS": 4.8230416666683595,
+        "nativeEndToCallbackMS": 1.0556250000490763,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 49,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "F473FB49-9F50-4F69-915A-CE718421F8F5",
+            "requestStart": 776.0887894166667,
+            "uptime": 776.0889232916667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 50,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "F473FB49-9F50-4F69-915A-CE718421F8F5",
+            "requestStart": 776.0887894166667,
+            "taskPriority": 17,
+            "uptime": 776.0891495416668
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 51,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 776.0941729166667,
+            "readStart": 776.089349875,
+            "requestID": "F473FB49-9F50-4F69-915A-CE718421F8F5",
+            "requestStart": 776.0887894166667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 776.0952285416668,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "9926D851-D63D-45E4-A719-2CC43D54DA67",
+        "queueMS": 3.720333333376402,
+        "nativeMS": 9.068166666679645,
+        "nativeEndToCallbackMS": 4.243333333306509,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 104,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "9926D851-D63D-45E4-A719-2CC43D54DA67",
+            "requestStart": 776.5078642916667,
+            "uptime": 776.5079648333334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 106,
+          "event": {
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "9926D851-D63D-45E4-A719-2CC43D54DA67",
+            "requestStart": 776.5078642916667,
+            "taskPriority": 25,
+            "uptime": 776.5115846250001
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 107,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 776.5226538750001,
+            "readStart": 776.5135857083334,
+            "requestID": "9926D851-D63D-45E4-A719-2CC43D54DA67",
+            "requestStart": 776.5078642916667,
+            "sameGeneration": true,
+            "taskPriority": 25,
+            "uptime": 776.5268972083334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "41C767DF-1A8D-4A18-A012-D29740C36A13",
+        "queueMS": 0.7757500000025175,
+        "nativeMS": 2.8250416667106037,
+        "nativeEndToCallbackMS": 0.5147499999793581,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 108,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "41C767DF-1A8D-4A18-A012-D29740C36A13",
+            "requestStart": 776.9169489583334,
+            "uptime": 776.9173922083334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 109,
+          "event": {
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "41C767DF-1A8D-4A18-A012-D29740C36A13",
+            "requestStart": 776.9169489583334,
+            "taskPriority": 25,
+            "uptime": 776.9177247083334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 110,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 776.9207125833334,
+            "readStart": 776.9178875416667,
+            "requestID": "41C767DF-1A8D-4A18-A012-D29740C36A13",
+            "requestStart": 776.9169489583334,
+            "sameGeneration": true,
+            "taskPriority": 25,
+            "uptime": 776.9212273333334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "1B7E10EC-BDAE-43D1-B71F-CAFBB184867B",
+        "queueMS": 1.9060000000763466,
+        "nativeMS": 1.7922083333132832,
+        "nativeEndToCallbackMS": 0.2656249999972715,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 111,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "1B7E10EC-BDAE-43D1-B71F-CAFBB184867B",
+            "requestStart": 777.2451887083333,
+            "uptime": 777.2454728333333
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 112,
+          "event": {
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "1B7E10EC-BDAE-43D1-B71F-CAFBB184867B",
+            "requestStart": 777.2451887083333,
+            "taskPriority": 25,
+            "uptime": 777.2470947083334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 113,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 777.2491420416667,
+            "readStart": 777.2473498333334,
+            "requestID": "1B7E10EC-BDAE-43D1-B71F-CAFBB184867B",
+            "requestStart": 777.2451887083333,
+            "sameGeneration": true,
+            "taskPriority": 25,
+            "uptime": 777.2494076666667,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "964B9EA2-B314-4441-9D19-263EFF9B7BA8",
+        "queueMS": 37.723541666764504,
+        "nativeMS": 7.44366666674523,
+        "nativeEndToCallbackMS": 9.343916666580299,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 119,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "964B9EA2-B314-4441-9D19-263EFF9B7BA8",
+            "requestStart": 777.5820577916667,
+            "uptime": 777.5821882083334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 120,
+          "event": {
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "964B9EA2-B314-4441-9D19-263EFF9B7BA8",
+            "requestStart": 777.5820577916667,
+            "taskPriority": 25,
+            "uptime": 777.6197813333334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 121,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 777.6311175833334,
+            "readStart": 777.6236739166667,
+            "requestID": "964B9EA2-B314-4441-9D19-263EFF9B7BA8",
+            "requestStart": 777.5820577916667,
+            "sameGeneration": true,
+            "taskPriority": 25,
+            "uptime": 777.6404615,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "041B358F-4C9B-4CF5-96DE-EAA56138DDBE",
+        "queueMS": 1.1765000000423242,
+        "nativeMS": 8.501416666717887,
+        "nativeEndToCallbackMS": 9.586791666606587,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 122,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "041B358F-4C9B-4CF5-96DE-EAA56138DDBE",
+            "requestStart": 777.846758375,
+            "uptime": 777.84743175
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 123,
+          "event": {
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "041B358F-4C9B-4CF5-96DE-EAA56138DDBE",
+            "requestStart": 777.846758375,
+            "taskPriority": 25,
+            "uptime": 777.8479348750001
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 124,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 777.8588214583334,
+            "readStart": 777.8503200416667,
+            "requestID": "041B358F-4C9B-4CF5-96DE-EAA56138DDBE",
+            "requestStart": 777.846758375,
+            "sameGeneration": true,
+            "taskPriority": 25,
+            "uptime": 777.86840825,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": true,
+        "requestID": "15280DAD-798A-4BF2-B418-A6BD94CB890E",
+        "queueMS": 2.5238750000653454,
+        "nativeMS": 0.9612083333649935,
+        "nativeEndToCallbackMS": 0.2263333333303308,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 125,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "15280DAD-798A-4BF2-B418-A6BD94CB890E",
+            "requestStart": 778.2589217916667,
+            "uptime": 778.2591999583334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 126,
+          "event": {
+            "dispatching": true,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "15280DAD-798A-4BF2-B418-A6BD94CB890E",
+            "requestStart": 778.2589217916667,
+            "taskPriority": 25,
+            "uptime": 778.2614456666668
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 127,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 778.2632253333334,
+            "readStart": 778.262264125,
+            "requestID": "15280DAD-798A-4BF2-B418-A6BD94CB890E",
+            "requestStart": 778.2589217916667,
+            "sameGeneration": true,
+            "taskPriority": 25,
+            "uptime": 778.2634516666667,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "D48D0183-13F8-4DEC-911F-F7B5FE032784",
+        "queueMS": 71.82341666657521,
+        "nativeMS": 0.9827500000483269,
+        "nativeEndToCallbackMS": 59.17333333331953,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 163,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "D48D0183-13F8-4DEC-911F-F7B5FE032784",
+            "requestStart": 778.9623005416668,
+            "uptime": 778.9625479583334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 169,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "D48D0183-13F8-4DEC-911F-F7B5FE032784",
+            "requestStart": 778.9623005416668,
+            "taskPriority": 17,
+            "uptime": 779.0341239583333
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 172,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 779.0374742916667,
+            "readStart": 779.0364915416667,
+            "requestID": "D48D0183-13F8-4DEC-911F-F7B5FE032784",
+            "requestStart": 778.9623005416668,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 779.0966476250001,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "BB0BA8E0-D70F-43A9-A1A5-B15710D5D0D8",
+        "queueMS": 32.261374999961845,
+        "nativeMS": 1.7920416667038808,
+        "nativeEndToCallbackMS": 113.22991666668258,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 176,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "BB0BA8E0-D70F-43A9-A1A5-B15710D5D0D8",
+            "requestStart": 779.3487315000001,
+            "uptime": 779.3488532916667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 177,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "BB0BA8E0-D70F-43A9-A1A5-B15710D5D0D8",
+            "requestStart": 779.3487315000001,
+            "taskPriority": 17,
+            "uptime": 779.3809928750001
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 178,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 779.3830514166667,
+            "readStart": 779.381259375,
+            "requestID": "BB0BA8E0-D70F-43A9-A1A5-B15710D5D0D8",
+            "requestStart": 779.3487315000001,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 779.4962813333334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "272D4247-7A73-4B1C-8D40-5952D2615DB6",
+        "queueMS": 81.5343333332521,
+        "nativeMS": 0.9947916666988021,
+        "nativeEndToCallbackMS": 67.52491666668448,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 180,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "272D4247-7A73-4B1C-8D40-5952D2615DB6",
+            "requestStart": 779.6835123750001,
+            "uptime": 779.68372575
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 182,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "272D4247-7A73-4B1C-8D40-5952D2615DB6",
+            "requestStart": 779.6835123750001,
+            "taskPriority": 17,
+            "uptime": 779.7650467083333
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 184,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 779.766236,
+            "readStart": 779.7652412083334,
+            "requestID": "272D4247-7A73-4B1C-8D40-5952D2615DB6",
+            "requestStart": 779.6835123750001,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 779.8337609166667,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "DD4693C9-5686-419D-AA40-3ADCC25502C2",
+        "queueMS": 99.1199583334037,
+        "nativeMS": 1.8182500000420987,
+        "nativeEndToCallbackMS": 99.74558333328787,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 186,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "DD4693C9-5686-419D-AA40-3ADCC25502C2",
+            "requestStart": 779.996221125,
+            "uptime": 779.9963320416667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 187,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "DD4693C9-5686-419D-AA40-3ADCC25502C2",
+            "requestStart": 779.996221125,
+            "taskPriority": 17,
+            "uptime": 780.0953410833334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 189,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 780.09779675,
+            "readStart": 780.0959785,
+            "requestID": "DD4693C9-5686-419D-AA40-3ADCC25502C2",
+            "requestStart": 779.996221125,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 780.1975423333333,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "0F980E88-426B-41C2-8391-A94821280CCF",
+        "queueMS": 30.33829166668056,
+        "nativeMS": 0.7518333333109695,
+        "nativeEndToCallbackMS": 93.8666250000324,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 191,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "0F980E88-426B-41C2-8391-A94821280CCF",
+            "requestStart": 780.3189880416667,
+            "uptime": 780.3190874166667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 192,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "0F980E88-426B-41C2-8391-A94821280CCF",
+            "requestStart": 780.3189880416667,
+            "taskPriority": 17,
+            "uptime": 780.3493263333334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 193,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 780.3502674166667,
+            "readStart": 780.3495155833334,
+            "requestID": "0F980E88-426B-41C2-8391-A94821280CCF",
+            "requestStart": 780.3189880416667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 780.4441340416668,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "2AF8D122-099C-4F28-9720-080F4F456824",
+        "queueMS": 0.429666666718731,
+        "nativeMS": 0.7869166665841476,
+        "nativeEndToCallbackMS": 0.1273750000336804,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 195,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "2AF8D122-099C-4F28-9720-080F4F456824",
+            "requestStart": 780.6622280416667,
+            "uptime": 780.6623467500001
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 196,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "2AF8D122-099C-4F28-9720-080F4F456824",
+            "requestStart": 780.6622280416667,
+            "taskPriority": 17,
+            "uptime": 780.6626577083334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 197,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 780.66362125,
+            "readStart": 780.6628343333334,
+            "requestID": "2AF8D122-099C-4F28-9720-080F4F456824",
+            "requestStart": 780.6622280416667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 780.663748625,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "F796818C-4B7A-4B3C-9DF0-0299C30A1E41",
+        "queueMS": 0.5116249999446154,
+        "nativeMS": 0.7524583334088675,
+        "nativeEndToCallbackMS": 1.4114166666558958,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 198,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "F796818C-4B7A-4B3C-9DF0-0299C30A1E41",
+            "requestStart": 780.9954215833334,
+            "uptime": 780.9955384166667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 199,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "F796818C-4B7A-4B3C-9DF0-0299C30A1E41",
+            "requestStart": 780.9954215833334,
+            "taskPriority": 17,
+            "uptime": 780.9959332083333
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 200,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 780.9967652916667,
+            "readStart": 780.9960128333333,
+            "requestID": "F796818C-4B7A-4B3C-9DF0-0299C30A1E41",
+            "requestStart": 780.9954215833334,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 780.9981767083334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "FCE1F0C9-46DB-4D85-9B0A-EC5046D938D2",
+        "queueMS": 1.0143333333871851,
+        "nativeMS": 0.9341249999579304,
+        "nativeEndToCallbackMS": 0.18937500010451913,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 201,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "FCE1F0C9-46DB-4D85-9B0A-EC5046D938D2",
+            "requestStart": 781.3828525416667,
+            "uptime": 781.3829723333333
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 202,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "FCE1F0C9-46DB-4D85-9B0A-EC5046D938D2",
+            "requestStart": 781.3828525416667,
+            "taskPriority": 17,
+            "uptime": 781.3838668750001
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 203,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 781.385441625,
+            "readStart": 781.3845075,
+            "requestID": "FCE1F0C9-46DB-4D85-9B0A-EC5046D938D2",
+            "requestStart": 781.3828525416667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 781.3856310000001,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "97B8BCF4-188C-42BD-8A21-CA66EF766809",
+        "queueMS": 1.0136666666085148,
+        "nativeMS": 0.8740833334286435,
+        "nativeEndToCallbackMS": 0.12824999998883868,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 204,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "97B8BCF4-188C-42BD-8A21-CA66EF766809",
+            "requestStart": 781.7256082916667,
+            "uptime": 781.7257339583334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 205,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "97B8BCF4-188C-42BD-8A21-CA66EF766809",
+            "requestStart": 781.7256082916667,
+            "taskPriority": 17,
+            "uptime": 781.7266219583333
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 206,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 781.7276485000001,
+            "readStart": 781.7267744166667,
+            "requestID": "97B8BCF4-188C-42BD-8A21-CA66EF766809",
+            "requestStart": 781.7256082916667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 781.7277767500001,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "D730A889-6927-40C9-9FA0-9F5B98CEDE0E",
+        "queueMS": 0.8336666667219106,
+        "nativeMS": 1.473583333336137,
+        "nativeEndToCallbackMS": 0.572624999904292,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 207,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "D730A889-6927-40C9-9FA0-9F5B98CEDE0E",
+            "requestStart": 782.1587286666667,
+            "uptime": 782.1591916666667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 208,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "D730A889-6927-40C9-9FA0-9F5B98CEDE0E",
+            "requestStart": 782.1587286666667,
+            "taskPriority": 17,
+            "uptime": 782.1595623333334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 209,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 782.1611743750001,
+            "readStart": 782.1597007916668,
+            "requestID": "D730A889-6927-40C9-9FA0-9F5B98CEDE0E",
+            "requestStart": 782.1587286666667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 782.161747,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "6D5CE73A-3097-495C-ADE9-DAECD6386E7E",
+        "queueMS": 0.30249999997522536,
+        "nativeMS": 1.2549166666531164,
+        "nativeEndToCallbackMS": 0.15779166665197408,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 210,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "6D5CE73A-3097-495C-ADE9-DAECD6386E7E",
+            "requestStart": 782.4186946666667,
+            "uptime": 782.4188038750001
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 211,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "6D5CE73A-3097-495C-ADE9-DAECD6386E7E",
+            "requestStart": 782.4186946666667,
+            "taskPriority": 17,
+            "uptime": 782.4189971666667
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 212,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 782.4204811666667,
+            "readStart": 782.4192262500001,
+            "requestID": "6D5CE73A-3097-495C-ADE9-DAECD6386E7E",
+            "requestStart": 782.4186946666667,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 782.4206389583334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "A51100CB-6072-4B33-8687-97557580D7A8",
+        "queueMS": 0.4476250001061999,
+        "nativeMS": 0.9475000000520595,
+        "nativeEndToCallbackMS": 0.13354166662793432,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 213,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "A51100CB-6072-4B33-8687-97557580D7A8",
+            "requestStart": 782.7620992083333,
+            "uptime": 782.7622436666667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 214,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "A51100CB-6072-4B33-8687-97557580D7A8",
+            "requestStart": 782.7620992083333,
+            "taskPriority": 17,
+            "uptime": 782.7625468333334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 215,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 782.7635730416667,
+            "readStart": 782.7626255416667,
+            "requestID": "A51100CB-6072-4B33-8687-97557580D7A8",
+            "requestStart": 782.7620992083333,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 782.7637065833334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "7057D47A-67BB-4C79-849D-709EE0C5A855",
+        "queueMS": 0.509166666688543,
+        "nativeMS": 1.2780833333181363,
+        "nativeEndToCallbackMS": 0.14224999995349208,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 247,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "7057D47A-67BB-4C79-849D-709EE0C5A855",
+            "requestStart": 783.101761125,
+            "uptime": 783.1018812083333
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 248,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "7057D47A-67BB-4C79-849D-709EE0C5A855",
+            "requestStart": 783.101761125,
+            "taskPriority": 17,
+            "uptime": 783.1022702916667
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 249,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 783.1036850833334,
+            "readStart": 783.1024070000001,
+            "requestID": "7057D47A-67BB-4C79-849D-709EE0C5A855",
+            "requestStart": 783.101761125,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 783.1038273333334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "7C0054C4-CDAA-4EB6-BFF6-DE9771C62342",
+        "queueMS": 0.2904166666439778,
+        "nativeMS": 0.7896249999248539,
+        "nativeEndToCallbackMS": 0.12204166671381245,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 250,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "7C0054C4-CDAA-4EB6-BFF6-DE9771C62342",
+            "requestStart": 783.4822979166668,
+            "uptime": 783.48239275
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 251,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "7C0054C4-CDAA-4EB6-BFF6-DE9771C62342",
+            "requestStart": 783.4822979166668,
+            "taskPriority": 17,
+            "uptime": 783.4825883333334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 252,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 783.4834471666667,
+            "readStart": 783.4826575416668,
+            "requestID": "7C0054C4-CDAA-4EB6-BFF6-DE9771C62342",
+            "requestStart": 783.4822979166668,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 783.4835692083334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "E9147DFC-7F5F-4514-B787-203B60FE5B3F",
+        "queueMS": 0.6060833334231575,
+        "nativeMS": 1.1422499999298452,
+        "nativeEndToCallbackMS": 0.26154166675951274,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 253,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "E9147DFC-7F5F-4514-B787-203B60FE5B3F",
+            "requestStart": 783.918718,
+            "uptime": 783.9189480833334
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 254,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "E9147DFC-7F5F-4514-B787-203B60FE5B3F",
+            "requestStart": 783.918718,
+            "taskPriority": 17,
+            "uptime": 783.9193240833334
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 255,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 783.920594875,
+            "readStart": 783.9194526250001,
+            "requestID": "E9147DFC-7F5F-4514-B787-203B60FE5B3F",
+            "requestStart": 783.918718,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 783.9208564166668,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "F6CAE02D-599E-4950-9FDC-CD36ECCEF367",
+        "queueMS": 2.6332499999170977,
+        "nativeMS": 2.6668333332509064,
+        "nativeEndToCallbackMS": 0.24508333342510014,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 256,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "F6CAE02D-599E-4950-9FDC-CD36ECCEF367",
+            "requestStart": 784.2200035000001,
+            "uptime": 784.2207614166667
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 257,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "F6CAE02D-599E-4950-9FDC-CD36ECCEF367",
+            "requestStart": 784.2200035000001,
+            "taskPriority": 17,
+            "uptime": 784.22263675
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 258,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 784.22563125,
+            "readStart": 784.2229644166667,
+            "requestID": "F6CAE02D-599E-4950-9FDC-CD36ECCEF367",
+            "requestStart": 784.2200035000001,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 784.2258763333334,
+            "visibility": "ordinary"
+          }
+        }
+      },
+      {
+        "beforeFirstFailure": false,
+        "requestID": "87C9FEF3-F4AD-4FF0-A57E-C4CE03E46475",
+        "queueMS": 0.7574583332825569,
+        "nativeMS": 1.7024583333977716,
+        "nativeEndToCallbackMS": 2.2721249999904103,
+        "created": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 261,
+          "event": {
+            "creatorPriority": 17,
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-created",
+            "requestID": "87C9FEF3-F4AD-4FF0-A57E-C4CE03E46475",
+            "requestStart": 784.6295361666668,
+            "uptime": 784.6296852916668
+          }
+        },
+        "started": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 262,
+          "event": {
+            "dispatching": false,
+            "event": "independentStageProduct",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "phase": "dispatch-dock-poll-started",
+            "requestID": "87C9FEF3-F4AD-4FF0-A57E-C4CE03E46475",
+            "requestStart": 784.6295361666668,
+            "taskPriority": 17,
+            "uptime": 784.630293625
+          }
+        },
+        "completed": {
+          "sourcePath": "/workspace/scratch/519883d1dfd8/r4-audit/9872/fast/independent-runtime/runtime/product.stderr.log",
+          "line": 263,
+          "event": {
+            "event": "independentStageProduct",
+            "evidence": "signedDockAXListWithoutMC",
+            "generation": "167A9083-878F-4D94-814B-A9AC05FC7EE3",
+            "hostPresent": true,
+            "phase": "dispatch-dock-poll-completed",
+            "readEnd": 784.6321042083334,
+            "readStart": 784.63040175,
+            "requestID": "87C9FEF3-F4AD-4FF0-A57E-C4CE03E46475",
+            "requestStart": 784.6295361666668,
+            "sameGeneration": true,
+            "taskPriority": 17,
+            "uptime": 784.6343763333334,
+            "visibility": "ordinary"
+          }
+        }
+      }
+    ],
+    "expirations": [],
+    "statsMS": {
+      "beforeFirstFailure": {
+        "queueMS": {
+          "count": 10,
+          "totalMS": 415.5573333335951,
+          "medianMS": 3.1221041667208738,
+          "maxMS": 271.73849999996946
+        },
+        "nativeMS": {
+          "count": 10,
+          "totalMS": 60.95416666676101,
+          "medianMS": 6.133354166706795,
+          "maxMS": 11.399833333257448
+        },
+        "nativeEndToCallbackMS": {
+          "count": 10,
+          "totalMS": 103.37204166660285,
+          "medianMS": 0.8304583333256232,
+          "maxMS": 77.38879166674906
+        }
+      },
+      "afterFirstFailure": {
+        "queueMS": {
+          "count": 17,
+          "totalMS": 324.42683333329114,
+          "medianMS": 0.8336666667219106,
+          "maxMS": 99.1199583334037
+        },
+        "nativeMS": {
+          "count": 17,
+          "totalMS": 20.942500000046493,
+          "medianMS": 0.9947916666988021,
+          "maxMS": 2.6668333332509064
+        },
+        "nativeEndToCallbackMS": {
+          "count": 17,
+          "totalMS": 439.3037916668163,
+          "medianMS": 0.26154166675951274,
+          "maxMS": 113.22991666668258
+        }
+      }
+    }
+  },
+  "laterDispatchState": {
+    "record": {
+      "catalogComplete": true,
+      "consentRequestPresent": false,
+      "fresh": true,
+      "groupIssue": "none",
+      "groupLoadIssue": "none",
+      "holdsDispatch": false,
+      "navigationDispatchAvailable": true,
+      "navigationIssue": "窗口或焦点已变化，本次切换已停止。",
+      "revision": 11,
+      "routesGroupChoice": true,
+      "sampleAgeSeconds": 1.5644099583332718,
+      "sampleDurationSeconds": 0.08667887499996141,
+      "snapshotAvailable": true,
+      "targets": [
+        {
+          "groupLifetime": "B3635CE6-3314-4571-A2CD-A6AD0770EA97",
+          "number": 53,
+          "ordinaryLifetime": "B3635CE6-3314-4571-A2CD-A6AD0770EA97",
+          "pid": 19941,
+          "visibleGroup": "6C0BBF31-8ED5-4B54-802B-D11B06F350F9",
+          "visibleGroupBound": true,
+          "visibleGroupMembers": 1
+        },
+        {
+          "groupLifetime": "DFD85E2A-EC35-44ED-A0C2-56A8039D9910",
+          "number": 55,
+          "ordinaryLifetime": "DFD85E2A-EC35-44ED-A0C2-56A8039D9910",
+          "pid": 19941,
+          "visibleGroup": "E02EC452-1AAE-42FC-9E10-4F9608827676",
+          "visibleGroupBound": true,
+          "visibleGroupMembers": 1
+        },
+        {
+          "groupLifetime": "5535A111-EAC6-4423-8F28-69DA634BD931",
+          "number": 56,
+          "ordinaryLifetime": "5535A111-EAC6-4423-8F28-69DA634BD931",
+          "pid": 19946,
+          "visibleGroup": "DF621D95-F9B6-429C-8D1D-8D2ED38246B3",
+          "visibleGroupBound": true,
+          "visibleGroupMembers": 1
+        }
+      ]
+    },
+    "limitation": "Revision 11 is a later complete sample and cannot replace revision 5 or prove the rejected retry's identity checks."
+  }
+}

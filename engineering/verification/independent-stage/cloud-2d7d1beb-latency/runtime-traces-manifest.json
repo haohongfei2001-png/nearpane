@@ -1,0 +1,253 @@
+{
+  "schema": 1,
+  "revision": "2d7d1bebad792ccb04579949162cc4d8fefa6614",
+  "runID": 46114302429,
+  "members": [
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "bde6168613bbc850f14758d114916d1274d7c38701cf887c034dafbe7a202dd1"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "908e376e53b37f08343eb80e53fdab5a24e1b04cf5fe1b5e5d32903704b5f4b4"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "67ddbcfa4d6b0652fdaa59084df60fffa8d5bfcd4a28381d9f89099c0e79eda2"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "095a2ca8dcb4c96f11474f4a9131230d4fd0c0ac2adc6efb8036796240fc47e8"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 343586,
+      "sha256": "6e4f0ce8569716f01ac5068b5ac732a5e996d52f21e099c24b718874e022c96c"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "5c3e034993bc0464c1eb0a0c627d2eb5b6fc5de0b707724e8c5109db77916a23"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/product-result.json",
+      "bytes": 21604,
+      "sha256": "ecc92f5b2b2e084a45f247e1178f23803a9b59329c40ec917f967dd6ea3b9e28"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-eb246e95-35c0-452d-a093-1e96ccb9a57b.json",
+      "bytes": 1085,
+      "sha256": "3d03c9fc5cfbbd3562b45de4d0756862cdc728c4a63aebf2fda1b438d967c170"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-8b96cfce-3e17-4f01-8183-3afa7ee5bc78.jsonl",
+      "bytes": 78881,
+      "sha256": "ccfc38aefa682c70860b879ac8bc3eac1085de3530a2c5387b568fc563b1c13d"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1033,
+      "sha256": "707cd2b1441a95144722e63632a78c1e31f36aa2044c8abbe0f22af1e630303c"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/profile/Nearpane/stage-visibility-v1.json",
+      "bytes": 24,
+      "sha256": "7b9cb31f49ea69234d8619bdc05b9c6ee9b7b57c9fe33425699cf2257b86057c"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product/r4-press-e199f872-acbd-4b0b-bbc1-6823e4e41212.result.json",
+      "bytes": 3682,
+      "sha256": "c5fa6f1d5abd0c5a4f360d797a5ad39e81c0c43faf57241bc2680ff1e9cda9ca"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/product.stderr.log",
+      "bytes": 119873,
+      "sha256": "f42d58132cada9265316ca72deb826576786f5040f24ab2ab842a215688b4431"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/runtime/summary.json",
+      "bytes": 29545,
+      "sha256": "e48ea54cac6cbd9d6bcb2a8f3df97750b83b7ea236abf7cf29fd0dda82df4cc7"
+    },
+    {
+      "path": "2d7d/fast/independent-runtime/summary.json",
+      "bytes": 32069,
+      "sha256": "315731730c87f3fd904d99b97f22b947cc0d5d845350c0b93d5eda7d6d3f2ca6"
+    },
+    {
+      "path": "2d7d/full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "9d9864481027d7bc71053ad69be5bb4674739fe333815928888502e32f4fba55"
+    },
+    {
+      "path": "2d7d/full/Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "63c0c2f11c4ff7bd221f0e8f062a758fa439802eabd6fbc13189f7d2de483a36"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "31fce5d56556606eed28a616a65456e1765accbe33f8fbb918ad2997a8622199"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "844dec0e0cae38782eaa2d5312d2b9bb95f4a003fcde0f325903d26034cb55f1"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "2d0634e782e2c33f8b2d4c3a0f961152f3d5a32d8f30c61425300f2a0a6bd1d7"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "b0f7bd7269b72b7d744bf43f2e9a72a5502706812199caed344fef13e899fd73"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 339697,
+      "sha256": "541189ac658d35e9b44628a741a07284b049df07113384ee7f83624077f64dfa"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "23150caba3b29717ba65eb02c00835c1acdd0e7a86e281cb31e22229e0219197"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/product-result.json",
+      "bytes": 21539,
+      "sha256": "00179647f579e1e3b3887307a7fcf74a4a6d3d9d6ab14881f856aeb1fa076513"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1033,
+      "sha256": "80316a0bc3f036829ba492b3b6a7d9d79bd871afa62db9e759470e170a847662"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product/r4-press-90cf78f7-4666-4716-bdcd-5337a939d07e.result.json",
+      "bytes": 3682,
+      "sha256": "c498005794f63e1158f1b7a9619200e8c452c2022f30e8b9e0d8cae9b8a8f790"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/product.stderr.log",
+      "bytes": 73822,
+      "sha256": "df5832dc0a91466d6430aed57136193fb5e88894398a334de74de92bd8013fee"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/runtime/summary.json",
+      "bytes": 29496,
+      "sha256": "bd7bceff43392b907a031b49f440c10c3b96e7f0ab175ddb9f4b39bb7ffa4e6b"
+    },
+    {
+      "path": "2d7d/full/independent-runtime/summary.json",
+      "bytes": 32005,
+      "sha256": "4744ef077e73a880becffe999dcdc48c53748541539bebab8be2f4f07982d39b"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/binding-attributes-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/read-only-context.json",
+      "bytes": 114,
+      "sha256": "9bff68b8484e6126080177e997b6d45b4f424314e5c2b2b542f49b132bacef8c"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/rust.log",
+      "bytes": 17086,
+      "sha256": "cad8ad12ffc0d3fa2fa7f26cbcd9796691f61e68723d268ffc1d8d54a9231a44"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/summary.json",
+      "bytes": 1921,
+      "sha256": "f2f2a8bd575b5813ef6ab4c4f2fba119a5c4dc537d9d19144a27af6f085667d6"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/swift.log",
+      "bytes": 72997,
+      "sha256": "9b7bf1fb5b4ace437c589b1e94f19b9292dbdd8470b1ff6de59c27f92313e293"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/swift.stderr.log",
+      "bytes": 239266,
+      "sha256": "09753ea92c9d3a65e3194fe683ddfdf174fda7730020f1768dfb13a7d41331e9"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/swift.xml",
+      "bytes": 42934,
+      "sha256": "4ef617617da15d2a464d6a1719b3eb553b23fb238203e3b656e517b1d79572c6"
+    },
+    {
+      "path": "2d7d/full/independent-source/source/windowserver-context.json",
+      "bytes": 1990,
+      "sha256": "9eacc5b206311e03b3217d8cb2d71a8d9aabdf092f9844d1d17e3b046ff1ba7d"
+    }
+  ],
+  "archive": {
+    "path": "/workspace/scratch/519883d1dfd8/r4-audit/2d7d/runtime-traces-2d7d.tar.gz",
+    "bytes": 161075,
+    "sha256": "d13c8817aca18daf0dddd3d610285931e9495ad419224c50e7241dcc33d1259a",
+    "memberCount": 48
+  }
+}

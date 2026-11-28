@@ -1,0 +1,5448 @@
+{
+  "schema": 1,
+  "revision": "987215dcbc79f1b50e22ceed1fc707b526acf3df",
+  "runID": 46115081664,
+  "jobID": 140886971502,
+  "sourceSummary": "/workspace/scratch/519883d1dfd8/r4-audit/9872/full/independent-runtime/runtime/summary.json",
+  "sourceTrace": "/workspace/scratch/519883d1dfd8/r4-audit/9872/full/independent-runtime/runtime/product.stderr.log",
+  "workerTrace": "/workspace/scratch/519883d1dfd8/r4-audit/9872/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-feb4ac09-e527-4d87-b1c4-3baa4766bfa9.jsonl",
+  "sampling": "disabledByRequest",
+  "directEngine": "PASS",
+  "r4": {
+    "status": "FAIL",
+    "reason": "realExternalR4ButtonNotAccepted",
+    "actualInputs": 2,
+    "physicalConfirmations": 2,
+    "physicalConfirmationEvents": [
+      {
+        "observations": [
+          {
+            "readEnd": 1912.035466625,
+            "readStart": 1912.0338900000002,
+            "received": 1912.0421007916668,
+            "uptime": 1912.0421007916668,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 51,
+                "onScreen": true,
+                "pid": 65259,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 65259,
+                "space": 33,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 65325,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1912.1101824166667,
+            "readStart": 1912.1080951666668,
+            "received": 1912.1114581666668,
+            "uptime": 1912.1114581666668,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 51,
+                "onScreen": true,
+                "pid": 65259,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 53,
+                "onScreen": false,
+                "pid": 65259,
+                "space": 33,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 65325,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 2183.08183333329,
+        "step": "singletonCycle/0",
+        "uptime": 1912.1116377916667,
+        "window": 51
+      },
+      {
+        "observations": [
+          {
+            "readEnd": 1916.96029825,
+            "readStart": 1916.9432885,
+            "received": 1916.9690811250002,
+            "uptime": 1916.9690811250002,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 65259,
+                "space": 36,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 53,
+                "onScreen": true,
+                "pid": 65259,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 65325,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          },
+          {
+            "readEnd": 1917.0378519583335,
+            "readStart": 1917.0301630000001,
+            "received": 1917.0378926666667,
+            "uptime": 1917.0378926666667,
+            "windows": [
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 51,
+                "onScreen": false,
+                "pid": 65259,
+                "space": 36,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": true,
+                "number": 53,
+                "onScreen": true,
+                "pid": 65259,
+                "space": 12,
+                "visibilityMatched": true
+              },
+              {
+                "framePreserved": true,
+                "frameRequired": true,
+                "home": 12,
+                "homeRequired": false,
+                "number": 54,
+                "onScreen": false,
+                "pid": 65325,
+                "space": 34,
+                "visibilityMatched": true
+              }
+            ]
+          }
+        ],
+        "phase": "R4SwitchConfirmed",
+        "pressToDoubleReadMS": 4398.461166666721,
+        "step": "singletonCycle/1",
+        "uptime": 1917.0384387916667,
+        "window": 53
+      }
+    ],
+    "secondTransactionFullyCommitted": false,
+    "thirdAttemptIssued": false,
+    "thirdAttempt": {
+      "attributeTimeoutMS": 250,
+      "axError": -25200,
+      "directEngineInvocation": false,
+      "discoveryBudgetMS": 6000,
+      "issued": false,
+      "nonce": "1495c505-85b5-49e8-b470-68d16723660f",
+      "panelFrame": [
+        784,
+        31,
+        240,
+        679
+      ],
+      "physicalPointerGesture": false,
+      "prePress": {
+        "actionRead": "NOT_REPEATED",
+        "actionsPreviouslyConfirmed": true,
+        "batchFieldCount": 0,
+        "batchRead": -25202,
+        "identifier": "<redacted-or-absent>",
+        "identifierRead": -25202,
+        "role": "unknown",
+        "roleRead": -25202,
+        "sameOriginalElement": true
+      },
+      "prePressContext": {
+        "configurationBytes": true,
+        "onScreenCGPanel": true,
+        "panelFrameChanged": 0,
+        "parentSignatureAndIdentity": true,
+        "retainedAXPanelIdentity": true
+      },
+      "prePressIncompleteReads": [
+        {
+          "attributes": {
+            "actionRead": "NOT_REPEATED",
+            "actionsPreviouslyConfirmed": true,
+            "batchFieldCount": 0,
+            "batchRead": -25202,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25202,
+            "role": "unknown",
+            "roleRead": -25202,
+            "sameOriginalElement": true
+          },
+          "identifier": "native-held-group:A10C9567-6E99-4304-9821-5EA232795D09",
+          "uptime": 1917.4999966666667
+        }
+      ],
+      "prePressPanelFrame": [
+        784,
+        31,
+        240,
+        679
+      ],
+      "prePressPanelIdentity": {
+        "canonicalNumber": 77,
+        "canonicalNumberRead": 0,
+        "expectedNumber": 77,
+        "ownerMatches": true,
+        "ownerRead": 0
+      },
+      "prePressRediscoveries": 1,
+      "processExit": 2,
+      "qualificationGranted": false,
+      "reason": "buttonMissingOrAmbiguous",
+      "receipt": "r4-press-7fe82f3e-8b9a-4655-9da7-18a10fa53deb.result.json",
+      "schema": 1,
+      "selectedIdentifier": "native-held-group:A10C9567-6E99-4304-9821-5EA232795D09",
+      "status": "UNKNOWN",
+      "tree": {
+        "complete": true,
+        "matchingButtons": 0,
+        "nodes": [
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXWindow",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": 0,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXStaticText",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXScrollArea",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "<redacted-or-absent>",
+            "identifierRead": -25212,
+            "role": "AXGroup",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:65325:54",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:65259:53",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          },
+          {
+            "batchFieldCount": 6,
+            "batchRead": 0,
+            "identifier": "current-desktop-window:65259:51",
+            "identifierRead": 0,
+            "role": "AXButton",
+            "roleRead": 0
+          }
+        ],
+        "visited": 9
+      },
+      "uptime": 1923.4755035,
+      "windowListRead": 0
+    },
+    "oneShotRetryTriggered": false,
+    "scope": "Two actual AXPress inputs received external matching physical readbacks. The second coordinator transaction subsequently fails during its final HIDE's second full post-witness. A third button attempt is not issued. Do not call this two fully committed transactions or continuous R4 acceptance."
+  },
+  "firstFailure": {
+    "witness": {
+      "bindings": 3,
+      "claims": 2,
+      "durationMS": 86.47387499991055,
+      "event": "independentStageProduct",
+      "openingRosterMetrics": {
+        "candidateCount": 2,
+        "candidateEnumerationCompleted": true,
+        "nestedInPhaseDurations": true,
+        "retainedCount": 1,
+        "roleReadCount": 1,
+        "roleReadMaxMS": 19.762499999842476,
+        "roleReadTotalMS": 19.762499999842476,
+        "roleTimingIncludesTaskQueueAndActorResume": true
+      },
+      "phase": "witness-read-rejected",
+      "pid": 0,
+      "sequence": 25,
+      "step": "opening-roster",
+      "unchangedPermitTiming": {
+        "count": 2,
+        "maxMS": 2.12279166657936,
+        "nestedInPhaseDurations": true,
+        "totalMS": 3.380416666459496
+      },
+      "uptime": 1917.4514563333335,
+      "window": 0,
+      "sourceLine": 668
+    },
+    "navigation": {
+      "event": "independentStageProduct",
+      "phase": "navigation-job-failed",
+      "reason": "窗口归属已变化，请重新选择。",
+      "uptime": 1917.4662232083335,
+      "sourceLine": 669
+    },
+    "operationStage": "Coordinator confirmation1 after HIDE of original FixtureA window51, after engine independent post-witness sequence25 completed",
+    "sequenceMap": {
+      "18": "SHOW53 preflight",
+      "19": "SHOW53 engine post-witness/coordinator confirmation0",
+      "20": "SHOW53 coordinator confirmation1",
+      "21": "focus53 preflight",
+      "22": "focus53 coordinator confirmation0",
+      "23": "focus53 coordinator confirmation1",
+      "24": "HIDE51 preflight",
+      "25": "HIDE51 engine post-witness/coordinator confirmation0",
+      "rejectedWithSequence25": "HIDE51 coordinator confirmation1; opening roster throws before physical observations"
+    },
+    "roleReadInference": {
+      "basis": "Opening roster metrics show candidateCount2, retainedCount1, roleReadCount1. Home catalog/candidate enumeration completed. roster home/membership guards throw incomplete; state/current guards throw interrupted. Navigation reports the localized ownership error, which can propagate from the awaited StageHostAccess.role(of:) path.",
+      "known": "An unbound candidate's role lookup was entered and failed during this opening roster; original bound physical windows were not yet re-observed in the failed witness.",
+      "unknown": [
+        "unbound candidate PID/window number",
+        "precise AX/list/owner subcondition",
+        "role of that candidate",
+        "whether it was a harmless surface"
+      ],
+      "roleReadMS": 19.762499999842476,
+      "permitMS": 3.380416666459496,
+      "limitations": "The role time includes detached-task queue and actor resumption. No role-success/failure subtype or candidate identity is recorded."
+    },
+    "physicalBeforeClosingAvailable": false,
+    "catalogIssueWindowsAvailableAtFirstFailure": false,
+    "secondPhysicalConfirmationPrecededRejectionByMS": 413.01754166670435,
+    "thirdButtonFailureIsLater": true
+  },
+  "sameRunCatalogFacts": {
+    "events": [
+      {
+        "completed": true,
+        "durationMS": 45.82741666649781,
+        "event": "independentStageProduct",
+        "groupProjectionMS": 0.4145416667142854,
+        "incompleteCatalog": {
+          "catalogComplete": false,
+          "catalogIssueCount": 1,
+          "catalogIssues": [
+            "membershipChanged:pid=65259,window=51"
+          ],
+          "catalogIssuesTruncated": false,
+          "catalogIssueWindows": [
+            {
+              "first": {
+                "active": false,
+                "birth": 1795846784555902,
+                "frame": {
+                  "height": 202,
+                  "width": 250,
+                  "x": 120,
+                  "y": 386
+                },
+                "frameValid": true,
+                "observedOnscreen": false,
+                "ordered": false,
+                "ownerUnhidden": true,
+                "pid": 65259
+              },
+              "issueIndex": 0,
+              "left": {
+                "recordCount": 0,
+                "recordIDs": [],
+                "state": "unknown",
+                "truncated": false
+              },
+              "number": 51,
+              "right": {
+                "recordCount": 1,
+                "recordIDs": [
+                  "12"
+                ],
+                "state": "known",
+                "truncated": false
+              },
+              "role": {
+                "firstPID": 65259,
+                "ownerRead": false,
+                "source": "notRequested",
+                "windowRead": false
+              },
+              "second": {
+                "active": true,
+                "birth": 1795846784555902,
+                "frame": {
+                  "height": 202,
+                  "width": 250,
+                  "x": 120,
+                  "y": 386
+                },
+                "frameValid": true,
+                "observedOnscreen": true,
+                "ordered": true,
+                "ownerUnhidden": true,
+                "pid": 65259,
+                "reportedOnscreen": true
+              }
+            }
+          ]
+        },
+        "nativeAgeOnReturnMS": 34.661125000184256,
+        "nativeBeganUptime": 1917.5170589583333,
+        "nativeBeginAfterRequestMS": 2.49929166648144,
+        "nativeDurationMS": 31.316416666868463,
+        "nativeEndedUptime": 1917.5483753750002,
+        "nativeEndToReturnMS": 3.3447083333157934,
+        "observeDirectoryMS": 0.007833333256712649,
+        "phase": "desktop-read-task-exit",
+        "readerAwaitMS": 37.1604166666657,
+        "readerAwaitStartedUptime": 1917.5145596666669,
+        "readerReturnedUptime": 1917.5517200833335,
+        "readSession": "3211BC91-2DF9-410F-9D9B-F38103F16546",
+        "receivedReply": true,
+        "remainingProcessingMS": 8.244624999861117,
+        "requestRevision": 73,
+        "sidebarHistoryMS": 0,
+        "step": "complete",
+        "taskCreatedUptime": 1917.5128277083334,
+        "taskPriority": 17,
+        "taskQueueMS": 0.22341666681313654,
+        "taskStartedUptime": 1917.5130511250002,
+        "uptime": 1917.5591422916668,
+        "sourceLine": 675
+      }
+    ],
+    "interpretation": "Only rev73 logs an incomplete catalog. It begins after navigation failure and during original-owner RELEASE. This row is authorized FixtureA document51, same birth and250x202 frame, membership unknown -> known[12], inactive/offscreen/unordered -> active/onscreen/ordered. It describes recovery, not the earlier opening-role failure.",
+    "notBackfilled": "These facts do not identify caa2 window82, 2d7 rev4, or the unbound candidate in 9872's first failed witness."
+  },
+  "newPerformanceEvidence": {
+    "nestedMetrics": [
+      {
+        "sequence": 1,
+        "phase": "witness-read-completed",
+        "uptime": 1910.3003230000002,
+        "durationMS": 208.68516666655523,
+        "bindingMS": 114.30999999993219,
+        "openingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 0,
+          "roleReadCount": 3,
+          "roleReadMaxMS": 8.93299999984265,
+          "roleReadTotalMS": 24.712124999950902,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 24,
+          "maxMS": 1.1745416666144592,
+          "nestedInPhaseDurations": true,
+          "totalMS": 9.5677083334067
+        },
+        "sourceLine": 123
+      },
+      {
+        "sequence": 2,
+        "phase": "witness-read-completed",
+        "uptime": 1910.7895896666669,
+        "durationMS": 74.65820833340331,
+        "bindingMS": 1.9979583332769835,
+        "openingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 0.6892916665037774,
+          "nestedInPhaseDurations": true,
+          "totalMS": 4.994583333427727
+        },
+        "sourceLine": 158
+      },
+      {
+        "sequence": 3,
+        "phase": "witness-read-completed",
+        "uptime": 1910.989777,
+        "durationMS": 74.27087499991103,
+        "bindingMS": 1.1682916667723475,
+        "openingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 0.4273750000720611,
+          "nestedInPhaseDurations": true,
+          "totalMS": 4.315708332569557
+        },
+        "sourceLine": 204
+      },
+      {
+        "sequence": 4,
+        "phase": "witness-read-completed",
+        "uptime": 1911.3758804166669,
+        "durationMS": 123.30433333340807,
+        "bindingMS": 1.2503333334734634,
+        "openingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 0.7006666667166428,
+          "nestedInPhaseDurations": true,
+          "totalMS": 5.745458333421993
+        },
+        "sourceLine": 249
+      },
+      {
+        "sequence": 5,
+        "phase": "witness-read-completed",
+        "uptime": 1911.5186706666668,
+        "durationMS": 142.22987500011186,
+        "bindingMS": 2.389166666489473,
+        "openingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 12.433624999857784,
+          "nestedInPhaseDurations": true,
+          "totalMS": 19.462999999177555
+        },
+        "sourceLine": 264
+      },
+      {
+        "sequence": 6,
+        "phase": "witness-read-completed",
+        "uptime": 1911.6696862083334,
+        "durationMS": 137.45449999987613,
+        "bindingMS": 1.7582083332854381,
+        "openingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 3,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 3,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 1.6536250000172004,
+          "nestedInPhaseDurations": true,
+          "totalMS": 8.632874999420892
+        },
+        "sourceLine": 277
+      },
+      {
+        "sequence": 7,
+        "phase": "witness-read-completed",
+        "uptime": 1911.82273725,
+        "durationMS": 71.60374999989472,
+        "bindingMS": 1.2416250001479057,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 13,
+          "maxMS": 0.5055000001448207,
+          "nestedInPhaseDurations": true,
+          "totalMS": 4.0492916666607925
+        },
+        "sourceLine": 297
+      },
+      {
+        "sequence": 8,
+        "phase": "witness-read-completed",
+        "uptime": 1911.8921937083335,
+        "durationMS": 67.66104166672449,
+        "bindingMS": 1.065499999867825,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 13,
+          "maxMS": 0.4107916665816447,
+          "nestedInPhaseDurations": true,
+          "totalMS": 3.8851250003517634
+        },
+        "sourceLine": 306
+      },
+      {
+        "sequence": 9,
+        "phase": "witness-read-completed",
+        "uptime": 1911.9581782083335,
+        "durationMS": 48.54787499994018,
+        "bindingMS": 0.7190416665707744,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 13,
+          "maxMS": 0.3515833332130569,
+          "nestedInPhaseDurations": true,
+          "totalMS": 3.338041666893332
+        },
+        "sourceLine": 319
+      },
+      {
+        "sequence": 10,
+        "phase": "witness-read-completed",
+        "uptime": 1912.1095494583335,
+        "durationMS": 68.15308333352732,
+        "bindingMS": 0.5025416667194804,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 0.3755416666990641,
+          "nestedInPhaseDurations": true,
+          "totalMS": 2.871374999585896
+        },
+        "sourceLine": 340
+      },
+      {
+        "sequence": 11,
+        "phase": "witness-read-completed",
+        "uptime": 1912.1593803750002,
+        "durationMS": 48.397291666560704,
+        "bindingMS": 0.5450416665553348,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 0.2658749999682186,
+          "nestedInPhaseDurations": true,
+          "totalMS": 2.6772500004881294
+        },
+        "sourceLine": 351
+      },
+      {
+        "sequence": 12,
+        "phase": "witness-read-completed",
+        "uptime": 1912.2060251666667,
+        "durationMS": 44.90774999999303,
+        "bindingMS": 0.4890000000159489,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 0.30608333327108994,
+          "nestedInPhaseDurations": true,
+          "totalMS": 2.69495833322253
+        },
+        "sourceLine": 360
+      },
+      {
+        "sequence": 13,
+        "phase": "witness-read-completed",
+        "uptime": 1912.2564434583335,
+        "durationMS": 49.558083333295144,
+        "bindingMS": 0.45687500005442416,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 0.35520833330338064,
+          "nestedInPhaseDurations": true,
+          "totalMS": 2.8957916670151462
+        },
+        "sourceLine": 369
+      },
+      {
+        "sequence": 14,
+        "phase": "witness-read-completed",
+        "uptime": 1912.332648,
+        "durationMS": 75.10737499978859,
+        "bindingMS": 1.3185833331590402,
+        "openingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 1,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 0,
+          "roleReadMaxMS": 0,
+          "roleReadTotalMS": 0,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 11,
+          "maxMS": 0.7807500001035805,
+          "nestedInPhaseDurations": true,
+          "totalMS": 4.012333333776041
+        },
+        "sourceLine": 378
+      },
+      {
+        "sequence": 15,
+        "phase": "witness-read-completed",
+        "uptime": 1913.428879125,
+        "durationMS": 771.9749583334305,
+        "bindingMS": 62.33695833316233,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 27.302708333309056,
+          "roleReadTotalMS": 27.302708333309056,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 21.472541666753386,
+          "roleReadTotalMS": 21.472541666753386,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 31.112291666659075,
+          "nestedInPhaseDurations": true,
+          "totalMS": 54.96695833335252
+        },
+        "sourceLine": 445
+      },
+      {
+        "sequence": 16,
+        "phase": "witness-read-completed",
+        "uptime": 1913.6954324583335,
+        "durationMS": 265.1875833334998,
+        "bindingMS": 22.740833333273258,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 16.660041666682446,
+          "roleReadTotalMS": 16.660041666682446,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 15.302541666642355,
+          "roleReadTotalMS": 15.302541666642355,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 3.9060833335042844,
+          "nestedInPhaseDurations": true,
+          "totalMS": 15.06316666677776
+        },
+        "sourceLine": 457
+      },
+      {
+        "sequence": 17,
+        "phase": "witness-read-completed",
+        "uptime": 1913.8510269166668,
+        "durationMS": 126.96658333334199,
+        "bindingMS": 7.661916666620527,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 4.700499999898966,
+          "roleReadTotalMS": 4.700499999898966,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 4.351708333160786,
+          "roleReadTotalMS": 4.351708333160786,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 7.31050000013056,
+          "nestedInPhaseDurations": true,
+          "totalMS": 20.537416666684294
+        },
+        "sourceLine": 470
+      },
+      {
+        "sequence": 18,
+        "phase": "witness-read-completed",
+        "uptime": 1914.0442764583333,
+        "durationMS": 118.51929166664377,
+        "bindingMS": 9.670333333360759,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 7.009166666648525,
+          "roleReadTotalMS": 7.009166666648525,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 4.8451249999743595,
+          "roleReadTotalMS": 4.8451249999743595,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 3.010499999845706,
+          "nestedInPhaseDurations": true,
+          "totalMS": 14.381708332848575
+        },
+        "sourceLine": 494
+      },
+      {
+        "sequence": 19,
+        "phase": "witness-read-completed",
+        "uptime": 1914.3468138333335,
+        "durationMS": 169.93462499999623,
+        "bindingMS": 18.631416666721634,
+        "openingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 9.23787499982609,
+          "roleReadTotalMS": 14.774791666468445,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 7.429333333220711,
+          "roleReadTotalMS": 14.678083333137693,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 21,
+          "maxMS": 2.309250000052998,
+          "nestedInPhaseDurations": true,
+          "totalMS": 11.436333333449511
+        },
+        "sourceLine": 520
+      },
+      {
+        "sequence": 20,
+        "phase": "witness-read-completed",
+        "uptime": 1914.5542482916667,
+        "durationMS": 206.35512499984543,
+        "bindingMS": 27.594750000162094,
+        "openingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 14.622666666809891,
+          "roleReadTotalMS": 18.74783333346386,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 10.227291666751626,
+          "roleReadTotalMS": 15.988250000191329,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 21,
+          "maxMS": 5.708583333216666,
+          "nestedInPhaseDurations": true,
+          "totalMS": 30.419666666375633
+        },
+        "sourceLine": 532
+      },
+      {
+        "sequence": 21,
+        "phase": "witness-read-completed",
+        "uptime": 1914.834182625,
+        "durationMS": 245.538624999881,
+        "bindingMS": 40.347124999925654,
+        "openingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 17.210250000061933,
+          "roleReadTotalMS": 28.978375000178858,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 18.59879166659084,
+          "roleReadTotalMS": 26.164541666503283,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 21,
+          "maxMS": 4.66774999995323,
+          "nestedInPhaseDurations": true,
+          "totalMS": 34.14083333314011
+        },
+        "sourceLine": 550
+      },
+      {
+        "sequence": 22,
+        "phase": "witness-read-completed",
+        "uptime": 1915.6602564583334,
+        "durationMS": 698.2249166665042,
+        "bindingMS": 241.61929166666596,
+        "openingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 129.59399999999732,
+          "roleReadTotalMS": 163.42708333331757,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 40.58633333352191,
+          "roleReadTotalMS": 58.49491666685935,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 21,
+          "maxMS": 29.162875000110944,
+          "nestedInPhaseDurations": true,
+          "totalMS": 131.21325000042816
+        },
+        "sourceLine": 602
+      },
+      {
+        "sequence": 23,
+        "phase": "witness-read-completed",
+        "uptime": 1916.2979082916668,
+        "durationMS": 634.4477499999357,
+        "bindingMS": 129.69991666659553,
+        "openingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 53.14429166674017,
+          "roleReadTotalMS": 100.83433333352332,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 18.621958333369548,
+          "roleReadTotalMS": 36.19929166666225,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 21,
+          "maxMS": 10.286166666674035,
+          "nestedInPhaseDurations": true,
+          "totalMS": 72.10129166674051
+        },
+        "sourceLine": 615
+      },
+      {
+        "sequence": 24,
+        "phase": "witness-read-completed",
+        "uptime": 1916.7222674166667,
+        "durationMS": 365.8355833333644,
+        "bindingMS": 56.13537499993981,
+        "openingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 20.72383333347716,
+          "roleReadTotalMS": 39.80091666676344,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 4,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 2,
+          "roleReadCount": 2,
+          "roleReadMaxMS": 22.909374999926513,
+          "roleReadTotalMS": 37.53570833328013,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 21,
+          "maxMS": 7.165458333247443,
+          "nestedInPhaseDurations": true,
+          "totalMS": 39.02695833266989
+        },
+        "sourceLine": 634
+      },
+      {
+        "sequence": 25,
+        "phase": "witness-read-completed",
+        "uptime": 1917.35809425,
+        "durationMS": 347.48208333326147,
+        "bindingMS": 27.799499999900945,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 24.398833333179937,
+          "roleReadTotalMS": 24.398833333179937,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 23.372166666604244,
+          "roleReadTotalMS": 23.372166666604244,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "unchangedPermitTiming": {
+          "count": 15,
+          "maxMS": 6.532416666686913,
+          "nestedInPhaseDurations": true,
+          "totalMS": 25.923333333139453
+        },
+        "sourceLine": 660
+      },
+      {
+        "sequence": 25,
+        "phase": "witness-read-rejected",
+        "uptime": 1917.4514563333335,
+        "durationMS": 86.47387499991055,
+        "bindingMS": null,
+        "openingRosterMetrics": {
+          "candidateCount": 2,
+          "candidateEnumerationCompleted": true,
+          "nestedInPhaseDurations": true,
+          "retainedCount": 1,
+          "roleReadCount": 1,
+          "roleReadMaxMS": 19.762499999842476,
+          "roleReadTotalMS": 19.762499999842476,
+          "roleTimingIncludesTaskQueueAndActorResume": true
+        },
+        "closingRosterMetrics": null,
+        "unchangedPermitTiming": {
+          "count": 2,
+          "maxMS": 2.12279166657936,
+          "nestedInPhaseDurations": true,
+          "totalMS": 3.380416666459496
+        },
+        "sourceLine": 668
+      }
+    ],
+    "wholeWitnessPermitTimingOnly": true,
+    "interpretation": [
+      "This run proves final roster2 can include four raw candidates with two retained and two awaited role lookups, as recorded in sequences19-24. It does not establish what caa2's unlogged candidates were.",
+      "Sequence22 opening role reads total163.427ms, while whole-witness unchangedPermit time is131.213ms across21 checks. Neither is an additive top-level click partition.",
+      "unchangedPermitTiming excludes the entry permits() and explicit initial-binding permits(); it measures only the unchanged closure's checkedPermit calls.",
+      "Permission timing and role timing are elapsed intervals, not CPU samples. No permission-check deletion or cross-await caching was applied."
+    ]
+  },
+  "productionWorker": {
+    "requests": [
+      {
+        "cancelled": false,
+        "completedPollCount": 37,
+        "detail": 227,
+        "durationMS": 409.187083333336,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 1896,
+        "intent": "9D68FE62-FC8E-406F-9B6E-FDF48FF912E9",
+        "maxPollQueueMS": 0.15254166669365077,
+        "operation": 8,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 37,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.302908625,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.7122820833335,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 137
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 1,
+        "detail": 226,
+        "durationMS": 0.645458333337956,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 64,
+        "intent": "F2B97A78-3E84-4937-8149-69D4F3F17819",
+        "maxPollQueueMS": 0.003791666586039355,
+        "operation": 6,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 1,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.7131173750001,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.7138579166667,
+        "waitPriorities": [],
+        "sourceLine": 143
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 200,
+        "durationMS": 5.772708333324772,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 45,
+        "intent": "4E42E92D-7466-46E6-A37B-588C89A7AC3D",
+        "maxPollQueueMS": 0.00995833352135378,
+        "operation": 2,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.7906325000001,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.7965045416668,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 162
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 200,
+        "durationMS": 24.083958333449118,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 45,
+        "intent": "4E42E92D-7466-46E6-A37B-588C89A7AC3D",
+        "maxPollQueueMS": 0.005958333304079133,
+        "operation": 2,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.7971027083333,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.8213270833335,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 166
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 200,
+        "durationMS": 15.3303333331678,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 45,
+        "intent": "0ED29E77-1FCE-4F4F-A446-010EAAD42E79",
+        "maxPollQueueMS": 0.008666666644785437,
+        "operation": 2,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.8230036666669,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.838467541667,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 170
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 3,
+        "detail": 200,
+        "durationMS": 18.02358333338816,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 45,
+        "intent": "0ED29E77-1FCE-4F4F-A446-010EAAD42E79",
+        "maxPollQueueMS": 0.006291666750257718,
+        "operation": 2,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 3,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.839498,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.857663,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 176
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 200,
+        "durationMS": 19.030791666637015,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 45,
+        "intent": "3B2A3466-32D2-4310-A6ED-FC5434D247A6",
+        "maxPollQueueMS": 0.012875000038548023,
+        "operation": 2,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.8596536666669,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.8788094583335,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 181
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 200,
+        "durationMS": 15.206416666615041,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 45,
+        "intent": "3B2A3466-32D2-4310-A6ED-FC5434D247A6",
+        "maxPollQueueMS": 0.010958333405142184,
+        "operation": 2,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.8799935416669,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.8953195833335,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 185
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 226,
+        "durationMS": 15.145124999889958,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 64,
+        "intent": "46FD5E1B-F3B5-43A8-90C2-3752DF293526",
+        "maxPollQueueMS": 0.006874999826322892,
+        "operation": 6,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1910.8990675000002,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1910.9143457916668,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 189
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 226,
+        "durationMS": 4.015291666746634,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 64,
+        "intent": "E8068C54-DCC5-4B31-B0D0-A262AC03CACF",
+        "maxPollQueueMS": 0.00279166670225095,
+        "operation": 6,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1911.5270043333335,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1911.5311165833334,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 268
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 7,
+        "detail": 224,
+        "durationMS": 66.5849583333511,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 174,
+        "intent": "E8068C54-DCC5-4B31-B0D0-A262AC03CACF",
+        "maxPollQueueMS": 0.014125000006970367,
+        "operation": 3,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 7,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1911.6739653333334,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1911.7406579166668,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 281
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 3,
+        "detail": 200,
+        "durationMS": 8.596583333428498,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 174,
+        "intent": "E8068C54-DCC5-4B31-B0D0-A262AC03CACF",
+        "maxPollQueueMS": 0.0017083334569178987,
+        "operation": 2,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 3,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1911.741567875,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1911.7502529583335,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 285
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 3,
+        "detail": 226,
+        "durationMS": 14.233708333449613,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "C6A2C016-7F62-4E69-89F4-09F58A1B057D",
+        "maxPollQueueMS": 0.004208333393762587,
+        "operation": 6,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 3,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1911.8942562083334,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1911.9085925000002,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 310
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 5,
+        "detail": 224,
+        "durationMS": 58.319208333386996,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 174,
+        "intent": "C6A2C016-7F62-4E69-89F4-09F58A1B057D",
+        "maxPollQueueMS": 0.00624999984211172,
+        "operation": 3,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 5,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1911.961551,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1912.0199773333334,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 323
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 200,
+        "durationMS": 12.868000000025859,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 174,
+        "intent": "C6A2C016-7F62-4E69-89F4-09F58A1B057D",
+        "maxPollQueueMS": 0.003375000005689799,
+        "operation": 2,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1912.0206845,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1912.033649125,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 329
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 226,
+        "durationMS": 14.691166666807476,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "BD9F1510-EBEF-435B-8418-53AB5E848030",
+        "maxPollQueueMS": 0.01575000010234362,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1912.3337703333334,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1912.3485905833334,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 382
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 226,
+        "durationMS": 20.9042500000578,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "5C525E95-FEEA-4FF9-BA64-B195A7E7CB42",
+        "maxPollQueueMS": 0.004041666670673294,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1913.696495375,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1913.7175159166668,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 461
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 3,
+        "detail": 200,
+        "durationMS": 19.52770833327122,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 173,
+        "intent": "9130D5C1-E8D4-482E-95DF-087F3E335769",
+        "maxPollQueueMS": 0.006583333288290305,
+        "operation": 2,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 3,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1913.8559277083334,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1913.8756358750002,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 477
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 2,
+        "detail": 200,
+        "durationMS": 15.615333333471426,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 173,
+        "intent": "9130D5C1-E8D4-482E-95DF-087F3E335769",
+        "maxPollQueueMS": 0.004374999889478204,
+        "operation": 2,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 2,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1913.8790454166667,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1913.8948152500002,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 481
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 4,
+        "detail": 226,
+        "durationMS": 25.258000000121683,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "14E609E2-7F05-4DCA-B29E-60D9CCB077D3",
+        "maxPollQueueMS": 0.012166666692792205,
+        "operation": 6,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 4,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1913.8980185416667,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1913.9234045416667,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 485
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 11,
+        "detail": 223,
+        "durationMS": 109.83895833328461,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 173,
+        "intent": "14E609E2-7F05-4DCA-B29E-60D9CCB077D3",
+        "maxPollQueueMS": 0.024166666662495118,
+        "operation": 4,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 11,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1914.0485908333335,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1914.15854125,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 501
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 4,
+        "detail": 200,
+        "durationMS": 16.027416666702266,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 173,
+        "intent": "14E609E2-7F05-4DCA-B29E-60D9CCB077D3",
+        "maxPollQueueMS": 0.009500000032858225,
+        "operation": 2,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 4,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1914.1600611666668,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1914.1761865416668,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 505
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 3,
+        "detail": 226,
+        "durationMS": 23.54820833352278,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "58295020-6E75-4C27-9499-ECCD9835F9C1",
+        "maxPollQueueMS": 0.007625000080224709,
+        "operation": 6,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 3,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1914.56074175,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1914.584464,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 539
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 6,
+        "detail": 226,
+        "durationMS": 41.466208333304166,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 192,
+        "intent": "86AEE59A-041D-4B86-9FC6-D8E7BF877327",
+        "maxPollQueueMS": 0.006125000027168426,
+        "operation": 6,
+        "owned": 1,
+        "phase": "worker-request-exit",
+        "pollCount": 6,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1916.3100617916668,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1916.351791625,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 621
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 23,
+        "detail": 224,
+        "durationMS": 219.90262500003155,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 174,
+        "intent": "86AEE59A-041D-4B86-9FC6-D8E7BF877327",
+        "maxPollQueueMS": 0.07058333335407951,
+        "operation": 3,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 23,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1916.7485192916668,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1916.9685308750002,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 641
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 4,
+        "detail": 200,
+        "durationMS": 18.537624999908076,
+        "epoch": 1,
+        "event": "spacesHostLifecycle",
+        "flags": 174,
+        "intent": "86AEE59A-041D-4B86-9FC6-D8E7BF877327",
+        "maxPollQueueMS": 0.010708333320508245,
+        "operation": 2,
+        "owned": 2,
+        "phase": "worker-request-exit",
+        "pollCount": 4,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1916.989351166667,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1917.0080207916667,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 645
+      },
+      {
+        "cancelled": false,
+        "completedPollCount": 15,
+        "detail": 225,
+        "durationMS": 185.52970833343352,
+        "epoch": 2,
+        "event": "spacesHostLifecycle",
+        "flags": 32,
+        "intent": "6C46F129-05C3-4DD8-9238-42ED43311A8C",
+        "maxPollQueueMS": 0.2965833332382317,
+        "operation": 13,
+        "owned": 0,
+        "phase": "worker-request-exit",
+        "pollCount": 15,
+        "pollPriorities": [
+          25
+        ],
+        "requestedPriority": 25,
+        "requestStartUptime": 1917.4992802083334,
+        "returnPriority": 25,
+        "status": 0,
+        "step": "complete",
+        "terminalReceipt": true,
+        "uptime": 1917.6849834583334,
+        "waitPriorities": [
+          25
+        ],
+        "sourceLine": 676
+      }
+    ],
+    "operationCounts": {
+      "8": 1,
+      "6": 9,
+      "2": 12,
+      "3": 3,
+      "4": 1,
+      "13": 1
+    },
+    "failedTerminalRequests": [],
+    "scope": "Three HIDE requests and one SHOW request returned PASS, as did health requests. No product214/217 terminal failure in this sequence; no general deadline/reliability claim.",
+    "nativeReadTimings": [
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 10.549,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 5.787
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.124
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 4.491
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.145
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 46
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 14.118,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.001
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 4.951
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.244
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 8.648
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.273
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 64
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 7.769,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 4.096
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.144
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 3.385
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.144
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 77
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 12.031,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 6.265
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.297
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.028
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 5.309
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.131
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 90
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 17.985,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 11.765
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.29
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.069
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 5.657
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.203
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 109
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 10.667,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 6.329
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.226
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.064
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 3.899
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.148
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 122
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 10.498,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 4.734
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.234
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.097
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 5.296
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.136
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 135
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": false,
+        "finalStage": "forward-and-target-membership",
+        "durationMS": 2.952,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 2.89
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.062
+          }
+        ],
+        "sourceLine": 148
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 7.92,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 3.325
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.279
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.087
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 4.103
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.126
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 161
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 19.194,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 11.296
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.166
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.062
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 7.537
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.133
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 180
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 6.943,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 3.015
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.119
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.071
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 3.589
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.147
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 193
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 7.687,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 3.558
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.139
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 3.853
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.135
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 212
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 78,
+        "pid": 66250,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 7.126,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 4.146
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.136
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.738
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.105
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 225
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.087,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.051
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 0.966
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.087
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.894
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.089
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 259
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.452,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.064
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.096
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.094
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.095
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.102
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 265
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.493,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.048
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.059
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.097
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.176
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.111
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 272
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 3.13,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.11
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.326
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.139
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.427
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.128
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 278
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.852,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.063
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.312
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.097
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.2
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.178
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 285
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.645,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.109
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.141
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.122
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.147
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.125
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 291
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.901,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.131
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.168
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.118
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.363
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.121
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 297
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 5.727,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.065
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 3.218
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.146
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.157
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.139
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 302
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 6.166,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.208
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 3.423
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.208
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.027
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.141
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.159
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 307
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 12.769,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.054
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 10.911
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.123
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.067
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.479
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.135
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 314
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 3.414,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.105
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.583
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.136
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.061
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.407
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.121
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 319
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.827,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.05
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.274
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.116
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.066
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.192
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.127
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 325
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.587,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.099
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.13
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.098
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.055
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.106
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.098
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 331
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 3.115,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.068
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.141
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.103
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.054
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.648
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.101
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 337
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.359,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.091
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.054
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.122
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.969
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.123
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 343
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.566,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.085
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.26
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.107
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.019
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.095
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 348
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.364,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.046
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 0.918
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.203
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.034
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.062
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.101
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 353
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 8.431,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.06
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 6.84
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.116
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.061
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.238
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.117
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 360
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.791,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.129
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.35
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.119
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.069
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.013
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.112
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 365
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.17,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.069
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.074
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.076
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.063
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.798
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.09
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 370
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.325,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.151
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.035
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.087
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.043
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.886
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.123
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 377
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 3.164,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.101
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.447
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.136
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.068
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.313
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.099
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 383
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.784,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.068
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.244
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.129
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.048
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.191
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.104
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 389
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 42.755,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 16.755
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 16.605
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.106
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.068
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 9.074
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.145
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 396
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 54.085,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.257
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 34.565
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.097
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 3.298
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 13.553
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 2.315
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 403
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 5.824,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.124
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 4.135
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.114
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.063
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.258
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.129
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 410
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 10.087,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.095
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 6.777
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.114
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.055
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.94
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.108
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 416
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.173,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.064
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.006
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.101
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.056
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.861
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.086
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 422
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.822,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.111
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.326
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.102
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.172
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.11
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 428
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 12.345,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.075
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 5.652
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.125
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.041
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 6.203
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.249
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 435
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.557,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.09
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.2
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.105
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.07
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.092
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 441
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 6.466,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.098
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.224
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 3.054
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.084
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.882
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.124
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 447
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 9.553,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.076
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 3.33
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.165
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 3.642
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.189
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.151
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 453
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": false,
+        "finalStage": "forward-and-target-membership",
+        "durationMS": 1.283,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.045
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.198
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.041
+          }
+        ],
+        "sourceLine": 457
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 4.862,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.034
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.352
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.098
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.05
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 3.206
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.121
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 462
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 34.467,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.114
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 26.299
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.096
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.029
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 5.782
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 2.147
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 469
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 10.147,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.457
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 2.465
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.115
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.036
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 6.939
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.136
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 474
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 53,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 9.577,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.146
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.455
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.121
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 7.714
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.14
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 479
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.488,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.121
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.146
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.088
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.051
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.98
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.101
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 486
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.858,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.117
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.242
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.111
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.065
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.189
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.134
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 492
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.799,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.275
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.424
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.09
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.034
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.86
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.116
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 499
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 145.89,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.605
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 70.871
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 9.78
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 1.2
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 59.283
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 4.15
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 506
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 27.935,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.079
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 7.983
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 6.782
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.546
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 6.67
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 5.873
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 513
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 44.19,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 2.206
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 29.2
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 8.333
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.083
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.184
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 2.183
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 520
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 13.853,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.176
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 6.392
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 4.961
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.074
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.02
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.23
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 526
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 10.733,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.11
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 4.134
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 4.249
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.091
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.023
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.126
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 533
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 11.57,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.59
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.579
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.119
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 9.087
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.196
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 539
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 21.057,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.135
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 4.353
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.104
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.0
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 10.986
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 5.477
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 544
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 33.98,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.413
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 7.629
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 3.298
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 5.106
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 11.77
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 5.763
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 549
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 40.605,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.067
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 33.217
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.335
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 2.417
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 4.403
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.166
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 556
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 18.876,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.273
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 2.233
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.1
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.03
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 16.054
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.184
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 561
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 24.506,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.249
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 13.714
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 2.131
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.036
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 8.207
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.169
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 567
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 5.441,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.118
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.388
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.102
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.052
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 3.641
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.138
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 573
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 10.913,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.148
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.253
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.069
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.041
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 5.55
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 3.852
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 580
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": false,
+        "finalStage": "forward-and-target-membership",
+        "durationMS": 9.23,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.182
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 8.96
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.088
+          }
+        ],
+        "sourceLine": 584
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 4.462,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.106
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.861
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.135
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.06
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 2.127
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.174
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 589
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 12.508,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.96
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 9.092
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.163
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.133
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.988
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.171
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 596
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 51,
+        "pid": 65259,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 62.703,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 1.75
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 49.691
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.093
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.046
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 7.135
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 3.988
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.001
+          }
+        ],
+        "sourceLine": 601
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": false,
+        "finalStage": "forward-and-target-membership",
+        "durationMS": 2.225,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.032
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 2.141
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.052
+          }
+        ],
+        "sourceLine": 604
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.75,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.035
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.048
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.082
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.061
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 1.41
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.115
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 609
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.975,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.089
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.47
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.111
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.027
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.993
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.284
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 616
+      },
+      {
+        "event": "spacesNativeReadTiming",
+        "operation": "view",
+        "window": 54,
+        "pid": 65325,
+        "completed": true,
+        "finalStage": "geometry-and-visibility",
+        "durationMS": 2.763,
+        "stages": [
+          {
+            "stage": "minimized",
+            "durationMS": 0.11
+          },
+          {
+            "stage": "first-see",
+            "durationMS": 1.415
+          },
+          {
+            "stage": "forward-and-target-membership",
+            "durationMS": 0.109
+          },
+          {
+            "stage": "other-membership",
+            "durationMS": 0.04
+          },
+          {
+            "stage": "second-see",
+            "durationMS": 0.988
+          },
+          {
+            "stage": "managed-desktops",
+            "durationMS": 0.102
+          },
+          {
+            "stage": "geometry-and-visibility",
+            "durationMS": 0.0
+          }
+        ],
+        "sourceLine": 621
+      }
+    ],
+    "canaryCloseCGReadback": [
+      {
+        "event": "spacesLaunchEngine",
+        "phase": "close-cg-readback",
+        "status": 2,
+        "detail": 217,
+        "window": 78,
+        "home": 12,
+        "parking": 32,
+        "sourceLine": 242
+      }
+    ]
+  },
+  "recovery": {
+    "workerRelease": {
+      "cancelled": false,
+      "completedPollCount": 15,
+      "detail": 225,
+      "durationMS": 185.52970833343352,
+      "epoch": 2,
+      "event": "spacesHostLifecycle",
+      "flags": 32,
+      "intent": "6C46F129-05C3-4DD8-9238-42ED43311A8C",
+      "maxPollQueueMS": 0.2965833332382317,
+      "operation": 13,
+      "owned": 0,
+      "phase": "worker-request-exit",
+      "pollCount": 15,
+      "pollPriorities": [
+        25
+      ],
+      "requestedPriority": 25,
+      "requestStartUptime": 1917.4992802083334,
+      "returnPriority": 25,
+      "status": 0,
+      "step": "complete",
+      "terminalReceipt": true,
+      "uptime": 1917.6849834583334,
+      "waitPriorities": [
+        25
+      ],
+      "sourceLine": 676
+    },
+    "workerClosed": [
+      {
+        "event": "spacesWorker",
+        "phase": "closed",
+        "pid": 66250,
+        "parentPID": 66240,
+        "birth": 1795846813376297,
+        "parentBirth": 1795846811610403,
+        "lifecycleNonce": "feb4ac09-e527-4d87-b1c4-3baa4766bfa9",
+        "engineDestroyed": true,
+        "pendingDrained": true,
+        "transport": 0,
+        "status": 0,
+        "detail": 0,
+        "flags": 0,
+        "owned": 0,
+        "sourceLine": 622
+      }
+    ],
+    "hostFinalShutdown": {
+      "end": 1923.4891284583334,
+      "milliseconds": 2.3371666666207602,
+      "released": true,
+      "start": 1923.4867912916668
+    },
+    "externalTwoHomeReadback": {
+      "confirmed": true,
+      "observations": [
+        {
+          "readEnd": 1923.4971069583335,
+          "readStart": 1923.4929420416668,
+          "received": 1923.49715025,
+          "uptime": 1923.49715025,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 51,
+              "onScreen": true,
+              "pid": 65259,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 53,
+              "onScreen": true,
+              "pid": 65259,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 65325,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        },
+        {
+          "readEnd": 1923.6133963333334,
+          "readStart": 1923.5928515,
+          "received": 1923.6134385833334,
+          "uptime": 1923.6134385833334,
+          "windows": [
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 51,
+              "onScreen": true,
+              "pid": 65259,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 53,
+              "onScreen": true,
+              "pid": 65259,
+              "space": 12,
+              "visibilityMatched": true
+            },
+            {
+              "framePreserved": true,
+              "frameRequired": true,
+              "home": 12,
+              "homeRequired": true,
+              "number": 54,
+              "onScreen": true,
+              "pid": 65325,
+              "space": 12,
+              "visibilityMatched": true
+            }
+          ]
+        }
+      ]
+    },
+    "productCleanup": true,
+    "fixtureCleanup": [
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      },
+      {
+        "command": "ownedWindowQuit",
+        "exit": 0
+      }
+    ],
+    "distinction": "Actual original-owner worker RELEASE185.530ms precedes final shutdown2.337ms. External two-home confirmation is independently recorded. Fixture quits are separate and do not complete the failed second switch."
+  },
+  "allRunReadCosts": {
+    "witnessMS": {
+      "durationMS": {
+        "count": 25,
+        "total": 5185.006,
+        "median": 126.967,
+        "max": 771.975
+      },
+      "openingDirectoryMS": {
+        "count": 25,
+        "total": 1458.25,
+        "median": 33.578,
+        "max": 374.391
+      },
+      "bindingMS": {
+        "count": 25,
+        "total": 773.45,
+        "median": 2.389,
+        "max": 241.619
+      },
+      "physicalWindowsMS": {
+        "count": 25,
+        "total": 1354.969,
+        "median": 41.13,
+        "max": 206.359
+      },
+      "closingDirectoryMS": {
+        "count": 25,
+        "total": 1598.375,
+        "median": 37.558,
+        "max": 234.571
+      }
+    },
+    "desktopReads": {
+      "exits": 79,
+      "completed": 79,
+      "receivedReply": 79,
+      "MS": {
+        "taskQueueMS": {
+          "count": 79,
+          "total": 274.845,
+          "median": 0.258,
+          "max": 63.456
+        },
+        "readerAwaitMS": {
+          "count": 79,
+          "total": 4334.343,
+          "median": 32.336,
+          "max": 364.477
+        },
+        "nativeDurationMS": {
+          "count": 79,
+          "total": 3636.258,
+          "median": 30.695,
+          "max": 292.441
+        },
+        "nativeBeginAfterRequestMS": {
+          "count": 79,
+          "total": 222.147,
+          "median": 0.417,
+          "max": 74.359
+        },
+        "nativeEndToReturnMS": {
+          "count": 79,
+          "total": 475.938,
+          "median": 0.504,
+          "max": 103.557
+        },
+        "groupProjectionMS": {
+          "count": 79,
+          "total": 241.577,
+          "median": 0.2,
+          "max": 50.353
+        },
+        "observeDirectoryMS": {
+          "count": 79,
+          "total": 7.831,
+          "median": 0.009,
+          "max": 6.937
+        },
+        "remainingProcessingMS": {
+          "count": 79,
+          "total": 229.743,
+          "median": 1.242,
+          "max": 31.71
+        }
+      }
+    },
+    "afterAction": {
+      "count": 52,
+      "hadPrior": 9,
+      "reusedPrior": 1,
+      "MS": {
+        "durationMS": {
+          "count": 52,
+          "total": 2753.803,
+          "median": 33.11,
+          "max": 373.745
+        },
+        "priorWaitMS": {
+          "count": 52,
+          "total": 428.836,
+          "median": 0.0,
+          "max": 249.158
+        },
+        "freshReadMS": {
+          "count": 52,
+          "total": 2324.264,
+          "median": 29.545,
+          "max": 199.75
+        }
+      }
+    },
+    "readerProcesses": {
+      "started": [
+        {
+          "event": "independentStageProduct",
+          "phase": "desktop-overview-reader-started",
+          "pid": 66245,
+          "readSession": "3211BC91-2DF9-410F-9D9B-F38103F16546",
+          "uptime": 1908.9027485000001,
+          "nativeReplies": 79,
+          "reapedInTrace": false
+        }
+      ],
+      "reaped": []
+    },
+    "dock": {
+      "polls": 42,
+      "expired": []
+    }
+  },
+  "limitations": [
+    "No exact-target GUI or release qualification.",
+    "Only two small-sequence physical latency samples; no population p50/p95 claim.",
+    "Direct engine PASS remains separate from production R4 failure.",
+    "No initial one-shot retry in this full lane; fast's retry attempt is separately reported."
+  ]
+}

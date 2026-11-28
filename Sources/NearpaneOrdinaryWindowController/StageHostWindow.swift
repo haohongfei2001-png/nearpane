@@ -109,11 +109,42 @@ import NearpaneCore
     /// Read only the returned exact PID/window identity. The complete current-Space candidate
     /// roster and its two membership samples come independently from the signed desktop reader.
     nonisolated package func role(of window: NativeSpaceWindow) throws -> Bool {
+        let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil
+        let began = tracing ? ProcessInfo.processInfo.systemUptime : 0
+        var phase = "access", completed = false, finalNumberRead = false
+        var standard: Bool?, finalNumber: UInt32?, candidateCount: Int?
+        defer {
+            if tracing && !completed {
+                let ended = ProcessInfo.processInfo.systemUptime
+                var facts: [String: Any] = ["event": "stageHostRoleReadRejected", "phase": phase,
+                    "pid": window.pid, "birth": window.birth, "window": window.number,
+                    "beganUptime": began, "uptime": ended, "durationMS": (ended - began) * 1000]
+                if let standard { facts["standard"] = standard }
+                if let candidateCount { facts["candidateCount"] = candidateCount }
+                if finalNumberRead {
+                    facts["finalNumber"] = finalNumber.map { $0 as Any } ?? NSNull()
+                    facts["finalNumberStatus"] = finalNumber == nil ? "unavailable" : "mismatch"
+                }
+                if var data = try? JSONSerialization.data(withJSONObject: facts, options: [.sortedKeys]) {
+                    data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
+                }
+            }
+        }
+        let originalDiagnostic: ((String, Int?) -> Void)? = tracing ? { stage, count in
+            phase = stage
+            if let count { candidateCount = count }
+        } : nil
         try check()
-        let (owner, bundle, element) = try Self.original(window)
+        let (owner, bundle, element) = try Self.original(window, diagnostic: originalDiagnostic)
+        phase = "role"
         let measured = try Self.role(element)
+        standard = measured
+        phase = "owner-after-role"
         try checkOwner(owner, pid: window.pid, launch: window.birth, bundle: bundle)
-        guard number(element) == window.number else { throw StageSwitchError.ownership }
+        phase = "final-number"
+        finalNumber = number(element); finalNumberRead = true
+        guard finalNumber == window.number else { throw StageSwitchError.ownership }
+        completed = true
         return measured
     }
 
@@ -148,14 +179,24 @@ import NearpaneCore
         return !modal && !full
     }
 
-    nonisolated fileprivate static func original(_ window: NativeSpaceWindow) throws -> (OrdinaryOwnerIdentity, String, AXUIElement) {
-        guard let app = NSRunningApplication(processIdentifier: window.pid), let bundle = app.bundleIdentifier else {
+    nonisolated fileprivate static func original(_ window: NativeSpaceWindow,
+        diagnostic: ((String, Int?) -> Void)? = nil) throws -> (OrdinaryOwnerIdentity, String, AXUIElement) {
+        diagnostic?("application", nil)
+        guard let app = NSRunningApplication(processIdentifier: window.pid) else {
+            throw StageSwitchError.ownership
+        }
+        diagnostic?("application-bundle", nil)
+        guard let bundle = app.bundleIdentifier else {
             throw StageSwitchError.ownership
         }
         let owner = OrdinaryOwnerIdentity()
+        diagnostic?("owner-before-list", nil)
         try checkOwner(owner, pid: window.pid, launch: window.birth, bundle: bundle)
+        diagnostic?("window-list", nil)
         let found = try windows(window.pid).filter { number($0) == window.number }
+        diagnostic?("candidate-count", found.count)
         guard found.count == 1, let element = found.first else { throw StageSwitchError.incomplete }
+        diagnostic?("owner-after-list", nil)
         try checkOwner(owner, pid: window.pid, launch: window.birth, bundle: bundle)
         return (owner, bundle, element)
     }

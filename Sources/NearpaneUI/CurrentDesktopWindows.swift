@@ -4,6 +4,15 @@ import NearpaneCore
 import NearpaneOrdinaryWindowRuntime
 import OSLog
 
+/// The publishing reader runs in a different task from the initial user action.
+/// Carry only that action's cancellation across the boundary, never its authority.
+final class InitialDirectoryReadCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+    func cancel() { lock.lock(); cancelled = true; lock.unlock() }
+    var isCancelled: Bool { lock.lock(); defer { lock.unlock() }; return cancelled }
+}
+
 /// One fast, metadata-only feed for all visible sidebar panels. The full reader
 /// serves geometry and window management independently of the window switcher.
 @MainActor @Observable final class CurrentDesktopWindows {
@@ -443,13 +452,41 @@ import OSLog
         return lifetimes.filter { key, _ in enrolled[.init(pid: key.pid, birth: key.birth, number: key.number)] != nil }
     }
     @ObservationIgnored private var epoch = UUID()
-    @ObservationIgnored private var pending: (UUID, Task<DesktopSnapshot?, Never>)?
+    private struct ReadOutcome: Sendable {
+        let snapshot: DesktopSnapshot
+        /// Travels with this exact task result even after its action has ended.
+        let stagedFor: UUID?
+    }
+    @MainActor final class InitialDirectoryStaging {
+        fileprivate let id = UUID()
+        fileprivate var registered = false
+        let cancellation = InitialDirectoryReadCancellation()
+        fileprivate let eligible: @MainActor (DesktopSnapshot) -> Bool
+        init(eligible: @escaping @MainActor (DesktopSnapshot) -> Bool) { self.eligible = eligible }
+    }
+    private struct InitialStage {
+        let token: InitialDirectoryStaging, epoch: UUID
+        let boundaryRevision: UInt64, date: Date, uptime: Double
+        var request: (id: UUID, revision: UInt64)?
+    }
+    private struct PendingRead {
+        let id: UUID, revision: UInt64
+        let task: Task<ReadOutcome?, Never>
+    }
+    @ObservationIgnored private var initialStage: InitialStage?
+    @ObservationIgnored private var pending: PendingRead?
+    @ObservationIgnored private var stageableRead: UUID?
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var events: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var reportedCounts: [Int]?
     @ObservationIgnored weak var automaticTiling: DesktopAutomaticTiling?
     @ObservationIgnored var didSample: (() -> Void)?
     @ObservationIgnored var didBeginAfterActionRead: ((Date, TimeInterval) -> Void)?
+    /// Deterministic test barrier for a late event-loop consumer of a shared read.
+    @ObservationIgnored var beforePublishingRead: (@MainActor (UInt64?) async -> Void)?
+    @ObservationIgnored var didFinishPublishingRead: ((UInt64?) -> Void)?
+    @ObservationIgnored var didJoinPendingRead: ((UInt64) -> Void)?
+    @ObservationIgnored var beforeFreshAfterActionRead: (@MainActor () async -> Void)?
     private var panelRequested = false
     private var managementRequested = false
     private var stageOwnershipObserved = false
@@ -481,7 +518,9 @@ import OSLog
             ["reason": reason, "keepsOriginals": preservingOriginalWindows, "panelRequested": panelRequested])
         if !preservingOriginalWindows { sidebarWindows = .init() }
         epoch = UUID()
-        pending?.1.cancel()
+        initialStage = nil
+        stageableRead = nil
+        pending?.task.cancel()
         pending = nil
         snapshot = nil
         nativeFullscreenSeen = false
@@ -578,8 +617,16 @@ import OSLog
             for await _ in stream {
                 guard !Task.isCancelled, let self else { return }
                 let expected = epoch
-                let next = await readNow()
+                let outcome = await readOutcome()
+                defer { didFinishPublishingRead?(outcome?.snapshot.revision) }
+                if let beforePublishingRead { await beforePublishingRead(outcome?.snapshot.revision) }
                 guard !Task.isCancelled, expected == epoch else { continue }
+                if let outcome, let token = outcome.stagedFor {
+                    IndependentStageTrace.record("desktop-read-publication-staged", ["revision": outcome.snapshot.revision,
+                                                                                     "token": token.uuidString])
+                    continue
+                }
+                let next = outcome?.snapshot
                 snapshot = next
                 if next?.native?.windowLimitReached == false || !sessionAvailable() { departingPictures = nil }
                 stageEngine.observeEnvironment(next)
@@ -640,12 +687,20 @@ import OSLog
     }
 
     /// A gesture cannot use a coalesced inventory that started before its input or before its AX write.
-    func readAfterAction() async -> DesktopSnapshot? {
+    func readAfterAction(staging: InitialDirectoryStaging? = nil) async -> DesktopSnapshot? {
         let boundary = revision, expected = epoch, afterDate = Date(), started = ProcessInfo.processInfo.systemUptime
+        var registeredStaging: InitialDirectoryStaging?
+        if let staging, !staging.registered, initialStage == nil {
+            staging.registered = true
+            registeredStaging = staging
+            initialStage = .init(token: staging, epoch: expected, boundaryRevision: boundary,
+                                 date: afterDate, uptime: started)
+        }
         var priorMS: Double = 0, freshMS: Double = 0, receivedRevision: UInt64 = 0
         var step = "waiting-prior", completed = false, hadPrior = false, reusedPrior = false
         var priorResult: DesktopSnapshot?
         defer {
+            if let registeredStaging, initialStage?.token.id == registeredStaging.id { initialStage = nil }
             var facts: [String: Any] = ["step": step, "completed": completed,
                 "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000,
                 "priorWaitMS": priorMS, "freshReadMS": freshMS, "hadPrior": hadPrior,
@@ -663,9 +718,9 @@ import OSLog
         if let prior = pending {
             hadPrior = true
             let began = ProcessInfo.processInfo.systemUptime
-            priorResult = await prior.1.value
+            priorResult = (await prior.task.value)?.snapshot
             priorMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
-            if pending?.0 == prior.0 { pending = nil }
+            if pending?.id == prior.id { pending = nil }
         }
         step = "epoch-after-prior"
         guard epoch == expected else { return nil }
@@ -694,8 +749,9 @@ import OSLog
             }
         }
         step = "fresh-read"
+        if let beforeFreshAfterActionRead { await beforeFreshAfterActionRead() }
         let began = ProcessInfo.processInfo.systemUptime
-        let result = await readNow()
+        let result = (await readOutcome(staging: registeredStaging))?.snapshot
         freshMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
         step = "fresh-read-unavailable"
         guard let fresh = result else { return nil }
@@ -709,6 +765,10 @@ import OSLog
     }
 
     func readNow() async -> DesktopSnapshot? {
+        (await readOutcome())?.snapshot
+    }
+
+    private func readOutcome(staging: InitialDirectoryStaging? = nil) async -> ReadOutcome? {
         guard events != nil, sessionAvailable() else {
             departingPictures = nil
             boundSidebarPair?.revoke(.feedInvalidated)
@@ -717,16 +777,29 @@ import OSLog
             return nil
         }
         let expected = epoch
+        func bindInitialStage(to id: UUID, revision: UInt64) {
+            guard let staging, var stage = initialStage, stage.token.id == staging.id, stage.epoch == expected,
+                  stage.request == nil, stageableRead == id, revision > stage.boundaryRevision else { return }
+            stage.request = (id, revision)
+            initialStage = stage
+        }
         if let pending {
-            let result = await pending.1.value
+            bindInitialStage(to: pending.id, revision: pending.revision)
+            didJoinPendingRead?(pending.revision)
+            let result = await pending.task.value
             return expected == epoch ? result : nil
         }
         revision &+= 1
+        let token = UUID()
+        stageableRead = token
+        // Only the action's actual fresh-read call can bind its shared request.
+        // A background read completed while it waits for a prior read cannot.
+        bindInitialStage(to: token, revision: revision)
         let audit = windowAudit?.sample(feed: session, epoch: epoch, revision: revision)
         let request = DesktopReadRequest(session: session, revision: revision, parentPID: getpid(),
             fixtureWindows: nil, anchors: [], experimentalSpaces: false, sidebarAuditWindows: audit?.targets)
         let taskCreated = ProcessInfo.processInfo.systemUptime
-        let task = Task { [read, weak self] () -> DesktopSnapshot? in
+        let task = Task { [read, weak self] () -> ReadOutcome? in
             let taskStarted = ProcessInfo.processInfo.systemUptime
             IndependentStageTrace.record("desktop-read-task-started", ["readSession": request.session.uuidString,
                 "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
@@ -736,6 +809,7 @@ import OSLog
             var nativeTiming = [String: Double]()
             var incompleteCatalogFacts: [String: Any]?
             defer {
+                if self?.stageableRead == token { self?.stageableRead = nil }
                 let totalMS = (ProcessInfo.processInfo.systemUptime - taskStarted) * 1000
                 var fields: [String: Any] = ["readSession": request.session.uuidString, "requestRevision": request.revision,
                     "step": step, "completed": completed, "receivedReply": receivedReply,
@@ -795,6 +869,21 @@ import OSLog
                 }
                 return nil
             }
+            // Only an already validated, genuinely later sample may be staged.
+            // Return the unmodified failure to the original helper before any
+            // lifetime, group, history or environment publication can consume it.
+            let stageIsOpen = self.stageableRead == token
+            if stageIsOpen { self.stageableRead = nil }
+            if stageIsOpen, let stage = self.initialStage, stage.epoch == expected,
+               stage.request?.id == token, stage.request?.revision == request.revision,
+               result.revision > stage.boundaryRevision, result.native?.catalogComplete == false,
+               result.sampledFrom > stage.date, let native = result.native, native.beganUptime > stage.uptime,
+               !stage.token.cancellation.isCancelled, stage.token.eligible(result), !stage.token.cancellation.isCancelled {
+                step = "initial-directory-staged"; completed = true
+                IndependentStageTrace.record("initial-directory-staged", ["revision": result.revision,
+                    "boundaryRevision": stage.boundaryRevision, "token": stage.token.id.uuidString])
+                return .init(snapshot: result, stagedFor: stage.token.id)
+            }
             self.boundSidebarPair?.observe(result)
             audit?.snapshot(result, stage: "reader")
             self.pendingAudit = audit
@@ -805,7 +894,7 @@ import OSLog
                 if self.departingPictures?.retainAcrossCappedInventory(result) != true { self.departingPictures = nil }
                 self.lifetimes.removeAll()
                 step = "capped-inventory"; completed = true
-                return result
+                return .init(snapshot: result, stagedFor: nil)
             }
             let ordinaryObservation = NativeSidebarNavigation.shared.canSwitch || self.readSidebarWindows != nil
             var diagnosticTargets: Set<NativeSidebarWindowLocation>?
@@ -876,16 +965,15 @@ import OSLog
                 }
             }
             step = "complete"; completed = true
-            return result
+            return .init(snapshot: result, stagedFor: nil)
         }
-        let token = UUID()
-        pending = (token, task)
+        pending = .init(id: token, revision: request.revision, task: task)
         IndependentStageTrace.record("desktop-read-task-created", ["readSession": request.session.uuidString,
             "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
             "creatorPriority": Task.currentPriority.rawValue,
             "dispatching": NativeSidebarNavigation.shared.isDispatching])
         let result = await task.value
-        if pending?.0 == token { pending = nil }
+        if pending?.id == token { pending = nil }
         return expected == epoch ? result : nil
     }
 

@@ -1,0 +1,278 @@
+{
+  "schema": 1,
+  "revision": "987215dcbc79f1b50e22ceed1fc707b526acf3df",
+  "runID": 46115081664,
+  "members": [
+    {
+      "path": "9872/fast/independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "5c251106e82950df8d223e290c5083e61428f1dac7bd679b04ff437986ef60cb"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "d2eb72d5eb971b1dda9c7bff75e4a75efd87523f94b25a89b19558382e5f9071"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "bff854d4404f944676ad2f735a3a65494da9b5f901502f17275b9235bd93e9e7"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "d9fac2419b1d0b7feb26b48a17d2c302ddc571b4955754d26b7902c67e13525b"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 343314,
+      "sha256": "24c2670fa33c62a3ef182ec3c76db82211b1cff3d6be818271237655d7ac7522"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "cf23dc48b0cc877dd6e6704cf7c324e0c321af1576b8aee74aa04a359b530b02"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/product-result.json",
+      "bytes": 21669,
+      "sha256": "de2d769964f13dbb9c9f11854e52a006df79642efcaa594b6a96596c485b88f9"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-87921703-6c58-4167-816b-053f1007dbea.json",
+      "bytes": 1085,
+      "sha256": "ef020936db49257827157751d5d3d5aeb5eced0ff7fa536ada2518002c3b2a1b"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-135ac7db-9566-44cd-b686-6e797571082d.jsonl",
+      "bytes": 570,
+      "sha256": "9cd2c930ff751d64ee95533036c54218270c1a6e3e10cbd5594123a3e702c766"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1033,
+      "sha256": "bd38820f0afccd14a2976850a6fd81f3e9f516c6f073f17a8061b04f5b70801d"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/profile/Nearpane/stage-visibility-v1.json",
+      "bytes": 24,
+      "sha256": "1849ad4d95f16317a2d717332e125b5a763e6bb5d554ae270d965198183b5acf"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product/r4-press-4c7b4345-e651-4d1d-b5c0-5ddae4143444.result.json",
+      "bytes": 3682,
+      "sha256": "830a7b17bd22f676088028d5743d021696a0afebba0cc23c9c7d9233a73c241b"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/product.stderr.log",
+      "bytes": 71639,
+      "sha256": "dbcc5d509c6448e25b1ef7195628d80666f681f972c1654a34ad9968a2c7daa9"
+    },
+    {
+      "path": "9872/fast/independent-runtime/runtime/summary.json",
+      "bytes": 29671,
+      "sha256": "b686ffc22f79e59698b897f4c73ea206b4775b6705c1ada11572d71c9e775a02"
+    },
+    {
+      "path": "9872/fast/independent-runtime/summary.json",
+      "bytes": 32195,
+      "sha256": "67a17755ccf8a8fc11b7b91a7f344a6d107c1d6d174f005199251fd76527a7e9"
+    },
+    {
+      "path": "9872/full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "119a86b33893546bc53b1a9a4a0bf346fec671b9f04a26f601fbd3296f5ab21e"
+    },
+    {
+      "path": "9872/full/Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "c311f6c72b7fe5039f8e5141c7452d59417c6d8192065c3f8fe5c23ebd1cae8b"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "4457872318142ec882e2623b813e439e0c2954a4980bcc988a87f5048417a53b"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "a1104fe82f2264c7956493dcee572032f61d90919788141e338b99e0dec9b6cf"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "8fed7e123d311bdac755909330eec62d0f6f85630e81f19219adbb5a51e90cb8"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "e9ccc19f31f64250c322cf75a7d6f3dbb00ab465ff010d335c0eb9ec5754429a"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 349338,
+      "sha256": "507ac5ebc21a47349b46946b0770cbaa448c3410d0420b850d384f450df3559c"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "c6b7a741a3ef027376611e40a1e897f20a8fb417597633381839aac2ef18b3c7"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/product-result.json",
+      "bytes": 27602,
+      "sha256": "e65b9a8e2ff19ecfeb0aac0669618d6d2e9c89639a72d06ff877ec9502b3b64e"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-96adac81-2ce7-43f3-88e5-262ad042ccbb.json",
+      "bytes": 1085,
+      "sha256": "984e23421b75757750021427adbc4cf03ceae6a30e58aa05d7efdc404462c06a"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-feb4ac09-e527-4d87-b1c4-3baa4766bfa9.jsonl",
+      "bytes": 189463,
+      "sha256": "31c779811649f811682b06d26c6cfdc8c0a7531ce0e6ad32ebe723d8a0cf40fe"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1089,
+      "sha256": "60839ef16742b759c610707f528cd5656f2f10b48f5ae8274d587296ab871233"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/profile/Nearpane/stage-visibility-v1.json",
+      "bytes": 24,
+      "sha256": "1849ad4d95f16317a2d717332e125b5a763e6bb5d554ae270d965198183b5acf"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/r4-press-69e82fd6-602f-4eac-ae26-5b33d9aae93a.result.json",
+      "bytes": 3774,
+      "sha256": "3b146c72784a1344a42155295c8439da3ea1b221be0a73d412d0604ba5f87cb4"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/r4-press-7fe82f3e-8b9a-4655-9da7-18a10fa53deb.result.json",
+      "bytes": 3818,
+      "sha256": "1c9dcea51346227916833fd368a2e1b02f07279df05e57e64f1c9ba142b1db60"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product/r4-press-b36a5472-4f26-4f6b-b12b-662ee450692f.result.json",
+      "bytes": 3682,
+      "sha256": "9806313fe7b6da7d16294b2dec150066801509d85c9b7f072085eee06f69d427"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/product.stderr.log",
+      "bytes": 291256,
+      "sha256": "9ed1eff40a2cca4e858cbaa9c72be3bf3ffccc5fdbcdc3a74d0e991b9607a502"
+    },
+    {
+      "path": "9872/full/independent-runtime/runtime/summary.json",
+      "bytes": 35843,
+      "sha256": "aa9932d6e91db27e3ffa004b97a7b5e51d5d63a61d00c70046637a919e1e7a89"
+    },
+    {
+      "path": "9872/full/independent-runtime/summary.json",
+      "bytes": 38740,
+      "sha256": "da8274a3c74d800e2a48e1da642421f70ce742b603b8ed21f95a5b17cb6df0ee"
+    },
+    {
+      "path": "9872/full/independent-source/source/binding-attributes-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "9872/full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    },
+    {
+      "path": "9872/full/independent-source/source/read-only-context.json",
+      "bytes": 114,
+      "sha256": "9bff68b8484e6126080177e997b6d45b4f424314e5c2b2b542f49b132bacef8c"
+    },
+    {
+      "path": "9872/full/independent-source/source/rust.log",
+      "bytes": 17086,
+      "sha256": "3eb43a35910ae39c299407cff47eef383e6716a070c85e02f99345ad8652c3cd"
+    },
+    {
+      "path": "9872/full/independent-source/source/summary.json",
+      "bytes": 1921,
+      "sha256": "f2f2a8bd575b5813ef6ab4c4f2fba119a5c4dc537d9d19144a27af6f085667d6"
+    },
+    {
+      "path": "9872/full/independent-source/source/swift.log",
+      "bytes": 72997,
+      "sha256": "32876b99b6edec53d6be9da876f310d2bb4a0245791724f7f7d102e43ec40648"
+    },
+    {
+      "path": "9872/full/independent-source/source/swift.stderr.log",
+      "bytes": 239097,
+      "sha256": "086a3858e645e7d142b9214e4ff63281399a76ca3d2820883fc60529e7874196"
+    },
+    {
+      "path": "9872/full/independent-source/source/swift.xml",
+      "bytes": 42923,
+      "sha256": "5e506cc8c5fb71dc75076db9aa1f62212d7a9e4af347cff66ca49c46fa740234"
+    },
+    {
+      "path": "9872/full/independent-source/source/windowserver-context.json",
+      "bytes": 1990,
+      "sha256": "9b1fa3b683112a1920e501f37d1dee9e1b6f5701b671b0a1111f392d8cdf5b70"
+    }
+  ],
+  "archive": {
+    "path": "/workspace/scratch/519883d1dfd8/r4-audit/9872/runtime-traces-9872.tar.gz",
+    "bytes": 196948,
+    "sha256": "20440b4c578773e076cbfbe025227a8a927e524f419707a9d3e1d19a363892c3",
+    "memberCount": 53
+  }
+}

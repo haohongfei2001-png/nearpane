@@ -181,3 +181,350 @@ import Testing
         #expect(reads == 1)
     }
 }
+
+/// Each suspension is released by an observed request/publication, never a sleep.
+@MainActor private final class InitialDirectoryLatch {
+    private let signal = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+    private var opened = false
+    func wait() async {
+        guard !opened else { return }
+        var values = signal.stream.makeAsyncIterator()
+        _ = await values.next()
+    }
+    func open() { opened = true; signal.continuation.yield(()); signal.continuation.finish() }
+}
+
+@MainActor private final class InitialDirectoryRace {
+    let fixture = StageHostGroupProjectionTests()
+    private let changes = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+    private var replies = [UInt64: AsyncStream<DesktopSnapshot>.Continuation]()
+    private var requests = [UInt64: DesktopReadRequest]()
+    private var actions = [Task<DesktopSnapshot?, Never>]()
+    private var latches = [InitialDirectoryLatch]()
+    private var closed = false
+    var baseline: DesktopSnapshot?
+    private var authorizedLifetimes = [DesktopWindowKey: UUID]()
+    var current = true
+    var state = StageWindowEngineWitness.InitialReadState()
+    var eligibilityChecks = 0
+    var duringEligibility: (() -> Void)?
+    var joined = Set<UInt64>(), publishing = Set<UInt64>(), finishedPublishing = Set<UInt64>()
+    var published = [UInt64]()
+    var publicationHolds = [UInt64: InitialDirectoryLatch]()
+    var first: DesktopSnapshot?, firstReturned = false, actionFinished = false
+    var retries = 0
+    var boundaries = [(revision: UInt64, date: Date)]()
+    var failure: Error?
+    lazy var feed = CurrentDesktopWindows(read: { [weak self] request in
+        guard let self else { throw ReaderFailure.unavailable }
+        return try await self.read(request)
+    }, sessionAvailable: { true }, fingerprint: { nil })
+
+    var scope: StageGroupScope { .init(display: UUID(uuidString: fixture.display)!, nativeSpace: fixture.space) }
+    var authorized: Set<NativeSpaceWindow> {
+        Set([UInt32(53), 55, 56].map { .init(pid: 614, birth: 3400, number: $0) })
+    }
+    func key(_ number: UInt32) -> DesktopWindowKey { .init(pid: 614, birth: 3400, number: number) }
+    func signal() { changes.continuation.yield(()) }
+    func latch() -> InitialDirectoryLatch {
+        let result = InitialDirectoryLatch(); latches.append(result); return result
+    }
+    func until(_ predicate: () -> Bool) async throws {
+        var events = changes.stream.makeAsyncIterator()
+        while !predicate() {
+            guard await events.next() != nil else { throw ReaderFailure.unavailable }
+        }
+    }
+    private func read(_ request: DesktopReadRequest) async throws -> DesktopSnapshot {
+        guard !closed else { throw ReaderFailure.unavailable }
+        let response = AsyncStream<DesktopSnapshot>.makeStream()
+        requests[request.revision] = request; replies[request.revision] = response.continuation
+        signal()
+        var values = response.stream.makeAsyncIterator()
+        guard let value = await values.next() else { throw ReaderFailure.unavailable }
+        return value
+    }
+    func nextRequest(after revision: UInt64) async throws -> DesktopReadRequest {
+        try await until { replies.keys.contains { $0 > revision } }
+        return try #require(replies.keys.filter { $0 > revision }.min().flatMap { requests[$0] })
+    }
+    func freshRequest(boundary index: Int) async throws -> DesktopReadRequest {
+        try await until { boundaries.count > index }
+        let boundary = boundaries[index]
+        while true {
+            let request = try await nextRequest(after: 0)
+            if request.revision > boundary.revision { return request }
+            // A periodic observation may already be queued on a loaded runner.
+            // Explicitly drain it at the wall-clock boundary, which cannot
+            // satisfy the action's strictly-later reuse rule, preserving its rows.
+            var prior = sample(request, complete: true)
+            prior.sampledFrom = boundary.date
+            deliver(prior)
+        }
+    }
+    func sample(_ request: DesktopReadRequest, complete: Bool, numbers: [UInt32]? = nil,
+                issues: [String]? = nil) -> DesktopSnapshot {
+        // 90 is an existing bystander; 88 appears only in the failed inventory.
+        // An accidental producer-side mutation is visible even before publication.
+        let numbers = numbers ?? (complete ? [53, 55, 56, 90] : [53, 55, 56, 88])
+        let windows = numbers.enumerated().map { rank, number in
+            var window = fixture.window(number, rank: rank)
+            window.metadata?.minimized = false; window.metadata?.fullScreen = false
+            window.metadata?.overviewOrdinaryRole = true
+            return window
+        }
+        var sample = fixture.snapshot(windows, complete: complete, request: request, accessibility: .partial)
+        sample.native?.catalogIssues = issues ?? (complete ? nil : ["windowRosterChanged", "windowIdentityOrBounds:pid=614,window=86"])
+        return sample
+    }
+    func deliver(_ sample: DesktopSnapshot) {
+        let reply = replies.removeValue(forKey: sample.revision)
+        reply?.yield(sample); reply?.finish()
+    }
+    @discardableResult
+    func answer(_ request: DesktopReadRequest, complete: Bool, numbers: [UInt32]? = nil,
+                issues: [String]? = nil) -> DesktopSnapshot {
+        let sample = self.sample(request, complete: complete, numbers: numbers, issues: issues)
+        deliver(sample)
+        return sample
+    }
+    func start() async throws {
+        feed.didSample = { [weak self] in
+            guard let self else { return }
+            if let revision = feed.snapshot?.revision { published.append(revision) }
+            signal()
+        }
+        feed.didBeginAfterActionRead = { [weak self] date, _ in
+            guard let self else { return }
+            boundaries.append((feed.revision, date)); signal()
+        }
+        feed.didJoinPendingRead = { [weak self] revision in self?.joined.insert(revision); self?.signal() }
+        feed.beforePublishingRead = { [weak self] revision in
+            guard let self, let revision else { return }
+            publishing.insert(revision); signal()
+            if let hold = publicationHolds[revision] { await hold.wait() }
+        }
+        feed.didFinishPublishingRead = { [weak self] revision in
+            if let revision { self?.finishedPublishing.insert(revision) }
+            self?.signal()
+        }
+        feed.observe(true)
+        let seed = try await nextRequest(after: 0)
+        answer(seed, complete: true)
+        try await until { published.contains(seed.revision) }
+        baseline = try #require(feed.snapshot)
+        for window in authorized {
+            let key = self.key(window.number)
+            authorizedLifetimes[key] = try #require(feed.groupLifetime(of: key))
+        }
+    }
+    private var selectionCurrent: Bool {
+        current && authorizedLifetimes.allSatisfy { feed.groupLifetime(of: $0.key) == $0.value }
+    }
+    func staging() -> CurrentDesktopWindows.InitialDirectoryStaging {
+        .init { [weak self] sample in
+            guard let self, let baseline, selectionCurrent,
+                  StageWindowEngineWitness.initialOpeningCandidate(sample, display: fixture.display, scope: scope,
+                    session: baseline.sessionID, topology: baseline.topologyFingerprint, authorized: authorized,
+                    state: state, clock: { (.now, ProcessInfo.processInfo.systemUptime) }) != nil else { return false }
+            eligibilityChecks += 1
+            duringEligibility?()
+            return true
+        }
+    }
+    func action(_ token: CurrentDesktopWindows.InitialDirectoryStaging, retry: Bool = false,
+                afterFirst: InitialDirectoryLatch? = nil) -> Task<DesktopSnapshot?, Never> {
+        first = nil; firstReturned = false; actionFinished = false; failure = nil
+        let action = Task {
+            let cancellation = token.cancellation
+            let read = await withTaskCancellationHandler {
+                await feed.readAfterAction(staging: token)
+            } onCancel: { cancellation.cancel() }
+            first = read; firstReturned = true; signal()
+            if let afterFirst { await afterFirst.wait() }
+            var result = read
+            if retry, let read, let baseline {
+                do {
+                    result = try await StageWindowEngineWitness.initialOpeningDirectory(read, display: fixture.display,
+                        scope: scope, session: baseline.sessionID, topology: baseline.topologyFingerprint,
+                        authorized: authorized, state: { self.state }, current: { self.selectionCurrent },
+                        read: { await self.feed.readAfterAction() }, retrying: { self.retries += 1 })
+                } catch { failure = error; result = nil }
+            }
+            actionFinished = true; signal()
+            return result
+        }
+        actions.append(action)
+        return action
+    }
+    func close() {
+        closed = true; duringEligibility = nil
+        feed.beforeFreshAfterActionRead = nil
+        for action in actions { action.cancel() }
+        for latch in latches { latch.open() }
+        for reply in replies.values { reply.finish() }
+        feed.observe(false)
+        changes.continuation.finish()
+    }
+}
+
+@MainActor struct StageHostInitialDirectoryStagingTests {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func sharedPendingFailureCannotMutateOrReplayOverTheFreshDirectory(latePublisher: Bool) async throws {
+        let race = InitialDirectoryRace()
+        defer { race.close() }
+        try await race.start()
+        let originalDirectory = race.feed.groups.directory
+        let bystander = try #require(race.feed.lifetime(of: race.key(90)))
+        let foreground = race.latch(), publisher = race.latch()
+        let action = race.action(race.staging(), retry: true, afterFirst: foreground)
+        let first = try await race.freshRequest(boundary: 0)
+        if latePublisher { race.publicationHolds[first.revision] = publisher }
+        race.feed.changed()
+        try await race.until { race.joined.contains(first.revision) }
+        let beforeFailure = try #require(race.feed.snapshot)
+        let failed = race.answer(first, complete: false)
+        try await race.until { race.firstReturned && race.publishing.contains(first.revision) }
+        if !latePublisher { try await race.until { race.finishedPublishing.contains(first.revision) } }
+        #expect(race.first == failed && failed.native?.catalogComplete == false)
+        #expect(race.feed.snapshot == beforeFailure && race.feed.lifetime(of: race.key(90)) == bystander)
+        #expect(race.feed.lifetime(of: race.key(88)) == nil && race.feed.groups.directory == originalDirectory)
+        #expect(!race.published.contains(first.revision) && race.eligibilityChecks == 1)
+
+        foreground.open()
+        let second = try await race.freshRequest(boundary: 1)
+        let fresh = race.answer(second, complete: true, numbers: [53, 55, 56, 90, 99])
+        let result = try #require(await action.value)
+        #expect(result == fresh && result.revision > failed.revision && race.retries == 1 && race.failure == nil)
+        let newestLifetime = try #require(race.feed.lifetime(of: race.key(99)))
+        let newestDirectory = race.feed.groups.directory
+        #expect(newestDirectory != originalDirectory)
+        // This late consumer holds the immutable failed outcome after the
+        // action token ended and a newer producer has updated groups/lifetimes.
+        publisher.open()
+        try await race.until { race.finishedPublishing.contains(first.revision) }
+        #expect(!race.published.contains(first.revision) && race.feed.snapshot?.revision != first.revision)
+        #expect(race.feed.lifetime(of: race.key(99)) == newestLifetime && race.feed.groups.directory == newestDirectory)
+        #expect(race.feed.lifetime(of: race.key(90)) == bystander && race.feed.lifetime(of: race.key(88)) == nil)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func aTokenCannotProtectAnotherFailureAfterItsFirstCompleteOrStagedRead(firstComplete: Bool) async throws {
+        let race = InitialDirectoryRace()
+        defer { race.close() }
+        try await race.start()
+        let token = race.staging()
+        let firstAction = race.action(token)
+        let first = try await race.freshRequest(boundary: 0)
+        race.feed.changed()
+        try await race.until { race.joined.contains(first.revision) }
+        let beforeFirst = try #require(race.feed.snapshot)
+        race.answer(first, complete: firstComplete)
+        _ = await firstAction.value
+        try await race.until { race.finishedPublishing.contains(first.revision) }
+        #expect(race.feed.snapshot?.revision == (firstComplete ? first.revision : beforeFirst.revision))
+        #expect(race.feed.lifetime(of: race.key(90)) != nil && race.feed.lifetime(of: race.key(88)) == nil)
+
+        let secondAction = race.action(token)
+        let second = try await race.freshRequest(boundary: 1)
+        race.feed.changed()
+        try await race.until { race.joined.contains(second.revision) }
+        let bad = race.answer(second, complete: false)
+        #expect(await secondAction.value == bad)
+        try await race.until { race.finishedPublishing.contains(second.revision) }
+        #expect(race.feed.snapshot == bad && race.feed.lifetime(of: race.key(90)) == nil)
+        #expect(race.feed.lifetime(of: race.key(88)) != nil)
+        #expect(race.feed.groups.directory.displays.flatMap(\.groups).flatMap(\.members).contains { $0.windowHint.number == 88 })
+        #expect(race.eligibilityChecks == (firstComplete ? 0 : 1))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aBackgroundRequestWhileTheActionDrainsItsPriorReadCannotClaimTheActionToken() async throws {
+        let race = InitialDirectoryRace()
+        defer { race.close() }
+        try await race.start()
+        let baseline = try #require(race.baseline)
+        race.feed.changed()
+        let prior = try await race.nextRequest(after: baseline.revision)
+        // This genuine sample precedes the input, so the action must drain the
+        // prior task and enter its own fresh-read path instead of reusing it.
+        let beforeInput = race.sample(prior, complete: true)
+        let freshEntry = race.latch()
+        var reachedFreshEntry = false
+        race.feed.beforeFreshAfterActionRead = {
+            reachedFreshEntry = true; race.signal(); await freshEntry.wait()
+        }
+        let action = race.action(race.staging())
+        try await race.until { race.boundaries.count == 1 }
+        race.deliver(beforeInput)
+        try await race.until { reachedFreshEntry && race.finishedPublishing.contains(prior.revision) }
+
+        // The observation loop completes a different request while the action
+        // has an active registration but has not bound its actual fresh task.
+        race.feed.changed()
+        let unrelated = try await race.nextRequest(after: prior.revision)
+        let bad = race.answer(unrelated, complete: false)
+        try await race.until { race.finishedPublishing.contains(unrelated.revision) }
+        #expect(race.feed.snapshot == bad && race.eligibilityChecks == 0)
+        #expect(race.feed.lifetime(of: race.key(90)) == nil && race.feed.lifetime(of: race.key(88)) != nil)
+
+        freshEntry.open()
+        let own = try await race.freshRequest(boundary: 0)
+        let complete = race.answer(own, complete: true)
+        #expect(await action.value == complete && own.revision > unrelated.revision)
+        #expect(race.first?.revision == own.revision && race.eligibilityChecks == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: ["cancelledBeforeReply", "cancelledDuringEligibility", "intent", "bindings"])
+    func cancellationOrLostInitialAuthorityPublishesTheFailureNormally(_ change: String) async throws {
+        let race = InitialDirectoryRace()
+        defer { race.close() }
+        try await race.start()
+        let token = race.staging()
+        let action = race.action(token)
+        let request = try await race.freshRequest(boundary: 0)
+        race.feed.changed()
+        try await race.until { race.joined.contains(request.revision) }
+        switch change {
+        case "cancelledBeforeReply": action.cancel()
+        case "cancelledDuringEligibility": race.duringEligibility = { action.cancel() }
+        case "intent": race.current = false
+        default: race.state.bindings = 1
+        }
+        let bad = race.answer(request, complete: false)
+        _ = await action.value
+        try await race.until { race.finishedPublishing.contains(request.revision) }
+        // Cancellation does not rewrite the existing API's raw return value;
+        // the original action's later current/permit guards remain mandatory.
+        #expect(race.feed.snapshot == bad && race.feed.lifetime(of: race.key(90)) == nil)
+        #expect(race.feed.lifetime(of: race.key(88)) != nil)
+        #expect(race.eligibilityChecks == (change == "cancelledDuringEligibility" ? 1 : 0))
+        if change.hasPrefix("cancelled") { #expect(token.cancellation.isCancelled) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func theActualSingleRetryPublishesAndRejectsASecondIncompleteDirectory() async throws {
+        let race = InitialDirectoryRace()
+        defer { race.close() }
+        try await race.start()
+        let foreground = race.latch()
+        let action = race.action(race.staging(), retry: true, afterFirst: foreground)
+        let first = try await race.freshRequest(boundary: 0)
+        race.feed.changed()
+        try await race.until { race.joined.contains(first.revision) }
+        let beforeFailure = try #require(race.feed.snapshot)
+        race.answer(first, complete: false)
+        try await race.until { race.firstReturned && race.finishedPublishing.contains(first.revision) }
+        #expect(race.feed.snapshot == beforeFailure)
+        foreground.open()
+        let retry = try await race.freshRequest(boundary: 1)
+        race.feed.changed()
+        try await race.until { race.joined.contains(retry.revision) }
+        let stillBad = race.answer(retry, complete: false)
+        #expect(await action.value == nil)
+        try await race.until { race.finishedPublishing.contains(retry.revision) }
+        #expect(race.retries == 1 && race.failure as? StageSwitchError == .incomplete)
+        #expect(race.feed.snapshot == stillBad && race.feed.lifetime(of: race.key(90)) == nil)
+        #expect(!race.published.contains(first.revision) && race.published.contains(retry.revision))
+    }
+}
