@@ -155,18 +155,25 @@ import NearpaneUI
                       "Fresh Nearpane profile has no note or task and requires no additional setup.")
             try await capture(sidebar, "01-idle")
             try await press("quick-notes-start", in: sidebar, name: "idle-entry-starts-editing")
-            let firstBody = "把沿途想到的句子留在这里。\n明天继续整理 Nearpane 的交互。"
+            var firstBody = "把沿途想到的句子留在这里。\n明天继续整理 Nearpane 的交互。"
             try await type(firstBody, id: "quick-notes-editor", in: sidebar, name: "first-note-multiline-input")
             guard let first = state().activeRecordID else { throw Failure("First record has no identity.") }
             try saved("first-note-autosaved")
             try await capture(sidebar, "02-editing")
 
+            let composition = try UnifiedWorkbenchAcceptance.beginMarkedText("留住灵感", identifier: "quick-notes-editor",
+                                                                              in: sidebar, diagnostics: output)
+            try check("native-composition-started", composition,
+                      "The production NSTextView displays marked Chinese text; this does not claim a real system input-method session.",
+                      kind: "native-text-input-client-composition")
+            firstBody += "留住灵感"
+
             try await press("quick-notes-new", in: sidebar, name: "new-note-keeps-previous")
             guard let converted = state().activeRecordID, converted != first else { throw Failure("New note reused the old identity.") }
             let taskBody = "把今天想到的交互细节画下来"
             try await type(taskBody, id: "quick-notes-editor", in: sidebar, name: "second-note-input")
-            try check("prior-note-retained", record(first)?.body == firstBody,
-                      "New-note action archived the first body without replacing it.")
+            try check("prior-note-and-marked-text-retained", record(first)?.body == firstBody && record(converted)?.body == taskBody,
+                      "New-note action retained the old editor's visible composed text on its original identity; the next note kept its own body.")
             try await press("quick-notes-convert-to-task", in: sidebar, name: "note-to-task-native-action")
             try check("conversion-retains-identity", record(converted)?.kind == "task" && record(converted)?.body == taskBody &&
                       state().records.filter { $0.id == converted }.count == 1,

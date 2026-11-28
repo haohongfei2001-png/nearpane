@@ -597,6 +597,17 @@ enum UnifiedWorkbenchAcceptance {
         let point = editor.convert(NSPoint(x: visible.midX, y: visible.midY), to: nil)
         let shown = window.isVisible && !editor.isHiddenOrHasHiddenAncestor && visible.width > 1 && visible.height > 1
         diagnostic["nativeEditorVisible"] = shown
+        var receivedMouseDown = false
+        let monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            MainActor.assumeIsolated {
+                if event.window === window, let content = window.contentView,
+                   let hit = content.hitTest(content.convert(event.locationInWindow, from: nil)) {
+                    receivedMouseDown = hit === editor || hit.isDescendant(of: editor)
+                }
+            }
+            return event
+        }
+        defer { if let monitor { NSEvent.removeMonitor(monitor) } }
         if shown {
             window.orderFront(nil)
             for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
@@ -609,17 +620,49 @@ enum UnifiedWorkbenchAcceptance {
             try await Task.sleep(for: .milliseconds(200))
         }
         let focused = window.firstResponder === editor
-        diagnostic["mouseFocusedEditor"] = focused
-        if shown && focused {
+        diagnostic["editorFocusedAfterMouseDispatch"] = focused
+        diagnostic["nativeMouseDownHitEditor"] = receivedMouseDown
+        if shown && focused && receivedMouseDown {
             editor.insertText(text, replacementRange: NSRange(location: 0, length: editor.string.utf16.count))
             try await Task.sleep(for: .milliseconds(180))
         }
-        let succeeded = shown && focused && editor.string == text
+        let succeeded = shown && focused && receivedMouseDown && editor.string == text
         diagnostic["nativeTextMatches"] = editor.string == text
         diagnostic["passed"] = succeeded
         let bytes = try JSONSerialization.data(withJSONObject: diagnostic, options: [.prettyPrinted, .sortedKeys])
         try bytes.write(to: output.appendingPathComponent("input-" + identifier + ".json"), options: .atomic)
         return succeeded
+    }
+
+    /// A native text-input-client composition, not a claim that a real system
+    /// Chinese input method or candidate window was exercised on this runner.
+    static func beginMarkedText(_ text: String, identifier: String, in window: NSWindow,
+                                diagnostics output: URL) throws -> Bool {
+        var pending = window.contentView.map { [$0] } ?? []
+        var editor: NSTextView?
+        while let view = pending.popLast() {
+            if let candidate = view as? NSTextView, candidate.isEditable,
+               candidate.accessibilityIdentifier() == identifier { editor = candidate; break }
+            pending.append(contentsOf: view.subviews)
+        }
+        var diagnostic: [String: Any] = ["identifier": identifier,
+            "evidenceKind": "NSTextInputClient.setMarkedText on the production editor",
+            "realSystemInputMethod": false, "editorFound": editor != nil]
+        let focused = editor.map { window.firstResponder === $0 } ?? false
+        var result = false
+        if let editor, focused {
+            let original = editor.string
+            editor.setMarkedText(text, selectedRange: NSRange(location: text.utf16.count, length: 0),
+                                 replacementRange: NSRange(location: original.utf16.count, length: 0))
+            result = editor.hasMarkedText() && editor.string == original + text
+            diagnostic["hasMarkedText"] = editor.hasMarkedText()
+            diagnostic["visibleTextMatches"] = editor.string == original + text
+        }
+        diagnostic["editorFocused"] = focused
+        diagnostic["passed"] = result
+        let bytes = try JSONSerialization.data(withJSONObject: diagnostic, options: [.prettyPrinted, .sortedKeys])
+        try bytes.write(to: output.appendingPathComponent("composition-" + identifier + ".json"), options: .atomic)
+        return result
     }
 
     static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {

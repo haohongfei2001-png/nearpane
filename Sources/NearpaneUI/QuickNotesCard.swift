@@ -35,6 +35,7 @@ struct QuickNotesCard: View {
     @State private var focusedTask: UUID?
     @State private var taskFocus = 0
     @State private var completedFeedback: UUID?
+    @State private var calculationResult: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var visibleTasks: [SidebarNotebook.Record] {
@@ -49,12 +50,15 @@ struct QuickNotesCard: View {
             if !notebook.readable {
                 NotebookSaveStatus(notebook: notebook).padding(12)
             } else if idle {
-                HStack(spacing: 2) {
-                    startButton
-                    smallButton("添加待办", symbol: "checklist", id: "quick-notes-add-task", action: addTask)
-                        .opacity(hovered ? 1 : 0)
-                    smallButton("打开记录仓库", symbol: "tray", id: "quick-notes-open-library") { openLibrary(nil) }
-                        .opacity(hovered ? 1 : 0)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 2) {
+                        startButton
+                        smallButton("添加待办", symbol: "checklist", id: "quick-notes-add-task", action: addTask)
+                            .opacity(hovered ? 1 : 0)
+                        smallButton("打开记录仓库", symbol: "tray", id: "quick-notes-open-library") { openLibrary(nil) }
+                            .opacity(hovered ? 1 : 0)
+                    }
+                    if notebook.issue != nil { NotebookSaveStatus(notebook: notebook) }
                 }.padding(.horizontal, 10).frame(maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
@@ -75,6 +79,9 @@ struct QuickNotesCard: View {
                         }.scrollIndicators(.automatic)
                             .onChange(of: focusedTask) { _, id in
                                 if let id { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) { proxy.scrollTo(id, anchor: .bottom) } }
+                            }
+                            .onChange(of: noteFocus) { _, _ in
+                                if let id = notebook.activeRecordID { proxy.scrollTo(id, anchor: .top) }
                             }
                     }
                     footer.padding(.top, 3)
@@ -106,7 +113,7 @@ struct QuickNotesCard: View {
 
     private func noteEditor(_ note: SidebarNotebook.Record, width: Double) -> some View {
         NotebookTextEditor(text: Binding(get: { notebook.records.first { $0.id == note.id }?.body ?? "" },
-            set: { _ = notebook.updateRecord(note.id, body: $0) }), identifier: "quick-notes-editor",
+            set: { calculationResult = nil; _ = notebook.updateRecord(note.id, body: $0) }), identifier: "quick-notes-editor",
             focusRequest: noteFocus, onFocusChanged: { editing = $0 })
             .id(note.id)
             .frame(height: SidebarNotebook.editorHeight(note.body, width: width - 24))
@@ -114,6 +121,14 @@ struct QuickNotesCard: View {
                 if note.body.isEmpty {
                     Text("记下一点想法…").font(.system(size: 14)).foregroundStyle(.tertiary)
                         .padding(.top, 3).allowsHitTesting(false).accessibilityHidden(true)
+                }
+            }
+            .contextMenu {
+                Button("在仓库中查看") { openLibrary(note.id) }
+                Button("结束当前记录") { _ = notebook.endNote() }
+                Button("计算最后一行") {
+                    let line = note.body.split(whereSeparator: \.isNewline).last.map(String.init) ?? ""
+                    calculationResult = NoteArithmetic.result(line) ?? "表达式不完整"
                 }
             }
     }
@@ -162,6 +177,13 @@ struct QuickNotesCard: View {
                 }
             }
             Spacer(minLength: 0)
+            if let result = calculationResult {
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(result, forType: .string)
+                } label: { Text(result).font(.caption).lineLimit(1) }
+                    .buttonStyle(.plain).help("复制计算结果")
+            }
             smallButton("打开记录仓库", symbol: "tray", id: "quick-notes-open-library") { openLibrary(notebook.activeRecord?.id) }
         }.opacity(controlsVisible ? 1 : 0.38)
     }
@@ -174,7 +196,7 @@ struct QuickNotesCard: View {
     }
 
     private func newNote() {
-        if notebook.beginNote() != nil { noteFocus += 1; editing = true; focusedTask = nil }
+        if notebook.beginNote() != nil { noteFocus += 1; editing = true; focusedTask = nil; calculationResult = nil }
     }
 
     private func addTask() {

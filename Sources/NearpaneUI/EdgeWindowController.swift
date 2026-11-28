@@ -223,6 +223,7 @@ public final class EdgeWindowController: NSWindowController {
                                            content: content, voice: voice, tray: tray, floating: floating,
                                            toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
                                            voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0,
+                                           notesHeight: modules?.notebook.sidebarHeight(width: config.panel(on: screen, fallbackEdge: host.configuration.edge)?.width ?? 240) ?? 44,
                                            pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count,
                                            expanded: host.registry.expandedID != nil) else {
             hasPlacement = false; hide(); return

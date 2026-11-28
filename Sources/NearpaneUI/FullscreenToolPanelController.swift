@@ -132,9 +132,25 @@ private struct ToolPresentation: Equatable {
                 presentedLayout = workspace.content
                 display.updateMaterial = { [weak self, weak backdrop] layout in
                     guard let self, let backdrop, binding == generation, state?.expanded != nil else { return }
+                    let extentChanged = presentedLayout?.contentHeight != layout.contentHeight
                     presentedLayout = layout
                     backdrop.configure(size: backdrop.bounds.size, layout: layout,
                                        settings: host.panelPresentationSettings(on: next.display))
+                    if extentChanged {
+                        // Refine the existing temporary surface as a note grows or
+                        // collapses, retaining its editor, focus and domain instance.
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self, binding == generation, dragOrigin == nil,
+                                  let screen = self.screen, let domains,
+                                  state?.expanded != nil, permitted?() == true else { return }
+                            let settings = host.panelPresentationSettings(on: screen.id)
+                            guard let workspace = self.workspace(on: screen, settings: settings, domains: domains),
+                                  let frame = settings.fullscreenToolFrame(on: screen, expanded: true, count: 1,
+                                      confirmedControls: controls, workspace: workspace),
+                                  window?.frame != frame.nsRect else { return }
+                            window?.setFrame(frame.nsRect, display: true)
+                        }
+                    }
                 }
             } else {
                 material = nil; presentedLayout = nil; display.updateMaterial = nil

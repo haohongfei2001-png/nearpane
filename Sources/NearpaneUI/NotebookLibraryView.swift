@@ -14,6 +14,8 @@ struct NotebookLibraryView: View {
     @State private var pendingRemoval: UUID?
     @State private var copied = false
     @State private var editorFocus = 0
+    @State private var showsCalculation = false
+    @State private var calculationResult: String?
 
     private var matches: [SidebarNotebook.Record] { notebook.records(matching: query, filter: filter) }
     private var selected: SidebarNotebook.Record? { selectedID.flatMap { notebook.record($0) } }
@@ -82,6 +84,10 @@ struct NotebookLibraryView: View {
                 Button { create(.task) } label: { Image(systemName: "checklist") }
                     .buttonStyle(.borderless).help("新建待办").accessibilityLabel("新建待办")
                     .accessibilityIdentifier("notebook-new-task")
+                Menu {
+                    Button("计算草稿") { showsCalculation = true }
+                } label: { Image(systemName: "ellipsis") }
+                    .menuStyle(.borderlessButton).frame(width: 22).help("更多")
             }
         }
     }
@@ -96,7 +102,7 @@ struct NotebookLibraryView: View {
                     }
                     ForEach(matches) { record in
                         Button {
-                            selectedID = record.id; pendingRemoval = nil; copied = false
+                            selectedID = record.id; pendingRemoval = nil; copied = false; showsCalculation = false
                         } label: {
                             VStack(alignment: .leading, spacing: 9) {
                                 HStack(alignment: .top, spacing: 7) {
@@ -123,7 +129,26 @@ struct NotebookLibraryView: View {
     }
 
     @ViewBuilder private var detail: some View {
-        if let record = selected {
+        if showsCalculation {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("计算草稿").font(.callout).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("返回记录") { showsCalculation = false }.buttonStyle(.borderless)
+                }
+                NotebookTextEditor(text: Binding(get: { notebook.contents.calculation }, set: { value in
+                    calculationResult = nil; notebook.edit { $0.calculation = value }
+                }), identifier: "notebook-calculation-editor", fontSize: 15)
+                HStack {
+                    if let result = calculationResult { Text(result).textSelection(.enabled) }
+                    Spacer()
+                    Button("计算最后一行") {
+                        let line = notebook.contents.calculation.split(whereSeparator: \.isNewline).last.map(String.init) ?? ""
+                        calculationResult = NoteArithmetic.result(line) ?? "表达式不完整"
+                    }.buttonStyle(.borderless)
+                }
+            }
+        } else if let record = selected {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
                     if record.kind == .task {
@@ -181,13 +206,14 @@ struct NotebookLibraryView: View {
     }
 
     private func create(_ kind: SidebarNotebook.RecordKind) {
-        query = ""; filter = .all
+        query = ""; filter = .all; showsCalculation = false
         selectedID = kind == .note ? notebook.beginNote() : notebook.createTask(body: "")
         editorFocus += 1
     }
 
     private func applyNavigation() {
         guard kind != .vocabulary else { return }
+        showsCalculation = false
         filter = SidebarNotebook.Filter(rawValue: navigation?.notebookFilter ?? "") ?? (kind == .tasks ? .unfinished : .all)
         if let id = navigation?.selectedNotebookRecordID, notebook.record(id) != nil {
             query = ""; filter = .all; selectedID = id
@@ -197,6 +223,9 @@ struct NotebookLibraryView: View {
 
     private func selectFirstMatch() {
         guard kind != .vocabulary else { return }
+        if query.isEmpty, let record = selected, record.isEmpty,
+           filter == .all || (filter == .notes && record.kind == .note) ||
+           (filter == .unfinished && record.kind == .task && !record.isCompleted) { return }
         if !matches.contains(where: { $0.id == selectedID }) { selectedID = matches.first?.id }
         pendingRemoval = nil
     }

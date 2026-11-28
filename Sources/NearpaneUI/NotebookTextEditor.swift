@@ -71,6 +71,18 @@ struct NotebookTextEditor: NSViewRepresentable {
         }
     }
 
+    static func dismantleNSView(_ scroll: NSScrollView, coordinator: Coordinator) {
+        guard let editor = scroll.documentView as? NSTextView else { return }
+        // Finish only this editor's live composition. Unconditionally writing a
+        // dormant view would overwrite an edit made from the other surface.
+        if editor.hasMarkedText() {
+            let composed = editor.string
+            editor.unmarkText()
+            coordinator.parent.text = composed
+        }
+        editor.delegate = nil
+    }
+
     @MainActor final class Coordinator: NSObject, NSTextViewDelegate {
         var parent: NotebookTextEditor
         var lastFocusRequest = 0

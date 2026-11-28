@@ -906,6 +906,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The existing termination owns the drain. A second terminate while AppKit is
         // waiting for our reply can bypass the remaining work.
         guard terminationTask == nil else { return .terminateLater }
+        guard modules?.prepareNotebookShutdown() != false else {
+            settingsNavigation.showNotebookLibrary()
+            showSettings()
+            return .terminateCancel
+        }
         terminationTask = Task {
             defer { DesktopOverviewShortcut.shared.refreshOwnership() }
             if let updater, !(await updater.permitsTermination()) {
@@ -924,6 +929,18 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 #if canImport(SaytileKit)
                 await feedback?.resumeAfterDeferredUpdate()
                 #endif
+                terminationTask = nil
+                sender.reply(toApplicationShouldTerminate: false)
+                return
+            }
+            // Awaited drains above can yield back to an editor. Recheck before
+            // retiring its services and releasing the only notebook instance.
+            guard modules?.prepareNotebookShutdown() != false else {
+                #if canImport(SaytileKit)
+                await feedback?.resumeAfterDeferredUpdate()
+                #endif
+                settingsNavigation.showNotebookLibrary()
+                showSettings()
                 terminationTask = nil
                 sender.reply(toApplicationShouldTerminate: false)
                 return
@@ -1387,9 +1404,22 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                           userInfo: [NSLocalizedDescriptionKey: "请先完成或取消应用更新，再切换资料。"])
         }
         guard profileSwitch == nil, let root = profileLease?.root, let host, let modules else { throw CancellationError() }
+        guard modules.prepareNotebookShutdown() else {
+            settingsNavigation.showNotebookLibrary()
+            showSettings()
+            throw NSError(domain: "com.holdsnow.nearpane.profile", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "随手记还有未保存的内容。请在仓库中重试保存后，再切换资料。"])
+        }
         let operation = Task { @MainActor () throws -> ProfileReply in
             // Retire every action surface before releasing the global writer lease.
             guard await modules.prepareStageWindowShutdown() else { throw StageSwitchError.ownership }
+            guard modules.prepareNotebookShutdown() else {
+                profileSwitch = nil
+                settingsNavigation.showNotebookLibrary()
+                showSettings()
+                throw NSError(domain: "com.holdsnow.nearpane.profile", code: 2,
+                              userInfo: [NSLocalizedDescriptionKey: "随手记还有未保存的内容。请在仓库中重试保存后，再切换资料。"])
+            }
             settingsPreview.withdraw()
             panels?.stop()
             surface?.window?.orderOut(nil)

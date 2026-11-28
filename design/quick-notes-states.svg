@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000" role="img" aria-labelledby="title desc"><title id="title">随手记关键状态设计稿</title><desc id="desc">精确矢量设计示意，非原生运行截图。包含空闲、输入、记录待办共存、内容滚动、深色、唯一主窗口仓库及完整侧栏组合。邻近模块结构参考仓库既有运行截图；窗口预览为明确的布局占位，不构成原生调度验收。</desc><metadata>Structure references: engineering/verification/native-spaces/5.22-90-r4/screens/voice-enabled.png; docs/verification/unified-workbench/8c884573/native/lyrics-playing-sidebar.png. All product areas on this sheet are vector design drawings. Thumbnail contents are schematic placeholders, not system evidence.</metadata><defs><filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feGaussianBlur in="SourceAlpha" stdDeviation="4"/><feOffset dx="0" dy="2"/><feComponentTransfer><feFuncA type="linear" slope="0.045"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><g id="write" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5H4v10h10V9M8 11l1-3 5-5 2 2-5 5z"/></g><g id="tray" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"><path d="M3 11l2-7h10l2 7v5H3zM3 11h4l1 2h4l1-2h4"/></g><g id="todo" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"><circle cx="4" cy="5" r="2"/><path d="M9 5h7M9 10h7M9 15h7M3 10h2M3 15h2"/></g><g id="copy" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"><path d="M6 3h8l3 3v10H6zM3 6v12h10M13 3v4h4"/></g><g id="search" fill="none" stroke="currentColor" stroke-width="1.25"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l4 4"/></g><g id="camera" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"><path d="M3 6h4l1-2h5l1 2h3v10H3z"/><circle cx="10" cy="10.5" r="3"/></g><g id="trash" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h14M7 5V3h6v2M5 5l1 12h8l1-12M8 8v6M12 8v6"/></g></defs><style>text{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Noto Sans CJK SC',sans-serif} .label{font-size:13px;fill:#555;font-weight:500;letter-spacing:.2px} .caption{font-size:11px;fill:#898989} .body{font-size:14px;fill:#343434} .muted{font-size:13px;fill:#838383}</style>
+<rect x="0" y="0" width="1400" height="1000" rx="0" fill="#f5f5f5" stroke="none" />
+<text x="40" y="48" font-size="25" fill="#272727" font-weight="500" >随手记 · 关键状态</text>
+<text x="40" y="75" font-size="13" fill="#747474" font-weight="400" >一处输入，持续保存。普通记录与待办，共用一个安静的工作区域。</text>
+<text x="1356" y="45" font-size="12" fill="#6b6b6b" font-weight="500" text-anchor="end">设计稿 / 非运行截图</text>
+<text x="1356" y="66" font-size="10" fill="#979797" font-weight="400" text-anchor="end">2026.11.28 · 原生界面与系统能力另行验收</text>
+<path d="M40 96H1356" stroke="#e1e1e1" stroke-width="1"/>
+<text x="40" y="126" font-size="13" fill="#4e4e4e" font-weight="500" >01  空闲入口</text>
+<text x="40" y="146" font-size="11" fill="#929292" font-weight="400" >无空白列表；点击即可书写</text>
+<rect x="40" y="163" width="270" height="44" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<use href="#write" transform="translate(53 176) scale(1)" style="color:#858585"/>
+<text x="81" y="190" font-size="13" fill="#929292" font-weight="400" >记下一点想法…</text>
+<text x="40" y="242" font-size="12" fill="#838383" font-weight="400" >仅在需要时展开。</text>
+<text x="40" y="263" font-size="11" fill="#929292" font-weight="400" >新建、待办与仓库入口随悬停显露。</text>
+<text x="350" y="126" font-size="13" fill="#4e4e4e" font-weight="500" >02  正在输入</text>
+<text x="350" y="146" font-size="11" fill="#929292" font-weight="400" >自然换行；文字逐次自动保存</text>
+<rect x="350" y="163" width="270" height="158" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<text x="365" y="191" font-size="14" fill="#343434" font-weight="400" >把突然想到的事情，先记下来。</text>
+<text x="365" y="216" font-size="14" fill="#343434" font-weight="400" >不用取标题，也不用整理。</text>
+<path d="M367 229L367 247" stroke="#507eaf" stroke-width="1.3"/>
+<use href="#write" transform="translate(364 288) scale(1)" style="color:#919191"/>
+<use href="#todo" transform="translate(394 288) scale(1)" style="color:#919191"/>
+<circle cx="434" cy="297" r="6.5" fill="none" stroke="#919191" stroke-width="1.15"/>
+<use href="#tray" transform="translate(586 288) scale(1)" style="color:#919191"/>
+<text x="660" y="126" font-size="13" fill="#4e4e4e" font-weight="500" >03  记录与待办共存</text>
+<text x="660" y="146" font-size="11" fill="#929292" font-weight="400" >一张连续的纸；只在需要时分隔</text>
+<rect x="660" y="163" width="270" height="202" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<text x="675" y="191" font-size="14" fill="#343434" font-weight="400" >周末把这个想法做成小原型。</text>
+<text x="675" y="216" font-size="14" fill="#343434" font-weight="400" >先验证最直接的使用场景。</text>
+<path d="M675 237H915" stroke="#e9e9e9" stroke-width="1"/>
+<circle cx="683" cy="259" r="7" fill="none" stroke="#858585" stroke-width="1.15"/>
+<text x="702" y="264" font-size="13" fill="#444" font-weight="400" >整理今天留下的想法</text>
+<circle cx="683" cy="291" r="7" fill="none" stroke="#858585" stroke-width="1.15"/>
+<text x="702" y="296" font-size="13" fill="#444" font-weight="400" >完成一次真实使用验证</text>
+<use href="#write" transform="translate(674 331) scale(1)" style="color:#919191"/>
+<use href="#todo" transform="translate(704 331) scale(1)" style="color:#919191"/>
+<circle cx="744" cy="340" r="6.5" fill="none" stroke="#919191" stroke-width="1.15"/>
+<use href="#tray" transform="translate(896 331) scale(1)" style="color:#919191"/>
+<text x="40" y="370" font-size="13" fill="#4e4e4e" font-weight="500" >04  多条待办</text>
+<text x="40" y="390" font-size="11" fill="#929292" font-weight="400" >可滚动的内容区；高度保持有界</text>
+<rect x="40" y="407" width="270" height="200" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<use href="#write" transform="translate(53 420) scale(1)" style="color:#858585"/>
+<text x="81" y="434" font-size="13" fill="#929292" font-weight="400" >记下一点想法…</text>
+<circle cx="62" cy="462" r="7" fill="none" stroke="#858585" stroke-width="1.15"/>
+<text x="81" y="467" font-size="13" fill="#444" font-weight="400" >整理数值积分的结果</text>
+<circle cx="62" cy="494" r="7" fill="none" stroke="#858585" stroke-width="1.15"/>
+<text x="81" y="499" font-size="13" fill="#444" font-weight="400" >回复一封待处理的邮件</text>
+<circle cx="62" cy="526" r="7" fill="none" stroke="#858585" stroke-width="1.15"/>
+<text x="81" y="531" font-size="13" fill="#444" font-weight="400" >把新的产品想法记下来</text>
+<path d="M55 550H292" stroke="#f0f0f0" stroke-width="1"/>
+<rect x="301" y="446" width="3" height="72" rx="2" fill="#bcbcbc" stroke="none" />
+<use href="#write" transform="translate(54 572) scale(1)" style="color:#919191"/>
+<use href="#todo" transform="translate(84 572) scale(1)" style="color:#919191"/>
+<use href="#tray" transform="translate(276 572) scale(1)" style="color:#919191"/>
+<text x="350" y="370" font-size="13" fill="#4e4e4e" font-weight="500" >05  深色与完成反馈</text>
+<text x="350" y="390" font-size="11" fill="#929292" font-weight="400" >中性材质；强调色仅用于必要状态</text>
+<rect x="350" y="407" width="270" height="200" rx="14" fill="#272727" stroke="#404040" filter="url(#shadow)"/>
+<text x="365" y="435" font-size="14" fill="#ededed" font-weight="400" >灵感不用等到一个完整的计划。</text>
+<text x="365" y="460" font-size="14" fill="#ededed" font-weight="400" >随时留下，之后继续。</text>
+<path d="M365 479H605" stroke="#424242" stroke-width="1"/>
+<circle cx="373" cy="502" r="7" fill="#507eaf" stroke="#507eaf" stroke-width="1.15"/>
+<path d="M369 502l3 3 5-6" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="392" y="507" font-size="13" fill="#929292" font-weight="400" >整理今天留下的想法</text>
+<circle cx="373" cy="534" r="7" fill="none" stroke="#aaa" stroke-width="1.15"/>
+<text x="392" y="539" font-size="13" fill="#e1e1e1" font-weight="400" >完成一次真实使用验证</text>
+<use href="#write" transform="translate(364 572) scale(1)" style="color:#b5b5b5"/>
+<use href="#todo" transform="translate(394 572) scale(1)" style="color:#b5b5b5"/>
+<circle cx="434" cy="581" r="6.5" fill="none" stroke="#b5b5b5" stroke-width="1.15"/>
+<use href="#tray" transform="translate(586 572) scale(1)" style="color:#b5b5b5"/>
+<text x="660" y="414" font-size="15" fill="#474747" font-weight="500" >保持轻量</text>
+<text x="660" y="445" font-size="12" fill="#7e7e7e" font-weight="400" >无标题、分类与保存按钮。</text>
+<text x="660" y="469" font-size="12" fill="#7e7e7e" font-weight="400" >结束一条，下一条仍在同一个入口。</text>
+<text x="660" y="493" font-size="12" fill="#7e7e7e" font-weight="400" >完成事项短暂反馈后移入历史。</text>
+<text x="660" y="517" font-size="12" fill="#7e7e7e" font-weight="400" >仓库与侧栏始终编辑同一份记录。</text>
+<text x="660" y="553" font-size="11" fill="#7e7e7e" font-weight="400" >完整侧栏以宿主的厚度、材质与间距为准。</text>
+<text x="660" y="577" font-size="11" fill="#7e7e7e" font-weight="400" >空间不足时收纳工具，不压小 Spaces 预览。</text>
+<text x="40" y="646" font-size="13" fill="#4e4e4e" font-weight="500" >06  唯一主窗口 · 记录仓库</text>
+<text x="40" y="666" font-size="11" fill="#929292" font-weight="400" >轻量筛选、搜索和正文编辑；不新增管理窗口</text>
+<rect x="40" y="682" width="940" height="274" rx="16" fill="#fff" stroke="#dfdfdf" filter="url(#shadow)"/>
+<circle cx="57" cy="699" r="4" fill="#dedede"/>
+<circle cx="72" cy="699" r="4" fill="#dedede"/>
+<circle cx="87" cy="699" r="4" fill="#dedede"/>
+<rect x="59" y="718" width="86" height="27" rx="7" fill="#f0f0f0" stroke="none" />
+<text x="72" y="736" font-size="11" fill="#424242" font-weight="500" >全部记录</text>
+<text x="161" y="736" font-size="11" fill="#858585" font-weight="400" >普通记录</text>
+<text x="251" y="736" font-size="11" fill="#858585" font-weight="400" >未完成</text>
+<text x="328" y="736" font-size="11" fill="#858585" font-weight="400" >已完成</text>
+<rect x="59" y="755" width="264" height="29" rx="7" fill="#f5f5f5" stroke="none" />
+<use href="#search" transform="translate(68 762) scale(1)" style="color:#858585"/>
+<text x="92" y="775" font-size="12" fill="#aaa" font-weight="400" >搜索记录</text>
+<path d="M344 719L344 936" stroke="#e9e9e9" stroke-width="1"/>
+<rect x="59" y="794" width="264" height="69" rx="9" fill="#f4f4f4" stroke="none" />
+<text x="71" y="817" font-size="12" fill="#343434" font-weight="400" >把突然想到的事情，先记下来。</text>
+<text x="71" y="840" font-size="10" fill="#999" font-weight="400" >今天  16:20</text>
+<text x="71" y="886" font-size="12" fill="#343434" font-weight="400" >整理今天留下的想法</text>
+<text x="71" y="909" font-size="10" fill="#999" font-weight="400" >今天  15:48</text>
+<text x="369" y="736" font-size="11" fill="#898989" font-weight="400" >记录</text>
+<use href="#todo" transform="translate(858 722) scale(1)" style="color:#858585"/>
+<use href="#copy" transform="translate(890 722) scale(1)" style="color:#858585"/>
+<use href="#trash" transform="translate(922 720)" style="color:#929292"/>
+<text x="369" y="778" font-size="15" fill="#343434" font-weight="400" >把突然想到的事情，先记下来。</text>
+<text x="369" y="806" font-size="15" fill="#343434" font-weight="400" >不用取标题，也不用整理。</text>
+<text x="369" y="834" font-size="15" fill="#343434" font-weight="400" >这次先把最简单的一步做完。</text>
+<text x="369" y="932" font-size="10" fill="#9a9a9a" font-weight="400" >2026年11月28日 16:20</text>
+<text x="950" y="932" font-size="10" fill="#9a9a9a" font-weight="400" text-anchor="end">已自动保存</text>
+<text x="1080" y="126" font-size="13" fill="#4e4e4e" font-weight="500" >07  完整侧栏组合</text>
+<text x="1080" y="146" font-size="11" fill="#929292" font-weight="400" >结构设计示意 · 非系统运行截图</text>
+<rect x="1080" y="163" width="276" height="793" rx="22" fill="#eaeaea" stroke="#e0e0e0" />
+<rect x="1092" y="175" width="252" height="126" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<text x="1107" y="201" font-size="13" fill="#616161" font-weight="400" >把今天的问题说清楚，</text>
+<text x="1107" y="224" font-size="13" fill="#616161" font-weight="400" >接下来继续处理眼前的工作。</text>
+<rect x="1105" y="260" width="31" height="28" rx="12" fill="#fafafa" stroke="#ededed" />
+<use href="#copy" transform="translate(1111 264) scale(1)" style="color:#858585"/>
+<rect x="1272" y="260" width="58" height="28" rx="14" fill="#fafafa" stroke="#ededed" />
+<rect x="1285" y="271.5" width="3" height="5" rx="1.5" fill="#7c7c7c" stroke="none" />
+<rect x="1291" y="269.5" width="3" height="9" rx="1.5" fill="#7c7c7c" stroke="none" />
+<rect x="1297" y="267.5" width="3" height="13" rx="1.5" fill="#7c7c7c" stroke="none" />
+<rect x="1303" y="270.0" width="3" height="8" rx="1.5" fill="#7c7c7c" stroke="none" />
+<rect x="1309" y="271.5" width="3" height="5" rx="1.5" fill="#7c7c7c" stroke="none" />
+<rect x="1092" y="311" width="252" height="105" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<rect x="1101" y="320" width="113" height="38" rx="8" fill="#f0f0f0" stroke="none" />
+<rect x="1114" y="325" width="87" height="28" rx="2" fill="#fff" stroke="#d5d5d5" />
+<path d="M1114 332H1201" stroke="#e7e7e7" stroke-width="1"/>
+<path d="M1120 338H1187" stroke="#d2d2d2" stroke-width="1"/>
+<path d="M1120 343H1172" stroke="#e0e0e0" stroke-width="1"/>
+<rect x="1222" y="320" width="113" height="38" rx="8" fill="#f0f0f0" stroke="none" />
+<rect x="1235" y="325" width="87" height="28" rx="2" fill="#fff" stroke="#d5d5d5" />
+<path d="M1235 332H1322" stroke="#e7e7e7" stroke-width="1"/>
+<path d="M1241 338H1308" stroke="#d2d2d2" stroke-width="1"/>
+<path d="M1241 343H1293" stroke="#e0e0e0" stroke-width="1"/>
+<rect x="1101" y="366" width="113" height="38" rx="8" fill="#f0f0f0" stroke="none" />
+<rect x="1114" y="371" width="87" height="28" rx="2" fill="#fff" stroke="#d5d5d5" />
+<path d="M1114 378H1201" stroke="#e7e7e7" stroke-width="1"/>
+<path d="M1120 384H1187" stroke="#d2d2d2" stroke-width="1"/>
+<path d="M1120 389H1172" stroke="#e0e0e0" stroke-width="1"/>
+<rect x="1222" y="366" width="113" height="38" rx="8" fill="#f0f0f0" stroke="none" />
+<use href="#camera" transform="translate(1268 374) scale(1.15)" style="color:#666"/>
+<rect x="1092" y="426" width="252" height="147" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<text x="1218.0" y="450" font-size="11" fill="#999" font-weight="400" text-anchor="middle">把灯光留在窗边</text>
+<text x="1218.0" y="477" font-size="13" fill="#737373" font-weight="400" text-anchor="middle">让思绪慢慢沉淀</text>
+<text x="1218.0" y="508" font-size="16" fill="#343434" font-weight="600" text-anchor="middle">此刻的歌声在身边</text>
+<text x="1218.0" y="536" font-size="13" fill="#737373" font-weight="400" text-anchor="middle">陪我走过每个瞬间</text>
+<text x="1218.0" y="559" font-size="11" fill="#999" font-weight="400" text-anchor="middle">风吹过安静的长街</text>
+<rect x="1092" y="583" width="252" height="136" rx="14" fill="#ffffff" stroke="#e4e4e4" filter="url(#shadow)"/>
+<text x="1106" y="608" font-size="13" fill="#343434" font-weight="400" >周末做一个小原型。</text>
+<text x="1106" y="630" font-size="13" fill="#343434" font-weight="400" >先验证最直接的使用场景。</text>
+<path d="M1106 646H1330" stroke="#e7e7e7" stroke-width="1"/>
+<circle cx="1114" cy="665" r="7" fill="none" stroke="#858585" stroke-width="1.15"/>
+<text x="1133" y="670" font-size="13" fill="#444" font-weight="400" >整理今天留下的想法</text>
+<use href="#write" transform="translate(1106 687) scale(1)" style="color:#919191"/>
+<use href="#todo" transform="translate(1136 687) scale(1)" style="color:#919191"/>
+<use href="#tray" transform="translate(1310 687) scale(1)" style="color:#919191"/>
+<rect x="1092" y="729" width="252" height="100" rx="12" fill="#f6f6f6" stroke="#ddd" />
+<rect x="1103" y="738" width="230" height="81" rx="6" fill="#e9e9e9" stroke="none" />
+<rect x="1110" y="745" width="105" height="67" rx="3" fill="#fff" stroke="#d5d5d5" />
+<rect x="1220" y="745" width="106" height="67" rx="3" fill="#fafafa" stroke="#d5d5d5" />
+<path d="M1110 753H1215" stroke="#e7e7e7" stroke-width="1"/>
+<path d="M1220 753H1325" stroke="#e7e7e7" stroke-width="1"/>
+<rect x="1092" y="838" width="252" height="100" rx="12" fill="#f6f6f6" stroke="#ddd" />
+<rect x="1103" y="847" width="230" height="81" rx="6" fill="#e9e9e9" stroke="none" />
+<rect x="1123" y="854" width="187" height="67" rx="3" fill="#fff" stroke="#d5d5d5" />
+<path d="M1123 862H1310" stroke="#e7e7e7" stroke-width="1"/>
+<text x="40" y="982" font-size="10" fill="#969696" font-weight="400" >状态稿使用示例文字；数值、截屏、窗口内容与播放状态均不构成真实运行证据。</text>
+<text x="1356" y="982" font-size="10" fill="#969696" font-weight="400" text-anchor="end">右侧窗口预览为几何占位；正式验收见原生截图。</text>
+</svg>
