@@ -695,8 +695,8 @@ enum UnifiedWorkbenchAcceptance {
             var pending = window.contentView.map { [$0] } ?? []
             var editors: [String: NSTextView] = [:]
             while let view = pending.popLast() {
-                if let editor = view as? NSTextView, let id = editor.accessibilityIdentifier(), identifiers.contains(id) {
-                    editors[id] = editor
+                if let editor = view as? NSTextView, identifiers.contains(editor.accessibilityIdentifier()) {
+                    editors[editor.accessibilityIdentifier()] = editor
                 }
                 pending.append(contentsOf: view.subviews)
             }
