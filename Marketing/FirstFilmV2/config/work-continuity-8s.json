@@ -1,0 +1,22 @@
+{
+  "scenes": [
+    {
+      "file": "../assets/native/work-continuity/core-fullscreen.mov",
+      "in": 9.3,
+      "duration": 8,
+      "provenance": "Actual native production lyric view and macOS Preview file; real Music playback with verified two-line artwork bridge fix; OS pointer and original-speed lyric/hover motion."
+    }
+  ],
+  "captions": [
+    {
+      "key": "continuity",
+      "start": 0.35,
+      "end": 3.2
+    }
+  ],
+  "end_duration": 0,
+  "audio": {
+    "file": "../assets/audio/work-continuity-8s-master.wav",
+    "method": "Actual matched system audio; MOV timestamp-preserving trim; linear two-pass -16 LUFS normalization; no timing/pitch change."
+  }
+}

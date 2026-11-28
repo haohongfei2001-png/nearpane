@@ -24,6 +24,8 @@ def source_path(value,base):
     return path if path.is_absolute() else (base/path).resolve()
 
 def render(config,out,width,height,lang,crf=18):
+    if abs(width/height-16/9)>.001:
+        raise ValueError('This renderer preserves the 16:9 desktop. Use a separately composed portrait edit; do not stretch native UI.')
     base=config.parent
     cfg=json.loads(config.read_text())
     out=out.resolve();out.parent.mkdir(parents=True,exist_ok=True)
@@ -38,11 +40,23 @@ def render(config,out,width,height,lang,crf=18):
         if start<0 or length<=0 or start+length>duration+.04:
             raise ValueError(f'Source interval exceeds recorded footage: {src} {start}+{length}>{duration}')
         inputs+=['-ss',f'{start:.9f}','-t',f'{length:.9f}','-i',str(src)]
-        filters.append(f'[{i}:v]trim=duration={length:.9f},setpts=PTS-STARTPTS,fps={FPS},scale={width}:{height}:flags=lanczos,setsar=1,format=yuv420p[v{i}]')
+        framing=''
+        if s.get('crop'):
+            x,y,w,h=s['crop']; native=next(v for v in meta['streams'] if v['codec_type']=='video')
+            if min(x,y)<0 or min(w,h)<=0 or x+w>native['width'] or y+h>native['height']:
+                raise ValueError('Editorial crop outside real source')
+            framing=f'crop={w}:{h}:{x}:{y},'
+            box=s.get('inset_width',.88)
+            target_w=round(width*box/2)*2; target_h=round(target_w*h/w/2)*2
+            if target_h>height*.88: raise ValueError('Inset must preserve native aspect ratio and safe margins')
+            framing+=f'scale={target_w}:{target_h}:flags=lanczos,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2:color=0xf6f6f2,'
+        else:
+            framing=f'scale={width}:{height}:flags=lanczos,'
+        filters.append(f'[{i}:v]trim=duration={length:.9f},setpts=PTS-STARTPTS,fps={FPS},{framing}setsar=1,format=yuv420p[v{i}]')
         clips.append(f'[v{i}]')
-        scene_audit.append({'file':str(src),'in':start,'duration':length,'timeline_in':offset,'provenance':s.get('provenance','unreviewed')})
+        scene_audit.append({'file':str(src),'in':start,'duration':length,'timeline_in':offset,'crop':s.get('crop'),'provenance':s.get('provenance','unreviewed')})
         offset+=length
-    filters.append(''.join(clips)+f'concat=n={len(clips)}:v=1:a=0[desktop]')
+    filters.append(''.join(clips)+f'concat=n={len(clips)}:v=1:a=0,fps={FPS},settb=1/{FPS}[desktop]')
     current='desktop';idx=len(scenes)
     for n,c in enumerate(cfg.get('captions',[])):
         from brand_frames import caption
@@ -51,7 +65,7 @@ def render(config,out,width,height,lang,crf=18):
         inputs+=['-loop','1','-framerate',str(FPS),'-i',str(image)]
         start,end=float(c['start']),float(c['end'])
         if end>offset or end<=start: raise ValueError('Caption interval invalid')
-        filters.append(f'[{idx}:v]format=rgba,fade=t=in:st={start}:d=.35:alpha=1,fade=t=out:st={end-.35}:d=.35:alpha=1[label{n}]')
+        filters.append(f'[{idx}:v]format=rgba,fade=t=in:st={start}:d=0.35:alpha=1,fade=t=out:st={end-.35}:d=0.35:alpha=1[label{n}]')
         filters.append(f'[{current}][label{n}]overlay=0:0:enable=\'between(t,{start},{end})\':shortest=1[captioned{n}]')
         current=f'captioned{n}';idx+=1
     end_duration=float(cfg.get('end_duration',0))
@@ -61,9 +75,9 @@ def render(config,out,width,height,lang,crf=18):
         image=out.parent/f'.end-{lang}-{width}x{height}.png'
         end_frame(width,height,lang).save(image)
         inputs+=['-loop','1','-framerate',str(FPS),'-t',str(end_duration+.6),'-i',str(image)]
-        filters.append(f'[{idx}:v]format=yuv420p,setsar=1[endcard]')
+        filters.append(f'[{idx}:v]format=yuv420p,setsar=1,settb=1/{FPS}[endcard]')
         # A restrained fade carries the final desktop into the paper end card.
-        filters.append(f'[{current}][endcard]xfade=transition=fade:duration=.6:offset={offset-.6:.9f},trim=duration={total:.9f}[picture]')
+        filters.append(f'[{current}][endcard]xfade=transition=fade:duration=0.6:offset={offset-.6:.9f},trim=duration={total:.9f}[picture]')
         current='picture';idx+=1
     audio=source_path(cfg['audio']['file'],base)
     audio_duration=float(probe(audio)['format']['duration'])

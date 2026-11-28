@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "status": "CONTINUOUS_MATCH",
+  "capture": {
+    "path": "/workspace/scratch/be9b9c627bdc/v2-native-evidence/capture-artwork-4/film-v2-hover/hover-fullscreen.mov",
+    "bytes": 12852185,
+    "sha256": "dceeb98468ce6d9b07c3a2a2c0e1d1c77bac56ca9a660d58f7633a2446154a17"
+  },
+  "original": {
+    "path": "/workspace/scratch/be9b9c627bdc/v2-song-research/candidates/good-to-go.ogg",
+    "bytes": 10870303,
+    "sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64"
+  },
+  "timeline": {
+    "capture_zero_definition": "First presented video frame PTS; audio-only input uses its first audio-frame PTS.",
+    "video_origin_original_pts_seconds": 0.0,
+    "first_audio_original_pts_seconds": 0.011958,
+    "first_audio_minus_video_origin_seconds": 0.011958,
+    "analysis_duration_seconds": 9.055958333333333,
+    "sample_rate_hz": 48000,
+    "decode": "copyts; subtract video origin; aresample async=1 first_pts=0. Timestamp gaps/positive audio offset are retained as silence."
+  },
+  "method": "Independent overlapping-window normalized waveform correlation over the whole original at12kHz, competitor test outside±250ms, local48kHz refinement±20ms and parabolic sub-sample peak estimate. Fit source-time mapping per stable-offset region.",
+  "thresholds": {
+    "minimum_abs_correlation": 0.85,
+    "minimum_competing_peak_margin": 0.03,
+    "offset_change_to_split_ms": 40,
+    "window_seconds": 2.5,
+    "hop_seconds": 1.0
+  },
+  "segments": [
+    {
+      "anchor_count": 8,
+      "capture_window_coverage_seconds": [
+        0.0,
+        9.055958333333333
+      ],
+      "source_seconds_formula": "source = rate * capture_video_seconds + intercept",
+      "source_at_video_zero_extrapolated_seconds": 163.60386861663736,
+      "rate": 0.9999999962254197,
+      "rate_difference_ppm": -0.003774580314974685,
+      "constant_offset_median_seconds": 163.6038685874451,
+      "fit_residual_rms_ms": 7.026249781033656e-05,
+      "fit_residual_p95_absolute_ms": 0.00010724381240834191,
+      "fit_residual_max_absolute_ms": 0.0001081773746136605,
+      "median_abs_correlation": 0.9994936822781715,
+      "minimum_abs_correlation": 0.9971739223333416,
+      "minimum_competing_peak_margin": 0.5801628169010273,
+      "anchor_capture_centers_seconds": [
+        1.25,
+        2.25,
+        3.25,
+        4.25,
+        5.25,
+        6.25,
+        7.25,
+        7.805958333333333
+      ]
+    }
+  ],
+  "anchors": [
+    {
+      "capture_start_seconds": 0.0,
+      "capture_end_seconds": 2.5,
+      "capture_center_seconds": 1.25,
+      "rms_dbfs": -12.174501272299473,
+      "coarse_source_start_seconds": 163.60386745644377,
+      "coarse_correlation": 0.9942594333189735,
+      "competing_abs_correlation": 0.4140966164179462,
+      "coarse_peak_margin": 0.5801628169010273,
+      "source_start_seconds": 163.60386858893753,
+      "source_center_seconds": 164.85386858893753,
+      "source_minus_capture_seconds": 163.60386858893753,
+      "fine_correlation": 0.9990271073512362,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 1.0,
+      "capture_end_seconds": 3.5,
+      "capture_center_seconds": 2.25,
+      "rms_dbfs": -11.87741260101393,
+      "coarse_source_start_seconds": 164.6038673106555,
+      "coarse_correlation": 0.9921833926889304,
+      "competing_abs_correlation": 0.2762166361832841,
+      "coarse_peak_margin": 0.7159667565056462,
+      "source_start_seconds": 164.60386855225107,
+      "source_center_seconds": 165.85386855225107,
+      "source_minus_capture_seconds": 163.60386855225107,
+      "fine_correlation": 0.999544835158678,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 2.0,
+      "capture_end_seconds": 4.5,
+      "capture_center_seconds": 3.25,
+      "rms_dbfs": -11.493726244128517,
+      "coarse_source_start_seconds": 165.6038672710423,
+      "coarse_correlation": 0.9912887435928373,
+      "competing_abs_correlation": 0.25748076829110644,
+      "coarse_peak_margin": 0.7338079753017308,
+      "source_start_seconds": 165.6038685859527,
+      "source_center_seconds": 166.8538685859527,
+      "source_minus_capture_seconds": 163.6038685859527,
+      "fine_correlation": 0.9994425293976651,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 3.0,
+      "capture_end_seconds": 5.5,
+      "capture_center_seconds": 4.25,
+      "rms_dbfs": -11.206806490292195,
+      "coarse_source_start_seconds": 166.6038672243525,
+      "coarse_correlation": 0.9920626524597962,
+      "competing_abs_correlation": 0.23235393284132538,
+      "coarse_peak_margin": 0.7597087196184709,
+      "source_start_seconds": 166.60386864699424,
+      "source_center_seconds": 167.85386864699424,
+      "source_minus_capture_seconds": 163.60386864699424,
+      "fine_correlation": 0.9993949442868101,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 4.0,
+      "capture_end_seconds": 6.5,
+      "capture_center_seconds": 5.25,
+      "rms_dbfs": -11.103736637977637,
+      "coarse_source_start_seconds": 167.60386751153294,
+      "coarse_correlation": 0.9944661962799636,
+      "competing_abs_correlation": 0.2403272859424093,
+      "coarse_peak_margin": 0.7541389103375543,
+      "source_start_seconds": 167.6038686893177,
+      "source_center_seconds": 168.8538686893177,
+      "source_minus_capture_seconds": 163.6038686893177,
+      "fine_correlation": 0.999563981038827,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 5.0,
+      "capture_end_seconds": 7.5,
+      "capture_center_seconds": 6.25,
+      "rms_dbfs": -11.93540419311476,
+      "coarse_source_start_seconds": 168.60386738908156,
+      "coarse_correlation": 0.9942559775292424,
+      "competing_abs_correlation": 0.20490478126259612,
+      "coarse_peak_margin": 0.7893511962666463,
+      "source_start_seconds": 168.6038687012236,
+      "source_center_seconds": 169.8538687012236,
+      "source_minus_capture_seconds": 163.6038687012236,
+      "fine_correlation": 0.999546599207843,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 6.0,
+      "capture_end_seconds": 8.5,
+      "capture_center_seconds": 7.25,
+      "rms_dbfs": -12.216308942314047,
+      "coarse_source_start_seconds": 169.60386717620813,
+      "coarse_correlation": 0.9926820970731501,
+      "competing_abs_correlation": 0.27434296305964617,
+      "coarse_peak_margin": 0.7183391340135039,
+      "source_start_seconds": 169.6038685450012,
+      "source_center_seconds": 170.8538685450012,
+      "source_minus_capture_seconds": 163.6038685450012,
+      "fine_correlation": 0.9995557106340818,
+      "accepted": true
+    },
+    {
+      "capture_start_seconds": 6.555958333333333,
+      "capture_end_seconds": 9.055958333333333,
+      "capture_center_seconds": 7.805958333333333,
+      "rms_dbfs": -12.09689726835835,
+      "coarse_source_start_seconds": 170.1598670049034,
+      "coarse_correlation": 0.9896338457876345,
+      "competing_abs_correlation": 0.2529003857965378,
+      "coarse_peak_margin": 0.7367334599910966,
+      "source_start_seconds": 170.15982681499642,
+      "source_center_seconds": 171.40982681499642,
+      "source_minus_capture_seconds": 163.60386848166308,
+      "fine_correlation": 0.9971739223333416,
+      "accepted": true
+    }
+  ],
+  "quiet_intervals_seconds": [],
+  "limitations": [
+    "Waveform match is evidence of recording identity and relative timing, not subjective listening approval.",
+    "Fit residual is observed anchor consistency, not a guaranteed bound on video capture latency or every sample.",
+    "Parabolic sub-sample positions are estimates; do not equate them with independently verified physical-clock accuracy.",
+    "Repeated music can produce ambiguous matches. Low-margin anchors are excluded.",
+    "Pause/seek boundaries need actual capture/player PTS. Window centers do not locate an action boundary exactly."
+  ],
+  "export": {
+    "requested": false,
+    "performed": false
+  },
+  "native_capture_review": {
+    "scope": "Actual ScreenCaptureKit MOV waveform measurement; original MOV and original song left unchanged.",
+    "same_original_recording": "VERIFIED_BY_WAVEFORM_MATCH",
+    "measured_windows": 8,
+    "windows_overlap": true,
+    "continuous_playback_in_observed_audio": "No offset jump or quiet interval of at least80ms detected; stable mapping across observed audio.",
+    "video_duration_seconds": 9.15,
+    "audio_stream_first_pts_seconds": 0.011958,
+    "audio_stream_reported_duration_seconds": 9.051958,
+    "pts_preserving_decoded_audio_end_seconds": 9.055958333333333,
+    "video_tail_without_decoded_audio_seconds": 0.094041667,
+    "tail_note": "This uncovered tail is a capture/encoding coverage difference, not evidence of an actual player pause.",
+    "first_eight_video_seconds_source_mapping": [
+      163.6038685874451,
+      171.6038685874451
+    ],
+    "source_seconds_approximation": "163.6038686 + video_time_seconds",
+    "player_position_readbacks_used_for_alignment": false,
+    "action_uptime_used_for_alignment": false,
+    "phase_aligned_original_export_requested": false,
+    "soundtrack_instruction": "For the8s core sample use captured system audio and retain its11.958ms first-PTS offset relative to video. Normalization may change gain, not timeline.",
+    "confidence_scope": "High waveform identity and relative-time confidence. Tiny fit residuals are internal anchor consistency; no independent physical-clock precision or subjective listening claim."
+  }
+}

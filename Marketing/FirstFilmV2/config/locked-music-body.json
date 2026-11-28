@@ -1,0 +1,39 @@
+{
+  "scenes": [
+    {
+      "file": "../assets/native/core/core-fullscreen.mov",
+      "in": 0.5236244841,
+      "duration": 17.4763755159,
+      "provenance": "Native Music to Preview continuous recording, production lyric view and actual cover/control state; source=video+147.0763755159."
+    },
+    {
+      "file": "../assets/native/qqmusic/source2-fullscreen.mov",
+      "in": 4.5313738875,
+      "duration": 5.5236244841,
+      "provenance": "Real QQ Music local playback and native lyric card; source=video+160.5450016285."
+    }
+  ],
+  "captions": [
+    {
+      "key": "opening",
+      "start": 0.3,
+      "end": 3.5
+    },
+    {
+      "key": "continuity",
+      "start": 5.6,
+      "end": 9.9
+    },
+    {
+      "key": "sources",
+      "start": 17.9,
+      "end": 22.7
+    }
+  ],
+  "end_duration": 0,
+  "audio": {
+    "file": "../assets/audio/good-to-go-master36.wav",
+    "method": "Licensed original song 147.6s onwards; every picture interval individually matched to real captured system sound. Original continuous recording, no independently moving lyrics."
+  },
+  "release_stage": "product preview"
+}

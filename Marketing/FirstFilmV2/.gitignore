@@ -3,5 +3,8 @@ assets/fonts/*.ttf
 assets/fonts/*.ttc
 assets/native/
 assets/audio/
+assets/music-source/
+assets/environment/
+assets/brand/
 __pycache__/
 *.rendering.mp4

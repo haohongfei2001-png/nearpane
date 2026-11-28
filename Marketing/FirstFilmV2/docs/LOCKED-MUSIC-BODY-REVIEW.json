@@ -1,0 +1,127 @@
+{
+  "reviewed_at_utc": "2026-11-28T05:41:42.279482+00:00",
+  "source": {
+    "path": "film-v2-delivery/Nearpane-v2-Locked-Music-Body-23s.mp4",
+    "bytes": 2283363,
+    "sha256": "eae5388c51500b776d36e37b31734c157e3a8400e6cbcef4847b56887a0bddfb",
+    "duration_seconds": 23,
+    "dimensions": [
+      1920,
+      1080
+    ],
+    "video_fps": 30
+  },
+  "scope": "独立检查已渲染MP4实际编码帧、动作前后连续抽帧和三条字幕的完整1080帧；未主观听审、未重新校验音频同步。",
+  "verdict": "视觉PASS，可锁定23秒主体；没有需要新取材或调整美术的阻塞。",
+  "checked": [
+    {
+      "range_seconds": [
+        4.3,
+        5.4
+      ],
+      "times": [
+        4.3,
+        4.5,
+        4.7,
+        4.9,
+        5.1,
+        5.4
+      ],
+      "observation": "真实Music切到Preview，窗口就位；歌词板位置与主文字维持连续，未见空白、弹窗或窗口布局失稳。"
+    },
+    {
+      "range_seconds": [
+        12.8,
+        16.8
+      ],
+      "times": [
+        12.8,
+        13.1,
+        13.4,
+        14,
+        15.5,
+        16,
+        16.4,
+        16.6,
+        16.8
+      ],
+      "observation": "真实封面/歌名/控制与进度可读；指针不遮主歌词；切到I'm good to go后正常退出控制态。"
+    },
+    {
+      "range_seconds": [
+        17.35,
+        17.65
+      ],
+      "times": [
+        17.35,
+        17.4,
+        17.433333,
+        17.466667,
+        17.5,
+        17.65
+      ],
+      "observation": "17.5s已接QQ，窗口占位与右上歌词卡边框位置稳定；主歌词I'm good to go衔接，未见空白中间帧或弹窗。"
+    }
+  ],
+  "caption_review": {
+    "full_resolution_frame_times": [
+      0.7,
+      8,
+      20
+    ],
+    "texts": [
+      "Nearpane",
+      "换个窗口，歌还在。",
+      "在你习惯的播放器里。"
+    ],
+    "verdict": "三条字幕清楚，完整处于画幅内；左侧约120px、下缘约48px，使用真实窗口下方桌面空隙，没有压住产品UI。",
+    "source_layer_bounds": {
+      "opening": {
+        "canvas": [
+          1920,
+          1080
+        ],
+        "nonzero_alpha_bbox": [
+          122,
+          1007,
+          263,
+          1036
+        ]
+      },
+      "continuity": {
+        "canvas": [
+          1920,
+          1080
+        ],
+        "nonzero_alpha_bbox": [
+          120,
+          1007,
+          337,
+          1034
+        ]
+      },
+      "sources": {
+        "canvas": [
+          1920,
+          1080
+        ],
+        "nonzero_alpha_bbox": [
+          121,
+          1007,
+          363,
+          1033
+        ]
+      }
+    }
+  },
+  "nonblocking_provenance_observation": {
+    "sidecar_qq_in": 4.5313738875,
+    "sidecar_qq_source_offset": 160.5450016285,
+    "prior_requested_precise_source2_in": 4.7467004,
+    "note": "root已确认QQ in4.5313738875是改用连续core7主take后的有意校准，原曲仍连续147.6–170.6；source2新入点处于此前已核验4.5–10.7区间，soundtrack的core7_join报告提供其同步依据。本审阅人未重复检查音频。",
+    "status": "resolved_by_root_confirmation"
+  },
+  "changes_made": "仅写独立QA图片和本记录，未改renderer、源片、拍摄脚本或交付MP4。",
+  "lock_status": "主体23秒已由root确认锁定；本次视觉PASS不再扩展检查。",
+  "record_saved_at_utc": "2026-11-28T05:41:52.631133+00:00"
+}

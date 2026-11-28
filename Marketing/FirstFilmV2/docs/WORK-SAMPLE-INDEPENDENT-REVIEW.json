@@ -1,0 +1,63 @@
+{
+  "reviewed_at_utc": "2026-11-28T05:24:03.469931+00:00",
+  "source": {
+    "path": "v2-native-evidence/capture-core-6/core-fullscreen.mov",
+    "sha256": "9061e99605a31b1c098478548a4bc076c137ca5338bb1a17013b85e2d52aa1c0",
+    "bytes": 24650441,
+    "capture_run": 46111137333,
+    "capture_commit": "0f423e709e42dceb022f59650f1ebd85cc5758cd",
+    "duration_seconds": 18.1,
+    "frame_size": [
+      3840,
+      2160
+    ],
+    "system_audio_present": true
+  },
+  "scope": "独立检查 MOV 实际编码抽帧和连续动作节点；未做实时播放听审。开头 MiniPlayer 空白封面片段为已知弃用区，不重复评审。",
+  "actually_inspected": [
+    "原始全片联系表，缩至1600px高供总览",
+    "实际编码5.30s桌面1920×1080",
+    "10.35/10.50/10.65/10.80/10.95/11.15s歌词变化裁片",
+    "13.30/13.50/13.65/13.80/14.00/14.20s悬停进入裁片",
+    "15.30/15.50/15.70/15.90/16.10/16.30/16.50/16.70/17.00s悬停离开裁片",
+    "native-state-timeline与driver-events动作时间用于定位，非替代视觉检查"
+  ],
+  "verdict": "可用；5.30–18.10s无新增视觉阻塞，不需要重拍该段。",
+  "observations": [
+    "5.30s Preview已完整就位；窗口边缘、工具栏和文档清晰；没有弹窗或全屏错位。",
+    "歌词卡固定右上，280逻辑像素宽；主歌词文字清楚，真实文档与歌词板不相交。",
+    "13.65–15.35s控制态显示真实歌曲封面、标题、艺人、传输控制及进度；指针位于控制区空隙，未遮主歌词。",
+    "15.70s已显示I'm good to go；16.30s后稳定回到多行歌词态。"
+  ],
+  "usable_ranges_movie_pts_seconds": [
+    {
+      "in": 5.3,
+      "out": 18.1,
+      "use": "工作文件、正常歌词、真实hover及回到正常态的连续段；原速播放"
+    },
+    {
+      "in": 13.65,
+      "out": 15.35,
+      "use": "稳定控制态可选短镜头"
+    },
+    {
+      "in": 16.3,
+      "out": 18.1,
+      "use": "正常歌词收尾，可接第二音乐源"
+    }
+  ],
+  "nonblocking_editorial_notes": [
+    {
+      "time_seconds": 10.65,
+      "issue": "原生换句短暂出现新旧文字交叠。",
+      "instruction": "保留原速，不选该帧作静帧，不慢放原生转场。"
+    },
+    {
+      "time_seconds": 13.5,
+      "issue": "指针入卡过程中经过最下方淡色上下文歌词行，主歌词未受遮挡。",
+      "instruction": "稳定控制态从13.65s起；不为这处短暂经过重新取材。"
+    }
+  ],
+  "audio_review": "未主观听审。动作时标仅按MOV PTS；歌曲最终对齐须采用系统音与授权原轨波形匹配结果。",
+  "root_renderer_modified": false
+}

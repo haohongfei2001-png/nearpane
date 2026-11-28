@@ -6,7 +6,7 @@
     147.6,
     183.6
   ],
-  "publication_status": "Attribution-ready licensed music assets; precise filmed playback/sync and subjective music fit still require the director’s actual capture review.",
+  "publication_status": "Licensed selected track/artwork. Picture intervals are independently matched to actual native system audio; see audio alignment reports. Subjective listening was not available.",
   "rights_distinguished": [
     "sound recording",
     "original musical composition and words",
@@ -30,7 +30,7 @@
       "bytes": 90637,
       "sha256": "72b59ad996a2c8c8aa296de450e7daeced43aebc3773f93ac5fcb53e6c8e6c78"
     },
-    "treatment": "Original image embedded unchanged in playback file; no generated or invented cover."
+    "treatment": "Original artwork embedded unchanged for Music. QQ uses a 600×600 JPEG/APIC compatibility thumbnail from the original 1425×1424 image; near-square resizing and recompression, no invented image."
   },
   "candidates": [
     {
@@ -86,106 +86,6 @@
         183.6
       ],
       "selection_rationale": "The final positive chorus and title refrain; voice is present from the start of the selected passage. This avoids the negative workday language in Morning Blue and the more anxious theme of I’m Letting Go. The decision is based on canonical lyric meaning and measured phrase placement, not an invented listening review."
-    },
-    {
-      "creator": "Josh Woodward",
-      "original_album": "The Simple Life",
-      "original_release_year": 2008,
-      "recording_license": "CC BY 3.0 US",
-      "license_url": "https://creativecommons.org/licenses/by/3.0/us/",
-      "legalcode_url": "https://creativecommons.org/licenses/by/3.0/us/legalcode",
-      "recording_evidence": "The specific source file page identifies the song as composed and sung by Josh Woodward, and records a2013-10-30 review confirming the official artist site offered it under the stated license.",
-      "musical_work_and_lyrics_basis": "Original songwriter/performer is Josh Woodward; his own official song/performance descriptions publish the canonical lyrics and link his song page. His official channel explicitly offers all of his music under Creative Commons Attribution. The clearance uses that artist-wide grant plus the reviewed specific licensed recording, not a claim that an arbitrary recording license clears unrelated songwriters. No co-writer or cover composition is identified in these sources.",
-      "artist_cc_grant_source": "https://www.youtube.com/watch?v=BPTwMSEwECQ",
-      "artist_cc_grant_archive": "evidence/im-letting-go-official-video.json",
-      "official_site_current_access": "The public artist website returned403 in this session. That failure is retained in research logs; it is not presented as a successful current-page review. The approved source is the already-licensed archived recording, supported by the artist’s accessible official channel.",
-      "commercial_sync_assessment": "CC BY3.0 US permits attributed reproduction and derivatives, including synchronization with moving images. No NC/ND condition applies. Preserve creator/title/license/source/change attribution; no artist endorsement is implied.",
-      "lyric_use_assessment": "Use the artist’s actual original song words under the same song grant. Line-break changes and repeated sung title phrases are documented; no invented replacement lyric content.",
-      "audio_quality_scope": "Original published Vorbis source, about464–476kbps/44.1kHz/stereo. ALAC is a further-loss-free playback transcode of that lossy source, not a lossless studio-master claim.",
-      "hearing_status": "NOT AUDITIONED. Human vocals and matching words were identified by automatic recognition of the actual downloaded audio; this is not subjective listening approval.",
-      "id": "morning-blue",
-      "title": "Morning Blue",
-      "selected": false,
-      "original_source_page": "https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_1_-_08_-_Morning_Blue.ogg",
-      "original_direct_url": "https://upload.wikimedia.org/wikipedia/commons/8/87/Josh_Woodward_-_The_Simple_Life%2C_Part_1_-_08_-_Morning_Blue.ogg",
-      "original": {
-        "path": "candidates/morning-blue.ogg",
-        "bytes": 14568459,
-        "sha256": "0b8159c764b44cb9dd3e3e29688a87b44d282e4938cbfd120a6027a97161b4e2"
-      },
-      "recording_license_archive": {
-        "path": "evidence/morning-blue.html",
-        "bytes": 89994,
-        "sha256": "92dc212b7e2ab02034de9cb90e6f1ae012b87cbd524014953c4d07a5b79cbb58"
-      },
-      "canonical_lyrics_source": "https://www.youtube.com/watch?v=_zSKRqCR_6Y",
-      "canonical_lyrics_archive": {
-        "path": "evidence/morning-blue-official-performance.json",
-        "bytes": 22815,
-        "sha256": "cbfc3db25642b4b65a07d7ad8ebe717fb25111e9949c4593be0d63f3a87a1062"
-      },
-      "canonical_lyrics_text": {
-        "path": "lyrics/morning-blue-official.txt",
-        "bytes": 987,
-        "sha256": "195d01124405b3f8a316182e45bf10d306293be0f42a0aada0b9530f0185367d"
-      },
-      "player_file": {
-        "path": "player-ready/morning-blue.m4a",
-        "bytes": 50689155,
-        "sha256": "ccfccecd3f7386c44a1064281dd8c21a6fcd36d247544c2cc8dfd2bea42a32ea"
-      },
-      "cover_artwork": "shared_cover",
-      "selection_status": "Licensed research alternative only. Not used in the selected film; do not credit this unused recording as film music."
-    },
-    {
-      "creator": "Josh Woodward",
-      "original_album": "The Simple Life",
-      "original_release_year": 2008,
-      "recording_license": "CC BY 3.0 US",
-      "license_url": "https://creativecommons.org/licenses/by/3.0/us/",
-      "legalcode_url": "https://creativecommons.org/licenses/by/3.0/us/legalcode",
-      "recording_evidence": "The specific source file page identifies the song as composed and sung by Josh Woodward, and records a2013-10-30 review confirming the official artist site offered it under the stated license.",
-      "musical_work_and_lyrics_basis": "Original songwriter/performer is Josh Woodward; his own official song/performance descriptions publish the canonical lyrics and link his song page. His official channel explicitly offers all of his music under Creative Commons Attribution. The clearance uses that artist-wide grant plus the reviewed specific licensed recording, not a claim that an arbitrary recording license clears unrelated songwriters. No co-writer or cover composition is identified in these sources.",
-      "artist_cc_grant_source": "https://www.youtube.com/watch?v=BPTwMSEwECQ",
-      "artist_cc_grant_archive": "evidence/im-letting-go-official-video.json",
-      "official_site_current_access": "The public artist website returned403 in this session. That failure is retained in research logs; it is not presented as a successful current-page review. The approved source is the already-licensed archived recording, supported by the artist’s accessible official channel.",
-      "commercial_sync_assessment": "CC BY3.0 US permits attributed reproduction and derivatives, including synchronization with moving images. No NC/ND condition applies. Preserve creator/title/license/source/change attribution; no artist endorsement is implied.",
-      "lyric_use_assessment": "Use the artist’s actual original song words under the same song grant. Line-break changes and repeated sung title phrases are documented; no invented replacement lyric content.",
-      "audio_quality_scope": "Original published Vorbis source, about464–476kbps/44.1kHz/stereo. ALAC is a further-loss-free playback transcode of that lossy source, not a lossless studio-master claim.",
-      "hearing_status": "NOT AUDITIONED. Human vocals and matching words were identified by automatic recognition of the actual downloaded audio; this is not subjective listening approval.",
-      "id": "im-letting-go",
-      "title": "I'm Letting Go",
-      "selected": false,
-      "original_source_page": "https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_1_-_07_-_Im_Letting_Go.ogg",
-      "original_direct_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Josh_Woodward_-_The_Simple_Life%2C_Part_1_-_07_-_Im_Letting_Go.ogg",
-      "original": {
-        "path": "candidates/im-letting-go.ogg",
-        "bytes": 11218649,
-        "sha256": "d7c08d2e6f1299ac1418ecea28e0eb737aff97f013c6c31e32dc7ca4e99ac7f5"
-      },
-      "recording_license_archive": {
-        "path": "evidence/im-letting-go.html",
-        "bytes": 90057,
-        "sha256": "f3c6ed69e55a44589a92dd0829d03a3279e4b75d46b377430dd5e1e780c673c9"
-      },
-      "canonical_lyrics_source": "https://www.youtube.com/watch?v=BPTwMSEwECQ",
-      "canonical_lyrics_archive": {
-        "path": "evidence/im-letting-go-official-video.json",
-        "bytes": 23641,
-        "sha256": "25b0d736575110342c649f3026c4088b33f0c46c61171d71435fab271db171bf"
-      },
-      "canonical_lyrics_text": {
-        "path": "lyrics/im-letting-go-official.txt",
-        "bytes": 854,
-        "sha256": "2cfc0a970ba81de8d9d63ce52bdb51b4ce3b2b77c24855ba46058503b6e8d57f"
-      },
-      "player_file": {
-        "path": "player-ready/im-letting-go.m4a",
-        "bytes": 35810907,
-        "sha256": "dbf04f454b4ed4cd7db62b01231698a61cd0f253bb1182e3447be59f3e7964d1"
-      },
-      "cover_artwork": "shared_cover",
-      "selection_status": "Licensed research alternative only. Not used in the selected film; do not credit this unused recording as film music."
     }
   ],
   "mastering_record": {
@@ -195,8 +95,10 @@
   },
   "selected_lrc_record": {
     "path": "player-ready/good-to-go-lrc-provenance.json",
-    "bytes": 1960,
-    "sha256": "bace67913fe8122be1764a3172d651816c01bc4c8a07c1f67d7934ecc443d1bf"
+    "bytes": 3590,
+    "sha256": "2eda853393f914900dfdfc8964f5fc54b81a68e109867939f812ef61213a2734",
+    "revision": 3,
+    "timing_status": "MACHINE_CROSSCHECKED_NOT_LISTENING_VERIFIED"
   },
   "license_archive": {
     "path": "evidence/cc-by-3-us.html",
@@ -215,5 +117,56 @@
     "YouTube video imagery or performance audio; only the artist’s canonical lyric/permission descriptions were used as evidence.",
     "Other candidate recordings in the selected final film.",
     "Failed403 artist-site HTML as evidence of a current license page."
-  ]
+  ],
+  "qq_cover_processing": {
+    "original": {
+      "file": "artwork/simple-life-original-1425.jpg",
+      "width": 1425,
+      "height": 1424,
+      "bytes": 486932,
+      "sha256": "1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682",
+      "source": "https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg",
+      "creator": "Josh Woodward",
+      "license": "CC BY 3.0 US",
+      "VRTConfirmationTicket": "2013022010009149"
+    },
+    "embeddedAPIC": {
+      "file": "artwork/simple-life-apic-600.jpg",
+      "width": 600,
+      "height": 600,
+      "bytes": 92605,
+      "sha256": "f336ae854d232439d62fe7376223e0da66843fbb46d0fc7d8d85b0a19252e2e2",
+      "changes": "Near-square original1425x1424 reduced to a600x600 JPEG thumbnail with integer-dimension rounding/adaptation. Complete image content is retained without cropping or a generated replacement. This does not claim mathematically identical pixel-grid aspect ratio."
+    },
+    "QQMediaRemoteObserved": {
+      "bytes": 86421,
+      "decodedByProduct": true,
+      "rawPayloadSHA256": null,
+      "rawPayloadSeparatelySaved": false,
+      "evidence": "native-state-timeline.json and native encoded frame; input APIC is92605bytes and original is486932bytes. These three byte counts are distinct. Do not claim byte/hash equality."
+    }
+  },
+  "film_sources": {
+    "core": "Native production lyric component with verified unreleased two-line artwork decoding fix; real Music playback, actual imported LRC, actual Preview PDF.",
+    "qq": "Second real QQ Music client session, original lyrics and record; temporal edit matches same song, not a claim of automatic gapless player handoff.",
+    "host": "Actual Nearpane Host; user-authorized photography-only exterior material/geometry harmonization. Final movie acceptance recorded separately."
+  },
+  "fonts": [
+    {
+      "name": "Inter Variable",
+      "license": "SIL OFL 1.1",
+      "included_license": "Inter-LICENSE.txt"
+    },
+    {
+      "name": "Noto Sans CJK",
+      "license": "SIL OFL 1.1",
+      "included_license": "NotoSansCJK-LICENSE.txt"
+    }
+  ],
+  "environment": {
+    "type": "Original generated seascape created in this production; actual recorded macOS desktop wallpaper and original reading document. No generated product UI.",
+    "source_in_media": "assets/environment/",
+    "original_document": "assets/workspace/"
+  },
+  "evidence_paths_relative_to": "assets/music-source/"
 }

@@ -1,0 +1,22 @@
+{
+  "scenes": [
+    {
+      "file": "../assets/native/cover-controls/hover-fullscreen.mov",
+      "in": 0.3,
+      "duration": 8,
+      "provenance": "Actual WindowServer native production view with verified unreleased typed artwork decoding fix; real Music song, artwork and OS pointer"
+    }
+  ],
+  "captions": [
+    {
+      "key": "opening",
+      "start": 0.3,
+      "end": 2.8
+    }
+  ],
+  "end_duration": 0,
+  "audio": {
+    "file": "../assets/audio/cover-controls-8s-master.wav",
+    "method": "actual captured system audio; preserve MOV timestamp offset then trim with video; two-pass loudnorm; short boundary ramps"
+  }
+}

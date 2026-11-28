@@ -1,0 +1,31 @@
+[
+  {
+    "file": "Nearpane-Work-Continuity-8s-1080p.mp4",
+    "sha256": "baeb750858b5d9d8f2b00a07789f1f436b9bfc5b144b97035e3a9f9ce96ad3f0",
+    "bytes": 647117,
+    "duration": 8.0,
+    "video": {
+      "codec_name": "h264",
+      "width": 1920,
+      "height": 1080,
+      "pix_fmt": "yuv420p",
+      "r_frame_rate": "30/1",
+      "nb_frames": "240",
+      "color_range": "tv",
+      "color_space": "bt709",
+      "color_transfer": "bt709",
+      "color_primaries": "bt709"
+    },
+    "audio": {
+      "codec_name": "aac",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "304953"
+    },
+    "decoded_without_errors": true,
+    "loudness_lufs": -16.03,
+    "true_peak_dbtp": -5.78,
+    "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+    "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+  }
+]

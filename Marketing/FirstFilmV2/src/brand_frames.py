@@ -45,26 +45,26 @@ def end_frame(width,height,lang):
         put(im,'nearpane.com',(center,1235*scale),30*scale)
         put(im,'访问官网 · 产品预览' if lang=='zh' else 'Explore Nearpane · Product preview',(center,1294*scale),19*scale,MUTED)
         put(im,'“Good To Go” · Josh Woodward',(center,1785*scale),17*scale,MUTED)
-        put(im,'CC BY 3.0 US · Edited excerpt',(center,1816*scale),15*scale,MUTED)
+        put(im,'The Simple Life artwork · CC BY 3.0 US',(center,1816*scale),15*scale,MUTED)
     else:
         tracking(im,'HOLDSNOW',(center,267*scale),17*scale,4.5*scale)
         put(im,'Nearpane',(center,443*scale),128*scale,weight=510)
         put(im,'让音乐，留在手边。' if lang=='zh' else 'Keep the music close.',(center,596*scale),32*scale)
         put(im,'nearpane.com',(center,790*scale),25*scale)
         put(im,'访问官网 · 产品预览' if lang=='zh' else 'Explore Nearpane · Product preview',(center,836*scale),16*scale,MUTED)
-        put(im,'“Good To Go” · Josh Woodward · CC BY 3.0 US',(center,1016*scale),13*scale,MUTED)
+        put(im,'“Good To Go” / The Simple Life artwork · Josh Woodward · CC BY 3.0 US',(center,1016*scale),13*scale,MUTED)
     return im
 
 CAPTIONS={
- 'zh':{'continuity':'换个窗口，歌还在。','sources':'在你习惯的播放器里。','modules':'把需要的，放在一起。'},
- 'en':{'continuity':'Your music stays with you.','sources':'With the player you already love.','modules':'Bring your essentials together.'}
+ 'zh':{'opening':'Nearpane','continuity':'换个窗口，歌还在。','sources':'在你习惯的播放器里。','modules':'把需要的，放在一起。'},
+ 'en':{'opening':'Nearpane','continuity':'Your music stays with you.','sources':'With the player you already love.','modules':'Bring your essentials together.'}
 }
 
 def caption(width,height,lang,key):
     im=Image.new('RGBA',(width,height),(0,0,0,0))
     s=width/1920
     # The label stays below the captured application window and away from cards.
-    put(im,CAPTIONS[lang][key],(120*s,1018*s),26*s,(246,246,242,255),anchor='lm')
+    put(im,CAPTIONS[lang][key],(120*s,1018*s),(32 if key=='opening' else 26)*s,(246,246,242,255),weight=510 if key=='opening' else 450,anchor='lm')
     return im
 
 def main():

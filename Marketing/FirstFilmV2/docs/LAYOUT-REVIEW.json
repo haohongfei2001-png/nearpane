@@ -1,0 +1,21 @@
+{
+  "status": "pass for card placement and native text only",
+  "source": "capture-core-2/failure-desktop.png",
+  "source_run": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46108357361",
+  "source_resolution": [3840, 2160],
+  "observed_card_pixels": {"left": 3224, "top": 105, "right": 3783, "bottom": 621},
+  "logical_layout": {"x": 1612, "y": 52, "width": 280, "height": 260, "right_inset": 28},
+  "review": [
+    "Reviewed full 4K frame, proportional 1080 overview, and native-pixel card crop.",
+    "The upper-right placement matches the user's correction; no additional inward move or enlargement is needed.",
+    "The current lyric is readable at 1080 desktop overview and has no visible clipping or aspect distortion in the native crop.",
+    "Two cards may keep the same 280-point width with an approximately 18-point gap."
+  ],
+  "not_verified_by_this_frame": [
+    "Album artwork in the lyric control state",
+    "Complete Music-to-Preview sequence",
+    "Audio/lyric timing",
+    "Second music client",
+    "Two-card ordering or screenshot action"
+  ]
+}
