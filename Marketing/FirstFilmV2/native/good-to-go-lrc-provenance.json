@@ -1,0 +1,52 @@
+{
+  "song": "Good To Go",
+  "artist": "Josh Woodward",
+  "file": "v2-song-research/player-ready/good-to-go-selected-sourceclock.lrc",
+  "clock": "Absolute time in the full 187.451497-second recording. Sourceclock; do not subtract147.60 when importing into the player.",
+  "covered_passage_seconds": [
+    147.6,
+    183.6
+  ],
+  "scope": "Only the selected final-chorus passage; this is not a complete full-song LRC.",
+  "lyrics_text_source": "https://www.youtube.com/watch?v=lqzEFoG2XUE",
+  "wording_verification": "Checked against the artist’s own published lyrics; repeated title phrases match automatic recognition of the actual recording. No invented replacement lyrics.",
+  "timing_method": "faster-whisper tiny.en word timestamps from the downloaded licensed OGG; line starts and punctuation were assigned from these observations.",
+  "timing_status": "AUTOMATIC_ALIGNMENT_NOT_AUDITIONED; local phrase-start uncertainty remains, especially sustained first words. Needs native playback review before final sync approval.",
+  "rejected_database_records": [
+    10481852,
+    28965523
+  ],
+  "rejection_reason": "Those LRCLIB records contain a different song, despite a Good to Go title. Not used.",
+  "cues": [
+    {
+      "source_seconds": 147.68,
+      "relative_excerpt_seconds": 0.08,
+      "text": "You gave me hope, and set me free"
+    },
+    {
+      "source_seconds": 151.7,
+      "relative_excerpt_seconds": 4.1,
+      "text": "And yeah, I know I've been a little slow"
+    },
+    {
+      "source_seconds": 158.32,
+      "relative_excerpt_seconds": 10.72,
+      "text": "But hey..."
+    },
+    {
+      "source_seconds": 163.1,
+      "relative_excerpt_seconds": 15.5,
+      "text": "I'm good to go"
+    },
+    {
+      "source_seconds": 168.34,
+      "relative_excerpt_seconds": 20.74,
+      "text": "I'm good to go"
+    },
+    {
+      "source_seconds": 177.74,
+      "relative_excerpt_seconds": 30.14,
+      "text": "I'm good to go"
+    }
+  ]
+}

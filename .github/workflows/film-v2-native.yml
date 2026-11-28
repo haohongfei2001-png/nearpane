@@ -1,0 +1,51 @@
+name: Nearpane film v2 native core
+on:
+  push:
+    branches: [creative/nearpane-first-film-v2-20261128]
+    paths:
+      - Marketing/FirstFilmV2/native/**
+      - .github/workflows/film-v2-native.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: film-v2-native-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Prepare bounded camera source
+        run: |
+          mkdir -p build/film-v2-core
+          python3 Marketing/FirstFilmV2/native/prepare_film_package.py . "$RUNNER_TEMP/film-v2-package"
+          cp "$RUNNER_TEMP/film-v2-package/source-manifest.json" build/film-v2-core/
+          command -v ffmpeg || brew install ffmpeg
+      - name: Build the actual embedded product view and recorder
+        run: |
+          set -o pipefail
+          python3 Marketing/FirstFilmV2/native/build_camera_app.py "$RUNNER_TEMP/film-v2-package" "$RUNNER_TEMP/Nearpane Film V2.app" 2>&1 | tee build/film-v2-core/build.log
+          swiftc -parse-as-library -swift-version 5 -O Marketing/FirstFilmV2/native/FilmAVCapture.swift -framework AppKit -framework ScreenCaptureKit -framework AVFoundation -framework CoreMedia -o "$RUNNER_TEMP/film-av-capture" 2>&1 | tee build/film-v2-core/recorder-build.log
+      - name: Prepare licensed real recording and real Retina display
+        run: |
+          python3 Marketing/FirstFilmV2/native/build_good_to_go.py --output "$RUNNER_TEMP/good-to-go.m4a" --source-dir "$RUNNER_TEMP/song-originals" > build/film-v2-core/audio-source.json
+          python3 Marketing/FirstFilmV2/native/set_motion_preference.py build/film-v2-core
+          python3 Marketing/FirstFilmV2/native/prepare_hidpi.py build/film-v2-core
+          defaults write com.apple.dock autohide -bool true
+          killall Dock || true
+      - name: Record continuous actual Music to Preview scene
+        run: |
+          python3 Marketing/FirstFilmV2/native/drive_core_capture.py --app "$RUNNER_TEMP/Nearpane Film V2.app" --audio "$RUNNER_TEMP/good-to-go.m4a" --pdf Marketing/FirstFilmV2/assets/workspace/field-notes-zh.pdf --wallpaper Marketing/FirstFilmV2/assets/workspace/morning-water-photography.jpg --recorder "$RUNNER_TEMP/film-av-capture" --output build/film-v2-core
+          ffprobe -v error -show_streams -show_format -of json build/film-v2-core/core-fullscreen.mov > build/film-v2-core/media-probe.json
+      - name: Preserve real capture and diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Nearpane-film-v2-native-core
+          path: build/film-v2-core
+          retention-days: 30
+          if-no-files-found: warn
