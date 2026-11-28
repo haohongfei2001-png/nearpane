@@ -4,7 +4,32 @@ Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github
 Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: 7aea52c5
+## Current source/runtime checkpoint: d86660db
+
+Exact source passes **180 Rust, 270 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete candidate and strict signature pass. All
+thirteen new metadata scheduling cases execute successfully. Both unsampled
+R4 lanes complete the first real switch, with two HIDE primitives, exact focus,
+READBACK and both complete Host confirmations.
+
+Fast/full each record **two actual inputs, one external physical confirmation
+and one completed internal transaction**. First external confirmation takes
+**1337.591 / 1550.422 ms**; transaction completion takes **1670.221 / 1850.259 ms**.
+The next press reaches an old current card during final verification, after its
+ordinary appearance correctly expires but before the held-card handoff. It is
+rejected before navigation submission. No product SHOW is issued.
+
+All thirteen metadata scopes in each lane reserve, drain and end; real prior
+producer/publisher drains are observed. There is no incomplete-directory or
+worker failure in these runs. The next repair is the explicit original-member
+selection handoff into the existing stage queue, with fresh held-group checks.
+It must not preserve expired ordinary appearances or turn pictures into permits.
+
+[Exact d866 source/runtime evidence, scope ordering and second-click handoff](cloud-d86660db-latency/README.md).
+Both real-hide recoveries and independent two-read home checks pass. Continuous
+R4, exact-target GUI acceptance and release qualification remain incomplete.
+
+## Earlier source/runtime checkpoint: 7aea52c5
 
 Exact source passes **180 Rust, 263 Swift (one existing skip), and 25 native
 AX decoder checks**; the complete candidate and strict signature pass. All ten

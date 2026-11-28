@@ -127,6 +127,22 @@ import NearpaneOrdinaryWindowRuntime
         return absent.compactMap { try? $0.value.monitor.departure() }
     }
     func lifetime(of window: NativeSpaceWindow) -> UUID? { bindings[window]?.lifetime }
+    /// Read-only identity for a click crossing from a current row to an owned
+    /// hidden row. It is not an appearance token or a physical write permit.
+    struct RetainedMemberIdentity: Equatable {
+        let generation: UUID, scope: StageGroupScope, session: UUID, topology: String, home: UInt64
+        let window: NativeSpaceWindow, lifetime: UUID, original: ObjectIdentifier
+    }
+    func retainedMemberIdentity(_ window: NativeSpaceWindow, owner: StageEngineOwner) -> RetainedMemberIdentity? {
+        guard owner.backend == .spaces, owner.generation == generation, self.owner == .spaces,
+              let home, let native = UInt64(home.record), native > 0,
+              let binding = bindings[window], let state = lastStates[window], mayManage(state),
+              let sample = lastSample, sample.scope == scope, sample.generation == generation,
+              sample.nativeID == native, sample.windows[window] == state,
+              lastSnapshot?.sessionID == session, lastSnapshot?.topologyFingerprint == topology else { return nil }
+        return .init(generation: generation, scope: scope, session: session, topology: topology, home: native,
+                     window: window, lifetime: binding.lifetime, original: ObjectIdentifier(binding.monitor))
+    }
     func mayManage(_ state: StageWindowState) -> Bool {
         guard let binding = bindings[state.window] else { return false }
         return !binding.readOnly && binding.lifetime == state.lifetime &&

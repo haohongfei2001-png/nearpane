@@ -1,0 +1,455 @@
+{
+  "algorithm": "sha256",
+  "files": [
+    {
+      "path": "independent-runtime/build-engine.json",
+      "bytes": 104,
+      "sha256": "fcd2dd9d5a8ee718e93e1c550110d84fe1480bd726a5d07699222ae36a232d84"
+    },
+    {
+      "path": "independent-runtime/build-engine.log",
+      "bytes": 222,
+      "sha256": "98388ac801b693429c6e9125ab910a0b1a6c7cfb899fe5e9e8c946cf3d0cb41e"
+    },
+    {
+      "path": "independent-runtime/build-engine.stderr.log",
+      "bytes": 8080,
+      "sha256": "a9e5aa406845ea2357cd6ea8f0ff796e5ffc071893ff4c55d44f8bbc0e31b0d5"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/command.json",
+      "bytes": 105,
+      "sha256": "de3041c47d362267562fd2b3cd38dd833151f94e31fd368761421403449dd5b3"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "34677af1892ee35cb01ff50b509bb1dde996a2d41c049042fbcee6e374ef7429"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureA/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/command.json",
+      "bytes": 105,
+      "sha256": "f5ab716019f26a9dbe2403bc292a0caf1cc30834dfd4568147bbaf5e765304bf"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "da7184d31b74540a594f25da37bca69e73c2d3ceb9e54a38e1198b72ccf81884"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/FixtureB/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup-receipt.json",
+      "bytes": 570,
+      "sha256": "3f5e807c4eeacbe8eff4e81e3b5292587d6c59b0ff224f23255e447c3ea954fc"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup.json",
+      "bytes": 120,
+      "sha256": "afae4b604b5e75376d0e72f7db1fcf5996868dfd81d12950f9a491e704338b07"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup.log",
+      "bytes": 352,
+      "sha256": "aa1e5ef675b7d3664772d95753d75a63c5219ae8ffb27a22853237d6d7ef4e49"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-cleanup.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare-receipt.json",
+      "bytes": 562,
+      "sha256": "c57449808ad84ffbe58caa043a6af77b060afecff79ed6606db6d8f2c42a9c51"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare.json",
+      "bytes": 120,
+      "sha256": "bed5ac5c5929166d4cf45515db708347fdd754492af3ed3a3df4bf496e6a828b"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare.log",
+      "bytes": 344,
+      "sha256": "4df9071b605653ea1007189dca53b570a2d1ce7bb76bdd0921b5e51b360cb89b"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-prepare.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/ci-workspace-state.json",
+      "bytes": 3294,
+      "sha256": "7d71ad2f45d56f373468996645946bae9e9f620610c510b6c4c13f0c1efc33c7"
+    },
+    {
+      "path": "independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "141926c5754939c71eec357a9432b2356c766ca5ad2a65bbbfe9407c3fd7945c"
+    },
+    {
+      "path": "independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "5200f9ab48b4b6d87bee7c88a817316e67c82f679473eb345212251251c3bb1c"
+    },
+    {
+      "path": "independent-runtime/runtime/engine.json",
+      "bytes": 92,
+      "sha256": "5a2f1fb2f8673ce64de917c563087b857865589284893bbe29116d13b57266f3"
+    },
+    {
+      "path": "independent-runtime/runtime/engine.log",
+      "bytes": 44413,
+      "sha256": "5cff119e37938144c60c76278d665fdaa7ee0d22e4e5f737039f6ced84d1afa8"
+    },
+    {
+      "path": "independent-runtime/runtime/engine.stderr.log",
+      "bytes": 341754,
+      "sha256": "062527646c572426cb9fea35aa139b2001c5011d0bd39b02ab94b089e3bf0acf"
+    },
+    {
+      "path": "independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/CIWorkspace",
+      "bytes": 659296,
+      "sha256": "28c8da1dae4ada0edaf03e48282d9931af42200e557208db0ea65c503852b699"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/Controller.app/Contents/Info.plist",
+      "bytes": 599,
+      "sha256": "41f9855d0de3ea5e78d2faa45458f9597e6f97b928bed3995bbc3ba1cf71f310"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/Controller.app/Contents/MacOS/Controller",
+      "bytes": 2752352,
+      "sha256": "d5ad8b8e7ea2f6e08fd2f738db1a2db7b4dc43065e6a5109f075d307b3681d9d"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/Controller.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureA.app/Contents/Info.plist",
+      "bytes": 581,
+      "sha256": "d952acb7edff282354ee8a0687759c67d762243ebb6f4d4ee145b946936e2e6b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureA.app/Contents/MacOS/FixtureA",
+      "bytes": 57664,
+      "sha256": "ccd90f5a4707a0702933b09683f8bae9ee7f186517a1f42ca3044f283cce297f"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureA.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureB.app/Contents/Info.plist",
+      "bytes": 581,
+      "sha256": "2d25f682fccc4359c0d5421348c2fc04df929b2b349277ea733c864fd6862171"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureB.app/Contents/MacOS/FixtureB",
+      "bytes": 57664,
+      "sha256": "b72b9914ead1b5a1e86a0f09f840d302cec755f6f7fc15a96fd0de4d9b8067ad"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/FixtureB.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 2200,
+      "sha256": "6686de10a28a2fe11b36cbb86dcbacc827cfc4ea116b4dabf1845e5aee629e9b"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/SplitViewHelper",
+      "bytes": 496448,
+      "sha256": "700dd4c41c4cec167d41310a5c607631e27f1a9a56801a4963a3fd632430046e"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/SplitViewHelper.swift",
+      "bytes": 18406,
+      "sha256": "4c7cdf7069d25bc057f7ccf0c4dab2a5a86455d17ea8229a9e29bce401c89ee6"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/build.json",
+      "bytes": 1800,
+      "sha256": "fa906ede31c6e2b6783f05693b041f1b9aa97afce9f87ee520b020a93ac885d3"
+    },
+    {
+      "path": "independent-runtime/runtime/kit/reader.o",
+      "bytes": 12632,
+      "sha256": "8b9fa80e04bc5bc3b8c1a2a339fe0160c48943c7276db47e77f88f822650ac79"
+    },
+    {
+      "path": "independent-runtime/runtime/kit-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/kit-build.stderr.log",
+      "bytes": 504,
+      "sha256": "55ceb6ef3829ce6e48afca7ba3ac40e154916735cdb9cb24f1e649a52225cc45"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneCornerGuardian",
+      "bytes": 2681120,
+      "sha256": "222a9bdbca03167c60f8a23bf2baac3da95a9d469fa160ba1fa4a2ecc619b248"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneDesktopReader",
+      "bytes": 10213392,
+      "sha256": "11051ea48e9f00aea1cab1c0003e993c3a926db67f267e614646c811afe072f9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneOrdinaryWindowController",
+      "bytes": 10364880,
+      "sha256": "d8d3ef381f518ed766b255158da261abf48947ea2521d582189d95c865a3c8d9"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneSpaceAction",
+      "bytes": 9887232,
+      "sha256": "24c3ea68f1f0a8b87ca51d1a9e92ac89ed425013be199044318e008121e6b7a2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Helpers/NearpaneSpacesEngine",
+      "bytes": 2629104,
+      "sha256": "ef306f104f7725a5c715a69b03e89c072df8939af2a3b3a230fa48b6f10415cf"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Info.plist",
+      "bytes": 2299,
+      "sha256": "82ca6d185e2a3d7abbfcd632032f07c26edc3c419e274837824d57c64573528d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/MacOS/NearpaneHost",
+      "bytes": 43463616,
+      "sha256": "3ce55b6078de0439ce2d957e68ec2ca2c543429a00a6994ddf258943900da22a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/AppIconSource.json",
+      "bytes": 2460,
+      "sha256": "8e4ff1965792f0d0297cd112f708aaf825c52dce95b204c7f08387a7770fc384"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/NativeSpaceActions/InstantSpaceSwitcher-LICENSE",
+      "bytes": 1064,
+      "sha256": "f058631aa400b6ec941cc5b0175be27ee54e8691ee5b3ff972e8b87b69f65129"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/NativeSpaceActions/SOURCES.md",
+      "bytes": 1834,
+      "sha256": "6d29954bf861751aaedf3db8ac9a761b770156846ea3637785d8a845a4f421c2"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/NativeSpaceActions/yabai-LICENSE",
+      "bytes": 1081,
+      "sha256": "2dd345192ecb21c6b42fd2cec29b6dd9bbc27688f37c9c3c20bd63ba216f8938"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Nearpane.icns",
+      "bytes": 1086174,
+      "sha256": "8c503980af7fd106c752b58d8b0bd21e885e1dfc654e0b3e3cee84880e636786"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/LICENSE",
+      "bytes": 1074,
+      "sha256": "16851449171a13fcc5f978373f836cd2466ab3c0de85f8766f4a8c07f8cfc933"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/apple-host.json",
+      "bytes": 1587,
+      "sha256": "fbd7fa223689610873824a8e4c712fc93303c62e9ec0c32896e473ff078603ed"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/apple.json",
+      "bytes": 3595,
+      "sha256": "7844d4c1f57a54035259810b158b1c8c7a5bbfa637c22f65bf86a5e596a95bed"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/base.json",
+      "bytes": 470,
+      "sha256": "325c19e6090072cb3215b2837f76aca67638e24a219390ebdc14fdb7925b034a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/corner.json",
+      "bytes": 6379,
+      "sha256": "9278d8456c484ea3235cec53db95d684a67cc012db2974f1d03f9f015c5dace8"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/minimize.json",
+      "bytes": 1355,
+      "sha256": "6a9c1237e26bc86d6165c37e5e4362b78d923a338478ba4b8f10e448cb68aee6"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/origins/spaces.json",
+      "bytes": 3100,
+      "sha256": "b11a4514241ef51b1c50f47e3dd98bedf20f396855da2073519aa2927538d45a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/Resources/Upstream/window-engine/source.json",
+      "bytes": 276,
+      "sha256": "97907744484d911d86136175ef455eff3e031cdae51b06835e444fced1a3234d"
+    },
+    {
+      "path": "independent-runtime/runtime/product/NearpaneIndependentStage.app/Contents/_CodeSignature/CodeResources",
+      "bytes": 6984,
+      "sha256": "ea36a3b5d1e2954af07f0338253fe4149f3dd96edaec5a48b645a97d24b8b1a3"
+    },
+    {
+      "path": "independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "96f8209b8c60a469107c799d7932a80ba99c4ebd979941ae0e5bd20a78e29dcb"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "independent-runtime/runtime/product/product-result.json",
+      "bytes": 24443,
+      "sha256": "f8a9e41ef63a980c43eb014e40c4de6e0e9d4c45897b9e06c382f89db9327e0a"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-9f16f6b7-b994-4db3-bf7d-5e86d73f33a1.json",
+      "bytes": 1085,
+      "sha256": "b28401684a452c75f206611ed74c6de77a97780f1efc89b5886fbcffb8c1ddea"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/spaces-worker-00fa8e72-cf25-43fa-b1f7-fe8f05ea78ac.jsonl",
+      "bytes": 178759,
+      "sha256": "82cbf3ab4466642d95da535bd89b04c4fe2158daa2bd651c1ba740e7550bf955"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1089,
+      "sha256": "2b5e333636f91d93f2424ab3bb1fbcb90af7ed5719635ef0c587d22e3579037b"
+    },
+    {
+      "path": "independent-runtime/runtime/product/profile/Nearpane/stage-visibility-v1.json",
+      "bytes": 24,
+      "sha256": "1849ad4d95f16317a2d717332e125b5a763e6bb5d554ae270d965198183b5acf"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-1.png",
+      "bytes": 19747,
+      "sha256": "d3e9fcfb60e5591b8f3c92d6be6f23ce6a59ee19b66b4607d396fdf7de448e25"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-baseline.png",
+      "bytes": 15991,
+      "sha256": "60cad963dc723584c28e38562f013b1748d5a1355440fbfd1d2319cf9d41f994"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-before-external-input.png",
+      "bytes": 15991,
+      "sha256": "60cad963dc723584c28e38562f013b1748d5a1355440fbfd1d2319cf9d41f994"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-80e6f249-60d7-4b04-a94e-64a92cc537e1.log",
+      "bytes": 2464,
+      "sha256": "7ed18415a842bd7828e69b4966be722b278dcd0958047e3ba3c9060adb3a9faa"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-80e6f249-60d7-4b04-a94e-64a92cc537e1.request.json",
+      "bytes": 697,
+      "sha256": "be3fb0dada78890b8bb26aac7bea9940aea4f548966645876623a44c9c8d3e00"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-80e6f249-60d7-4b04-a94e-64a92cc537e1.result.json",
+      "bytes": 3682,
+      "sha256": "c2a28841258e2f4cb42823be243a99eb203fd71be6cf77521f5918e5ca059f7e"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-80e6f249-60d7-4b04-a94e-64a92cc537e1.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-f39f8069-600d-4560-991f-2176db8c45d0.log",
+      "bytes": 2466,
+      "sha256": "4a684e6194b6df4550d464441701486fdd10d85a95b04fef24c401b8f62e7723"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-f39f8069-600d-4560-991f-2176db8c45d0.request.json",
+      "bytes": 697,
+      "sha256": "e8e57cd97e28ce257007db5a76b1d927c49e764dfa675813e7b8661a7ffcdf76"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-f39f8069-600d-4560-991f-2176db8c45d0.result.json",
+      "bytes": 3684,
+      "sha256": "453aa99522f586681b864c6d9cb2ee79463147ce75066ac32f166e38c8c803a5"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-press-f39f8069-600d-4560-991f-2176db8c45d0.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/product/r4-readback-failed.png",
+      "bytes": 31568,
+      "sha256": "7d48a283be758f581faa3c2b2f47e55efb00ecbacf1e3609192a08e6e62a0a40"
+    },
+    {
+      "path": "independent-runtime/runtime/product.json",
+      "bytes": 94,
+      "sha256": "a0d5c808a383ebcac227b5305fb8d918bae0d62bb16f4c36edc3512fc9f64c1d"
+    },
+    {
+      "path": "independent-runtime/runtime/product.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "independent-runtime/runtime/product.stderr.log",
+      "bytes": 216472,
+      "sha256": "efb6c54e949904c716dfdfaeaf43026e9a1b70628e5511175dd07e285a4969c6"
+    },
+    {
+      "path": "independent-runtime/runtime/summary.json",
+      "bytes": 32518,
+      "sha256": "9d545d9b42281be5c82d7b1d152e3e4dae226b09c4a1f772b63bad2949c79ade"
+    },
+    {
+      "path": "independent-runtime/summary.json",
+      "bytes": 35248,
+      "sha256": "6685cc39fa92439e2463ac3236e2de47ebc233672b792c0fb2162db9eac3f701"
+    }
+  ]
+}

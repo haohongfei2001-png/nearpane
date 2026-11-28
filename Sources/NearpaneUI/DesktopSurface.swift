@@ -334,6 +334,21 @@ struct DesktopSurface: View {
             "stillGrouped": lifetime.map { feed.stillGroups(member, in: group, appearance: $0) } ?? false,
             "routesGroupChoice": feed.stageEngine.routesGroupChoice])
         guard admitted else { return }
+        if intent == .member, feed.stageEngine.routesGroupChoice,
+           let owned = feed.stageEngine.ownedMemberSelection(member, group: group, in: snapshot, feed: feed) {
+            // The current card can outlive its ordinary appearance while the
+            // preceding switch seals its final confirmations. Queue the exact
+            // original member; the held route supplies all fresh authority.
+            let input = NativeSelectionPermit.inputCounters(), epoch = navigation.ownershipEpoch
+            IndependentStageTrace.record("owned-member-selection-queued", ["window": member.key.number,
+                "group": owned.group.uuidString, "member": owned.member.uuidString, "hostRevision": owned.revision])
+            navigation.submit(stage: true) { token in
+                try await feed.stageEngine.chooseOwnedMember(owned, in: feed, selectionToken: token, current: {
+                    canNavigate && navigation.isCurrent(token) && NativeSelectionPermit.inputCounters() == input
+                }, successor: { canNavigate ? navigation.queuedGroupChoice(after: token, in: epoch) : nil })
+            }
+            return
+        }
         guard let lifetime, let requested = feed.selectionGroup(member, in: snapshot), requested.id == group,
               feed.stillIntendsGroup(member, group: requested, appearance: lifetime) else {
             selectionIssue = StageGroupError.staleBinding.localizedDescription

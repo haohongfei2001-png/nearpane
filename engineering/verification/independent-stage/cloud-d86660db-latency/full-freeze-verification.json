@@ -1,0 +1,18 @@
+{
+  "verifiedUTC": "2026-11-28T07:56:12.693592+00:00",
+  "commit": "d86660db6c4091d7c708544d79cf14844688d907",
+  "runID": 46122156556,
+  "jobID": 140908802458,
+  "artifactID": 15254253304,
+  "providerDigest": "sha256:e45f0ed9fdf4d2eb1ca0e3b1133bd373cf1667381b2e30bc9d49d6f66cb8d6df",
+  "rawFiles": 440,
+  "allRawFilesEqualProviderZIP": true,
+  "hashes": {
+    "full.zip": "e45f0ed9fdf4d2eb1ca0e3b1133bd373cf1667381b2e30bc9d49d6f66cb8d6df",
+    "full-analysis.json": "9afbb12f16a553d080e2bee49876ccdba980aca3517c6a821a5b913afa9fc041",
+    "full-raw-manifest.json": "791d31c69a00188f77db8400a0993ec960efe33744333ba6b3060574b108b11c",
+    "source/source-gate-audit.json": "2d928d6f1347c6919a022431979569064a23ab5db3941115a7ac9dc9bc57d3e2"
+  },
+  "derivedInterpretationClarifiedUTC": "2026-11-28T07:58:20.815129+00:00",
+  "rawFilesRewritten": false
+}

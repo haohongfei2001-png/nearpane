@@ -1,0 +1,401 @@
+{
+  "total_count": 3,
+  "jobs": [
+    {
+      "id": 140908802458,
+      "run_id": 46122156556,
+      "workflow_name": "Independent Stage replacement",
+      "head_branch": "pro/independent-stage-engine-20261126",
+      "run_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/runs/46122156556",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVnGTps8AAAAgztGxmg",
+      "head_sha": "d86660db6c4091d7c708544d79cf14844688d907",
+      "url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/jobs/140908802458",
+      "html_url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46122156556/job/140908802458",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-28T07:38:44Z",
+      "started_at": "2026-11-28T07:38:45Z",
+      "completed_at": "2026-11-28T07:48:19Z",
+      "name": "Independent Stage (full)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-28T07:38:45Z",
+          "completed_at": "2026-11-28T07:38:46Z"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-28T07:38:46Z",
+          "completed_at": "2026-11-28T07:38:51Z"
+        },
+        {
+          "name": "Identify the actual host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-28T07:38:51Z",
+          "completed_at": "2026-11-28T07:38:55Z"
+        },
+        {
+          "name": "Rust, FFI, group lifecycle and R4 integration source tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-28T07:38:55Z",
+          "completed_at": "2026-11-28T07:42:19Z"
+        },
+        {
+          "name": "Publish read-only console context immediately",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-28T07:42:19Z",
+          "completed_at": "2026-11-28T07:42:20Z"
+        },
+        {
+          "name": "Build complete candidate with embedded tools",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-28T07:42:20Z",
+          "completed_at": "2026-11-28T07:47:15Z"
+        },
+        {
+          "name": "Build the same R4 Host for earlier native feedback",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-11-28T07:47:15Z",
+          "completed_at": "2026-11-28T07:47:15Z"
+        },
+        {
+          "name": "Foreign-window Spaces and production R4 receipts",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 8,
+          "started_at": "2026-11-28T07:47:15Z",
+          "completed_at": "2026-11-28T07:48:07Z"
+        },
+        {
+          "name": "Compile native rendering-decoupling diagnostic",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-28T07:48:07Z",
+          "completed_at": "2026-11-28T07:48:07Z"
+        },
+        {
+          "name": "Observe native rendering and edge invocation after Spaces cleanup",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-28T07:48:07Z",
+          "completed_at": "2026-11-28T07:48:07Z"
+        },
+        {
+          "name": "Preserve every terminal result and candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-28T07:48:07Z",
+          "completed_at": "2026-11-28T07:48:15Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-11-28T07:48:15Z",
+          "completed_at": "2026-11-28T07:48:15Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-11-28T07:48:15Z",
+          "completed_at": "2026-11-28T07:48:17Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/check-runs/140908802458",
+      "labels": [
+        "xcode-27"
+      ],
+      "runner_id": 1000062211,
+      "runner_name": "GitHub Actions 1000062211",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 140908802688,
+      "run_id": 46122156556,
+      "workflow_name": "Independent Stage replacement",
+      "head_branch": "pro/independent-stage-engine-20261126",
+      "run_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/runs/46122156556",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVnGTps8AAAAgztGygA",
+      "head_sha": "d86660db6c4091d7c708544d79cf14844688d907",
+      "url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/jobs/140908802688",
+      "html_url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46122156556/job/140908802688",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-28T07:38:44Z",
+      "started_at": "2026-11-28T07:38:46Z",
+      "completed_at": "2026-11-28T07:40:49Z",
+      "name": "Independent Stage (diagnostics)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-28T07:38:47Z",
+          "completed_at": "2026-11-28T07:38:49Z"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-28T07:38:49Z",
+          "completed_at": "2026-11-28T07:38:55Z"
+        },
+        {
+          "name": "Identify the actual host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-28T07:38:55Z",
+          "completed_at": "2026-11-28T07:39:00Z"
+        },
+        {
+          "name": "Rust, FFI, group lifecycle and R4 integration source tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 4,
+          "started_at": "2026-11-28T07:39:00Z",
+          "completed_at": "2026-11-28T07:39:00Z"
+        },
+        {
+          "name": "Publish read-only console context immediately",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-11-28T07:39:00Z",
+          "completed_at": "2026-11-28T07:39:00Z"
+        },
+        {
+          "name": "Build complete candidate with embedded tools",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-28T07:39:00Z",
+          "completed_at": "2026-11-28T07:39:00Z"
+        },
+        {
+          "name": "Build the same R4 Host for earlier native feedback",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-11-28T07:39:00Z",
+          "completed_at": "2026-11-28T07:39:00Z"
+        },
+        {
+          "name": "Foreign-window Spaces and production R4 receipts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-28T07:39:00Z",
+          "completed_at": "2026-11-28T07:40:39Z"
+        },
+        {
+          "name": "Compile native rendering-decoupling diagnostic",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-28T07:40:39Z",
+          "completed_at": "2026-11-28T07:40:40Z"
+        },
+        {
+          "name": "Observe native rendering and edge invocation after Spaces cleanup",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-28T07:40:40Z",
+          "completed_at": "2026-11-28T07:40:40Z"
+        },
+        {
+          "name": "Preserve every terminal result and candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-28T07:40:40Z",
+          "completed_at": "2026-11-28T07:40:43Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-11-28T07:40:43Z",
+          "completed_at": "2026-11-28T07:40:44Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-11-28T07:40:44Z",
+          "completed_at": "2026-11-28T07:40:46Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/check-runs/140908802688",
+      "labels": [
+        "xcode-27"
+      ],
+      "runner_id": 1000062213,
+      "runner_name": "GitHub Actions 1000062213",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 140908802732,
+      "run_id": 46122156556,
+      "workflow_name": "Independent Stage replacement",
+      "head_branch": "pro/independent-stage-engine-20261126",
+      "run_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/runs/46122156556",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVnGTps8AAAAgztGyrA",
+      "head_sha": "d86660db6c4091d7c708544d79cf14844688d907",
+      "url": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/jobs/140908802732",
+      "html_url": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46122156556/job/140908802732",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-28T07:38:44Z",
+      "started_at": "2026-11-28T07:38:45Z",
+      "completed_at": "2026-11-28T07:42:15Z",
+      "name": "Independent Stage (r4-fast)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-28T07:38:46Z",
+          "completed_at": "2026-11-28T07:38:46Z"
+        },
+        {
+          "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-28T07:38:46Z",
+          "completed_at": "2026-11-28T07:38:52Z"
+        },
+        {
+          "name": "Identify the actual host",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-28T07:38:52Z",
+          "completed_at": "2026-11-28T07:38:55Z"
+        },
+        {
+          "name": "Rust, FFI, group lifecycle and R4 integration source tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 4,
+          "started_at": "2026-11-28T07:38:55Z",
+          "completed_at": "2026-11-28T07:38:55Z"
+        },
+        {
+          "name": "Publish read-only console context immediately",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 5,
+          "started_at": "2026-11-28T07:38:55Z",
+          "completed_at": "2026-11-28T07:38:55Z"
+        },
+        {
+          "name": "Build complete candidate with embedded tools",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 6,
+          "started_at": "2026-11-28T07:38:55Z",
+          "completed_at": "2026-11-28T07:38:55Z"
+        },
+        {
+          "name": "Build the same R4 Host for earlier native feedback",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-28T07:38:55Z",
+          "completed_at": "2026-11-28T07:41:07Z"
+        },
+        {
+          "name": "Foreign-window Spaces and production R4 receipts",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 8,
+          "started_at": "2026-11-28T07:41:07Z",
+          "completed_at": "2026-11-28T07:42:10Z"
+        },
+        {
+          "name": "Compile native rendering-decoupling diagnostic",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-28T07:42:10Z",
+          "completed_at": "2026-11-28T07:42:10Z"
+        },
+        {
+          "name": "Observe native rendering and edge invocation after Spaces cleanup",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-28T07:42:10Z",
+          "completed_at": "2026-11-28T07:42:10Z"
+        },
+        {
+          "name": "Preserve every terminal result and candidate",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-28T07:42:10Z",
+          "completed_at": "2026-11-28T07:42:13Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-11-28T07:42:13Z",
+          "completed_at": "2026-11-28T07:42:13Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-11-28T07:42:13Z",
+          "completed_at": "2026-11-28T07:42:14Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/haohongfei2001-png/nearpane/check-runs/140908802732",
+      "labels": [
+        "xcode-27"
+      ],
+      "runner_id": 1000062212,
+      "runner_name": "GitHub Actions 1000062212",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}
