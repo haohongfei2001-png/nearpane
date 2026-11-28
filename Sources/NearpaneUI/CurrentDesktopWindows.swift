@@ -734,6 +734,7 @@ import OSLog
             var step = "entry", completed = false, receivedReply = false
             var readerMS: Double = 0, historyMS: Double = 0, projectionMS: Double = 0, directoryMS: Double = 0
             var nativeTiming = [String: Double]()
+            var incompleteCatalogFacts: [String: Any]?
             defer {
                 let totalMS = (ProcessInfo.processInfo.systemUptime - taskStarted) * 1000
                 var fields: [String: Any] = ["readSession": request.session.uuidString, "requestRevision": request.revision,
@@ -745,6 +746,7 @@ import OSLog
                     "groupProjectionMS": projectionMS, "observeDirectoryMS": directoryMS,
                     "remainingProcessingMS": max(0, totalMS - readerMS - historyMS - projectionMS - directoryMS)]
                 for (key, value) in nativeTiming { fields[key] = value }
+                if let incompleteCatalogFacts { fields["incompleteCatalog"] = incompleteCatalogFacts }
                 IndependentStageTrace.record("desktop-read-task-exit", fields)
             }
             guard let self, !Task.isCancelled, self.epoch == expected, self.observationRequested, self.sessionAvailable() else { return nil }
@@ -754,6 +756,18 @@ import OSLog
             let readerReturned = ProcessInfo.processInfo.systemUptime
             readerMS = (readerReturned - readerStarted) * 1000
             receivedReply = readback != nil
+            if let native = readback?.native, native.catalogComplete != true {
+                let issues = native.catalogIssues ?? []
+                var facts: [String: Any] = ["catalogComplete": native.catalogComplete.map { $0 as Any } ?? NSNull(),
+                    "catalogIssueCount": issues.count, "catalogIssues": issues.prefix(12).map { String($0.prefix(200)) },
+                    "catalogIssuesTruncated": issues.count > 12 || issues.contains { $0.count > 200 }]
+                if let samples = native.catalogIssueWindows,
+                   let data = try? JSONEncoder().encode(Array(samples.prefix(CatalogIssueWindowFacts.limit))),
+                   let rows = try? JSONSerialization.jsonObject(with: data) {
+                    facts["catalogIssueWindows"] = rows
+                }
+                incompleteCatalogFacts = facts
+            }
             // These are the helper's existing timestamps, observed before any
             // result validation. Diagnostics perform no additional native read.
             if let native = readback?.native, native.beganUptime.isFinite, native.endedUptime.isFinite {
