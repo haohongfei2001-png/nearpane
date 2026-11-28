@@ -135,7 +135,7 @@ try:
     early_display=json.loads((out/'display'/display_manifest['selectedReport']).read_text())['selected']['nsFrame']
     early_x=int(early_display['x']+120)
     native_window('com.apple.Music','music-initial-position.json',early_x,112,1352,838)
-    playlist='Nearpane Film '+os.environ['GITHUB_RUN_ID']
+    playlist='By the water'
     apple('tell application "Music"\nset sound volume to 72\nset filmList to make new user playlist with properties {name:'+quote(playlist)+'}\nadd POSIX file '+quote(a.audio.resolve())+' to filmList\nend tell',timeout=50)
     verified=verified_import(playlist)
     play_script='tell application "Music"\nset filmList to first user playlist whose name is '+quote(playlist)+'\nset shuffle enabled to false\nset song repeat to off\nplay filmList\nend tell'
@@ -176,10 +176,11 @@ try:
         time.sleep(.15)
     # Reveal the actual current song in the real library; artwork remains original.
     apple('tell application "Music" to reveal current track',required=False)
-    # Native MiniPlayer is a real Apple Music command; use the large artwork view if available.
-    native_window('com.apple.Music','music-miniplayer-key.json','--key','miniplayer')
-    time.sleep(1.0)
-    native_window('com.apple.Music','music-miniplayer-position.json',x+85,y+80,650,650,'--focused')
+    # Keep the real Music library view: it visibly renders this recording's
+    # actual album cover. This macOS build's MiniPlayer leaves its artwork area
+    # blank even while the track bridge and library expose the original JPEG.
+    # Do not insert a replacement graphic into that native UI.
+    time.sleep(3.0)
     snap('core-initial-music-layout-4k.png')
     seek_real(147.60)
     apple('tell application "Music"\npause\nset player position to 147.60\nend tell')
