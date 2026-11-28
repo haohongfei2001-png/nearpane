@@ -130,10 +130,34 @@ extension Reader {
         let hasBackground = inventory?.scopes.flatMap(\.records).contains { !$0.isCurrent && $0.ordinaryUUID != nil } == true
         var complete = true
         var catalogIssues = [String]()
+        var catalogIssueWindows = [CatalogIssueWindowFacts]()
         func incomplete(_ reason: String, window: CGWindowMetadata? = nil) {
             complete = false
             guard catalogIssues.count < 32 else { return }
             catalogIssues.append(window.map { "\(reason):pid=\($0.process.pid),window=\($0.windowID)" } ?? reason)
+            guard let window, catalogIssueWindows.count < CatalogIssueWindowFacts.limit else { return }
+            let number = window.windowID, before = previous[number]
+            func sample(_ row: CGWindowMetadata, list: List, active: Set<UInt32>?) -> CatalogIssueWindowFacts.Sample {
+                .init(pid: row.process.pid, birth: row.process.launchEpochMicroseconds, frame: SurfaceRect(row.frame),
+                      reportedOnscreen: row.isOnscreen, observedOnscreen: list.observedOnscreen.map { $0.contains(number) },
+                      active: active.map { $0.contains(number) }, ordered: list.observedAcrossSpaces.map { $0.contains(number) },
+                      ownerUnhidden: list.unhiddenOwners.contains(row.process.pid))
+            }
+            // The roles were read between CG inventories for the first PID.
+            // Keep that identity explicit if this failed row changed owners.
+            let source: CatalogIssueWindowFacts.Role.Source = currentNumbers.contains(number) ? .current :
+                (otherNumbers.contains(number) ? .background : .notRequested)
+            let owner = before.flatMap { row in
+                source == .current ? roles[row.process.pid] : (source == .background ? otherRoles[row.process.pid] : nil)
+            }
+            let role = owner?.windows[number]
+            catalogIssueWindows.append(.init(issueIndex: catalogIssues.count - 1, number: number,
+                first: before.map { sample($0, list: first, active: activeBeforeRead) },
+                second: sample(window, list: second, active: activeAfterRead),
+                left: firstBoundary?.membership[number], right: lastBoundary?.membership[number],
+                role: .init(firstPID: before?.process.pid, source: source, ownerRead: owner != nil, windowRead: role != nil,
+                            everyNumberKnown: owner?.everyNumberKnown, allRolesRead: owner?.allRolesRead,
+                            ordinary: role?.ordinary, minimized: role?.minimized, fullscreen: role?.fullscreen)))
         }
         if inventory == nil { incomplete("nativeInventoryUnavailable") }
         if hasBackground && (!first.backgroundCollectionComplete || !second.backgroundCollectionComplete ||
@@ -249,6 +273,7 @@ extension Reader {
                 beganUptime: start, endedUptime: clock.systemUptime, stageManagerEnabled: stageManager,
                 catalogComplete: inventory != nil && complete))
         result.native?.catalogIssues = catalogIssues.isEmpty ? nil : catalogIssues
+        result.native?.catalogIssueWindows = catalogIssueWindows.isEmpty ? nil : catalogIssueWindows
         if let targets = request.sidebarAuditWindows {
             result.native?.sidebarWindowAudit = targets.prefix(2).map { key in
                 var flags = ["catalogueAvailable": canRead, "readerAXTrusted": trusted, "backgroundInventory": backgroundInventory != nil,

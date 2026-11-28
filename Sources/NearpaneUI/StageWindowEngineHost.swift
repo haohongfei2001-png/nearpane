@@ -657,10 +657,29 @@ import NearpaneOrdinaryWindowRuntime
         let snapshot = snapshotForGroups(raw)
         await heldRefresh?.value
         phase = "binding"
-        guard !unreadableLedger, !releasing, !terminationOwnsLane, let engine, let window = feed.groupWindow(member,in:snapshot),
-              let space = window.nativeSpace, let saved = feed.groups.groups(in:.init(display:window.display,nativeSpace:space))
-                .first(where: { $0.id == group })?.members.first(where: { $0.windowHint == window.identity })
-        else { SpacesWorkerLifecycle.trace("group-choice-binding-rejected", ["hasLiveWindow": feed.groupWindow(member, in: snapshot) != nil]); throw StageSwitchError.recoveryRequired }
+        func bindingRejected(_ reason: String, hasLiveWindow: Bool = false,
+                             details: [String: Any] = [:]) -> StageSwitchError {
+            var facts: [String: Any] = ["reason": reason, "hasLiveWindow": hasLiveWindow,
+                                      "snapshotRevision": snapshot.revision]
+            facts.merge(details, uniquingKeysWith: { _, observed in observed })
+            SpacesWorkerLifecycle.trace("group-choice-binding-rejected", facts)
+            return .recoveryRequired
+        }
+        guard !unreadableLedger else { throw bindingRejected("host/unreadable-ledger") }
+        guard !releasing else { throw bindingRejected("host/releasing") }
+        guard !terminationOwnsLane else { throw bindingRejected("host/terminating") }
+        guard let engine else { throw bindingRejected("host/controller") }
+        var windowRejection = [String: Any]()
+        guard let window = feed.groupWindow(member, in: snapshot, rejected: { windowRejection = $0 }) else {
+            // Use this exact failed read. Repeating groupWindow here would use a
+            // later clock/projection and could contradict the rejected guard.
+            throw bindingRejected("member/window", details: windowRejection)
+        }
+        guard let space = window.nativeSpace else { throw bindingRejected("member/ordinary-space", hasLiveWindow: true) }
+        guard let saved = feed.groups.groups(in:.init(display:window.display,nativeSpace:space))
+            .first(where: { $0.id == group })?.members.first(where: { $0.windowHint == window.identity }) else {
+            throw bindingRejected("group/member", hasLiveWindow: true)
+        }
         let scope = StageGroupScope(display:window.display,nativeSpace:space)
         // The live worker owns one certified home. A click on a different monitor must leave
         // that home intact until a worker can independently verify simultaneous display dispatch.

@@ -304,18 +304,39 @@ import NearpaneOrdinaryWindowRuntime
 
     private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess,
                         rejected: (([String: Any]) -> Void)? = nil,
+                        metrics: (([String: Any]) -> Void)? = nil,
                         current: @MainActor () -> Bool) async throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
+        var candidateCount = 0, retainedCount = 0, roleReadCount = 0, candidateEnumerationCompleted = false
+        var roleReadTotalMS: Double = 0, roleReadMaxMS: Double = 0
+        defer {
+            metrics?(["candidateCount": candidateCount, "candidateEnumerationCompleted": candidateEnumerationCompleted,
+                      "retainedCount": retainedCount, "roleReadCount": roleReadCount,
+                      "roleReadTotalMS": roleReadTotalMS, "roleReadMaxMS": roleReadMaxMS,
+                      "roleTimingIncludesTaskQueueAndActorResume": true, "nestedInPhaseDurations": true])
+        }
         guard let catalog = homeCatalog(snapshot, rejected: rejected) else { throw StageSwitchError.incomplete }
         let originalBindings = bindings, originalClaims = claims, originalHome = home, originalOwner = owner
         let candidates = try Self.ordinaryRoster(snapshot.windows, on: display, current: catalog.current.id, rejected: rejected) { _ in true }
+        candidateCount = candidates.count; candidateEnumerationCompleted = true
         var keys = Set<NativeSpaceWindow>()
         for key in candidates {
             guard !Task.isCancelled, current(), bindings == originalBindings, claims == originalClaims,
                   home == originalHome, owner == originalOwner else { throw StageSwitchError.interrupted }
             // An already retained standard window can be unlisted after our same-desktop action.
             // Its original AX object and current physical state are still verified in the binding loop.
-            if bindings[key] != nil { keys.insert(key); continue }
-            let ordinary = try await Task.detached(priority: .userInitiated) { try access.role(of: key) }.value
+            if bindings[key] != nil { retainedCount += 1; keys.insert(key); continue }
+            let ordinary: Bool
+            do {
+                let began = metrics == nil ? 0 : ProcessInfo.processInfo.systemUptime
+                roleReadCount += 1
+                defer {
+                    if metrics != nil {
+                        let elapsed = (ProcessInfo.processInfo.systemUptime - began) * 1000
+                        roleReadTotalMS += elapsed; roleReadMaxMS = max(roleReadMaxMS, elapsed)
+                    }
+                }
+                ordinary = try await Task.detached(priority: .userInitiated) { try access.role(of: key) }.value
+            }
             guard !Task.isCancelled, current(), bindings == originalBindings, claims == originalClaims,
                   home == originalHome, owner == originalOwner else { throw StageSwitchError.interrupted }
             if ordinary { keys.insert(key) }
@@ -358,7 +379,8 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     /// Bounded metadata from the exact rejected read, never a later feed snapshot
-    /// or a second native query. Window titles, frames and contents are omitted.
+    /// or a second native query. Failed-item CG geometry is diagnostic only;
+    /// window titles, paths and contents are omitted.
     private static func rosterSnapshotFacts(_ snapshot: DesktopSnapshot, display: String) -> [String: Any] {
         let scopes = snapshot.scopes.filter { $0.displayID == display }
         var facts: [String: Any] = ["session": snapshot.sessionID.uuidString, "revision": snapshot.revision,
@@ -385,6 +407,11 @@ import NearpaneOrdinaryWindowRuntime
             facts["catalogIssueCount"] = issues.count
             facts["catalogIssues"] = issues.prefix(12).map { String($0.prefix(200)) }
             facts["catalogIssuesTruncated"] = issues.count > 12 || issues.contains { $0.count > 200 }
+            if let samples = native.catalogIssueWindows,
+               let data = try? JSONEncoder().encode(Array(samples.prefix(CatalogIssueWindowFacts.limit))),
+               let rows = try? JSONSerialization.jsonObject(with: data) {
+                facts["catalogIssueWindows"] = rows
+            }
         }
         return facts
     }
@@ -433,10 +460,29 @@ import NearpaneOrdinaryWindowRuntime
     private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
                       candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
         let readStarted = ProcessInfo.processInfo.systemUptime
+        let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil
         let initialAttempt = sequence == 0 && bindings.isEmpty && claims.isEmpty && self.owner == nil
         var step = "fresh-directory", reading: NativeSpaceWindow?, completed = false
         var guardRejection: [String: Any]?, observationPhase: String?
         var rosterRejection: [String: Any]?, rejectedRoster: DesktopSnapshot?
+        var openingRosterMetrics: [String: Any]?, closingRosterMetrics: [String: Any]?
+        var physicalBeforeClosing: [String: Any]?
+        var unchangedPermitCount = 0, unchangedPermitTotalMS: Double = 0, unchangedPermitMaxMS: Double = 0
+        func unchangedPermit(restoring: Bool) -> (allowed: Bool, rejection: [String: Any]?) {
+            guard tracing else { return checkedPermit(owner, restoring: restoring) }
+            let began = ProcessInfo.processInfo.systemUptime
+            defer {
+                let elapsed = (ProcessInfo.processInfo.systemUptime - began) * 1000
+                unchangedPermitCount += 1; unchangedPermitTotalMS += elapsed
+                unchangedPermitMaxMS = max(unchangedPermitMaxMS, elapsed)
+            }
+            return checkedPermit(owner, restoring: restoring)
+        }
+        // This subset overlaps the existing phase timings; do not add it to them.
+        func unchangedPermitTiming() -> [String: Any] {
+            ["count": unchangedPermitCount, "totalMS": unchangedPermitTotalMS,
+             "maxMS": unchangedPermitMaxMS, "nestedInPhaseDurations": true]
+        }
         defer {
             // This predicate belongs to one initial selection, not the lifetime
             // of the subsequently enrolled owner or any later selection.
@@ -445,10 +491,14 @@ import NearpaneOrdinaryWindowRuntime
                 var facts: [String: Any] = ["step": step,
                     "pid": reading?.pid ?? 0, "window": reading?.number ?? 0,
                     "bindings": bindings.count, "claims": claims.count, "sequence": sequence,
-                    "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000]
+                    "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000,
+                    "unchangedPermitTiming": unchangedPermitTiming()]
                 if let guardRejection { facts["guardRejection"] = guardRejection }
                 if let observationPhase { facts["observationPhase"] = observationPhase }
                 if let rosterRejection { facts["rosterRejection"] = rosterRejection }
+                if let openingRosterMetrics { facts["openingRosterMetrics"] = openingRosterMetrics }
+                if let closingRosterMetrics { facts["closingRosterMetrics"] = closingRosterMetrics }
+                if let physicalBeforeClosing { facts["physicalBeforeClosing"] = physicalBeforeClosing }
                 if let rejectedRoster {
                     facts["rosterSnapshot"] = Self.rosterSnapshotFacts(rejectedRoster, display: display)
                     facts["expectedSession"] = session.uuidString
@@ -478,9 +528,9 @@ import NearpaneOrdinaryWindowRuntime
                   checked(claims == expectedClaims, "claims"), checked(Set(leases.keys) == expectedLeases, "leases"),
                   checked(home == expectedHome, "home"), checked(self.owner == expectedOwner, "owner"),
                   checked(releaseInput == expectedReleaseInput, "release-input") else { return false }
-            let ordinary = checkedPermit(owner, restoring: false)
+            let ordinary = unchangedPermit(restoring: false)
             if ordinary.allowed { return true }
-            let restoring = checkedPermit(owner, restoring: true)
+            let restoring = unchangedPermit(restoring: true)
             if restoring.allowed { return true }
             guardRejection = ["reason": "permission"]
             if let facts = ordinary.rejection { guardRejection?["ordinary"] = facts }
@@ -511,7 +561,7 @@ import NearpaneOrdinaryWindowRuntime
         step = "opening-roster"
         let (opening,keys) = try await roster(first, access: access, rejected: {
             rosterRejection = $0; rejectedRoster = first
-        }, current: unchanged)
+        }, metrics: tracing ? { openingRosterMetrics = $0 } : nil, current: unchanged)
         step = "opening-scope"
         let initial = enrolledTopology ?? first.scopes
         guard unchanged(), first.scopes == initial else { throw StageSwitchError.interrupted }
@@ -578,11 +628,41 @@ import NearpaneOrdinaryWindowRuntime
             focuses.append(observed.focus)
         }
         let physicalReady = ProcessInfo.processInfo.systemUptime
+        if tracing {
+            let prior = lastStates
+            func ordered(_ keys: Set<NativeSpaceWindow>) -> [NativeSpaceWindow] {
+                keys.sorted { ($0.pid, $0.birth, $0.number) < ($1.pid, $1.birth, $1.number) }
+            }
+            func keyFacts(_ key: NativeSpaceWindow) -> [String: Any] {
+                ["pid": key.pid, "birth": key.birth, "window": key.number]
+            }
+            func stateFacts(_ state: StageWindowState?) -> Any {
+                guard let state else { return NSNull() }
+                let validFrame = state.frame.geometry.isValid
+                return ["visibility": state.visibility.rawValue, "lifetime": state.lifetime.uuidString,
+                    "frameValid": validFrame,
+                    "frame": validFrame ? [state.frame.x, state.frame.y, state.frame.width, state.frame.height] as Any : NSNull(),
+                    "hiddenSpaceID": state.hiddenSpaceID.map { $0 as Any } ?? NSNull()] as [String: Any]
+            }
+            let observedKeys = ordered(Set(observedBindings.keys))
+            let changed = ordered(Set(prior.keys).union(states.keys)).filter { prior[$0] != states[$0] }
+            physicalBeforeClosing = ["capturedBeforeClosingValidation": true, "coordinatorValidated": false,
+                "physicalObservationCount": focuses.count, "physicalKeys": observedKeys.prefix(64).map(keyFacts),
+                "physicalKeysTruncated": observedKeys.count > 64, "stateCount": states.count, "lastStateCount": prior.count,
+                "statesEqualLastStates": states == prior,
+                "matchingStateCount": states.filter { prior[$0.key] == $0.value }.count,
+                "changedStateCount": changed.count, "changedStatesTruncated": changed.count > 8,
+                "changedStates": changed.prefix(8).map { key -> [String: Any] in
+                    ["key": keyFacts(key), "previous": stateFacts(prior[key]), "current": stateFacts(states[key])]
+                },
+                "focuses": focuses.prefix(64).map { $0.map { keyFacts($0) as Any } ?? NSNull() },
+                "focusesTruncated": focuses.count > 64, "distinctFocusCount": Set(focuses).count]
+        }
         step = "closing-roster"; reading = nil
         guard let last = await feed.readAfterAction(), unchanged(),
               let closing = try? await roster(last, access: access, rejected: {
                   rosterRejection = $0; rejectedRoster = last
-              }, current: unchanged), unchanged(), closing.1 == keys,
+              }, metrics: tracing ? { closingRosterMetrics = $0 } : nil, current: unchanged), unchanged(), closing.1 == keys,
               first.revision < last.revision, last.displays == first.displays, closing.0.current == opening.current,
               last.topologyFingerprint == first.topologyFingerprint, Set(focuses).count == 1 else { throw StageSwitchError.interrupted }
         let focus = focuses[0]
@@ -632,6 +712,8 @@ import NearpaneOrdinaryWindowRuntime
             "focusPID": focus?.pid ?? 0, "focusWindow": focus?.number ?? 0,
             "focusLocal": focus.map { states[$0] != nil } ?? false, "foreignFocus": foreign != nil,
             "durationMS": (ProcessInfo.processInfo.systemUptime - readStarted) * 1000,
+            "unchangedPermitTiming": unchangedPermitTiming(),
+            "openingRosterMetrics": openingRosterMetrics ?? [:], "closingRosterMetrics": closingRosterMetrics ?? [:],
             "openingDirectoryMS": (directoryReady - readStarted) * 1000,
             "bindingMS": (bindingsReady - directoryReady) * 1000,
             "physicalWindowsMS": (physicalReady - bindingsReady) * 1000,

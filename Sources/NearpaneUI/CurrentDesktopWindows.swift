@@ -122,11 +122,22 @@ import OSLog
 
     /// A member must still be on this physical display and its current ordinary desktop.
     private func groupWindow(_ window: WindowObservation, on screen: DisplayObservation,
-                             current: SpaceRecord) -> StageGroupWindow? {
-        guard let nativeSpace = current.ordinaryUUID, window.displayID == screen.id, let display = UUID(uuidString: screen.id),
-              window.membership == .known(recordIDs: [current.id]), let m = window.metadata, m.isOnscreen == true,
-              m.minimized != true, m.fullScreen != true, m.overviewOrdinaryRole != false, m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace,
-              let key = DesktopWindowKey(window), let lifetime = groupLifetime(of: key) else { return nil }
+                             current: SpaceRecord, rejected: ((String) -> Void)? = nil) -> StageGroupWindow? {
+        func reject(_ reason: String) -> StageGroupWindow? { rejected?(reason); return nil }
+        // Keep the original guard's short-circuit order. A diagnostic observes
+        // the first failed predicate without repeating any live resolver.
+        guard let nativeSpace = current.ordinaryUUID else { return reject("window/ordinary-space") }
+        guard window.displayID == screen.id else { return reject("window/display") }
+        guard let display = UUID(uuidString: screen.id) else { return reject("window/display-uuid") }
+        guard window.membership == .known(recordIDs: [current.id]) else { return reject("window/membership") }
+        guard let m = window.metadata else { return reject("window/metadata") }
+        guard m.isOnscreen == true else { return reject("window/onscreen") }
+        guard m.minimized != true else { return reject("window/minimized") }
+        guard m.fullScreen != true else { return reject("window/fullscreen") }
+        guard m.overviewOrdinaryRole != false else { return reject("window/ordinary-role") }
+        guard m.overviewOrdinaryRole == true || window.canWitnessCurrentSpace else { return reject("window/current-space-witness") }
+        guard let key = DesktopWindowKey(window) else { return reject("window/identity") }
+        guard let lifetime = groupLifetime(of: key) else { return reject("window/group-lifetime") }
         let layout = screen.usable.flatMap { area in
             m.hasCatalogGeometry == true || m.presentation == .confirmed
                 ? StageGroupWindow.relativeFrame(window.bounds, in: area) : nil
@@ -147,13 +158,61 @@ import OSLog
         }.compactMap { groupWindow($0, on: screen, current: row.record) }
     }
 
-    func groupWindow(_ member: NativeSidebarMember, in raw: DesktopSnapshot) -> StageGroupWindow? {
+    func groupWindow(_ member: NativeSidebarMember, in raw: DesktopSnapshot,
+                     rejected: (([String: Any]) -> Void)? = nil) -> StageGroupWindow? {
         let snapshot = stageEngine.snapshotForGroups(raw)
-        guard snapshot.native?.stageManagerEnabled == false, let catalog = member.source.resolve(snapshot),
-              catalog.current.id == member.source.space, let window = member.resolve(snapshot),
-              snapshot.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1,
-              DesktopWindowTarget(window, in: snapshot) != nil else { return nil }
-        return groupWindow(window, on: catalog.display, current: catalog.current)
+        func reject(_ reason: String) -> StageGroupWindow? {
+            guard let rejected else { return nil }
+            func value<T>(_ optional: T?) -> Any { optional.map { $0 as Any } ?? NSNull() }
+            var facts: [String: Any] = ["reason": reason, "snapshotRevision": snapshot.revision,
+                "snapshotSession": snapshot.sessionID.uuidString, "snapshotWindows": snapshot.windows.count,
+                "catalogComplete": value(snapshot.native?.catalogComplete), "catalogIssues": value(snapshot.native?.catalogIssues),
+                "stageManagerEnabled": value(snapshot.native?.stageManagerEnabled),
+                "sourceSessionMatches": member.source.session == snapshot.sessionID,
+                "sourceTopologyMatches": member.source.topology == snapshot.topologyFingerprint,
+                "sourceDisplay": member.source.display, "sourceSpace": member.source.space,
+                "selectedPID": member.key.pid, "selectedBirth": member.key.birth, "selectedWindow": member.key.number,
+                "selectionOnly": member.selectionOnly, "originalWindowPresent": member.originalWindow != nil]
+            if let native = snapshot.native {
+                let now = ProcessInfo.processInfo.systemUptime
+                if native.beganUptime.isFinite, native.endedUptime.isFinite {
+                    facts["nativeBeganUptime"] = native.beganUptime; facts["nativeEndedUptime"] = native.endedUptime
+                    facts["nativeSampleMS"] = (native.endedUptime - native.beganUptime) * 1000
+                    facts["nativeAgeMS"] = (now - native.beganUptime) * 1000
+                    facts["nativeSinceEndMS"] = (now - native.endedUptime) * 1000
+                }
+            }
+            // Include same-number rows so a conflicting owner/birth is visible.
+            // These are existing metadata only: no titles, paths, AX or new reads.
+            facts["selectedRows"] = snapshot.windows.compactMap { row -> [String: Any]? in
+                guard let m = row.metadata, m.number == member.key.number else { return nil }
+                let membership: Any
+                switch row.membership { case .known(let ids): membership = ids; case .unknown: membership = NSNull() }
+                return ["pid": m.pid, "birth": value(m.launchMicroseconds), "window": m.number,
+                    "identityMatches": m.pid == member.key.pid && m.launchMicroseconds == member.key.birth,
+                    "display": row.displayID, "displayMatches": row.displayID == member.source.display,
+                    "knownMembership": membership, "membershipMatchesSource": row.membership == .known(recordIDs: [member.source.space]),
+                    "overviewOrdinaryRole": value(m.overviewOrdinaryRole), "minimized": value(m.minimized),
+                    "fullScreen": value(m.fullScreen), "isOnscreen": value(m.isOnscreen),
+                    "onActiveDesktop": value(m.onActiveDesktop), "overviewSpaceID": value(m.overviewSpaceID),
+                    "overviewIsPresented": value(m.overviewIsPresented), "hasCatalogGeometry": value(m.hasCatalogGeometry),
+                    "sidebarOriginalWindowPresent": row.sidebarOriginalWindow != nil,
+                    "originalWindowMatches": row.sidebarOriginalWindow == member.originalWindow,
+                    "originalWindowConstraintSatisfied": member.originalWindow == nil || row.sidebarOriginalWindow == member.originalWindow,
+                    "confidence": String(describing: row.confidence), "globalFrameValid": m.globalFrame.geometry.isValid,
+                    "axElementPresent": m.element != nil, "axFramePresent": m.axFrame != nil,
+                    "axStandardWindowNumber": value(m.axStandardWindowNumber)]
+            }
+            rejected(facts)
+            return nil
+        }
+        guard snapshot.native?.stageManagerEnabled == false else { return reject("catalog/native-stage-manager") }
+        guard let catalog = member.source.resolve(snapshot) else { return reject("catalog/source") }
+        guard catalog.current.id == member.source.space else { return reject("catalog/current-space") }
+        guard let window = member.resolve(snapshot) else { return reject("member/resolve") }
+        guard snapshot.windows.filter({ DesktopWindowKey($0) == member.key }).count == 1 else { return reject("member/unique-identity") }
+        guard DesktopWindowTarget(window, in: snapshot) != nil else { return reject("member/desktop-target") }
+        return groupWindow(window, on: catalog.display, current: catalog.current, rejected: { _ = reject($0) })
     }
 
     func join(_ moving: NativeSidebarMember, _ target: NativeSidebarMember, in snapshot: DesktopSnapshot,

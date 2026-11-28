@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "revision": "caa2e0aa4998baa9515dec85ae3c2bdc119639fd",
+  "runID": 46112069026,
+  "members": [
+    {
+      "path": "caa2/fast/independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "eee53c0893332e2c42fd9b2a381d154e46183ddb520994a7f450803a6b0bb3f3"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "15da156a3258e6e833d58488a0e06433d3ff3b1a3024856f47298a2a64f82e63"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "7c8b1b197dd08396bbdebe3d21c1bd33b2ec55a6e1acfc926aaf8d9e5b5be9a7"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "3ab79f1b3b8ee2b9cb46cf930e7496eb67371bbae0d4df2bd5d0f03c3edd5527"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 343330,
+      "sha256": "da37534a4dc9c927286dacbb5e08d8c596c212f77daa44c28d90754d4e5e52f7"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "e0580ce6f54d380762511b9c75ca52bda2dc21f462428bf7b37663a29246af59"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/product-result.json",
+      "bytes": 21501,
+      "sha256": "1a7fc00df2b525c7bf1497e840e28419e2927c8b2201304ecb712f6cfef985f8"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1033,
+      "sha256": "36d080c5c4b10a1cdafdd65c46e58f908eb4ea2bd30539f8dcf01c0a5b32d8ee"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product/r4-press-bbd361c4-f68b-4be6-bc02-dd88a2cc5ae7.result.json",
+      "bytes": 3682,
+      "sha256": "768d42135324cfecfad32a568af6ad752123429c8ae2a731a8ea1490cd13ae8f"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/product.stderr.log",
+      "bytes": 55870,
+      "sha256": "73dc25c49a61dd56d9706a9c3955d6fd3d042dfa5a8ecb06472266433332dc93"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/runtime/summary.json",
+      "bytes": 29467,
+      "sha256": "7189a20eb01fa88314a6529fcf45776f4884a8cabd45f33548a94f6ff20d7675"
+    },
+    {
+      "path": "caa2/fast/independent-runtime/summary.json",
+      "bytes": 31991,
+      "sha256": "4dbed8a23cb311a9f80d1deb977bf8c346b7288cf5eb203adb8aec1bb378f572"
+    },
+    {
+      "path": "caa2/full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "a9f3287112a9afdefad95129d0d3464a05f453901be75cca689a8add1a43a687"
+    },
+    {
+      "path": "caa2/full/Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "95570b539f89fa38b27d98c92a0b713bdff67cfe0ce4edd936bc5c01316b0f8c"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/FixtureA/state.json",
+      "bytes": 585,
+      "sha256": "0c30db2620712145a4409bfd3b944634965f790e92c63ddd76ec7e649bb7f09e"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "0876ed3aecb7c8004cad133c0d4da83e0e7ed34bbf9daea16cda36e4b5582c71"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "3114a9f32724688ee7a5c65715a568a90e193786c5e06f1b7a582aefc0f7e69f"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/engine-result.json",
+      "bytes": 4452,
+      "sha256": "f27b2adc6ddcc736afe899962f9adc74f521db2e28c23598115325031183c4ab"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 344040,
+      "sha256": "e605fda4ee7a761ce65f6cb27fb8a40694236f46eabb056b19fe515e77bb5f5c"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/config.json",
+      "bytes": 2019,
+      "sha256": "9186cebc6ac4249a7a90d7e5a41ea8bbd7ea5d393beeb8f1d4e3199aff99a552"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/product-result.json",
+      "bytes": 24905,
+      "sha256": "1bb7a11bd9594f63e45cba8ecaf204f9bdc09bfbc5e9cfcef2cd22a4f6244e98"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/profile/Nearpane/spaces-lifecycle-353e343f-c2f0-4309-a5e4-25f8b8327f46.json",
+      "bytes": 1085,
+      "sha256": "6e0b87230418cd555e6319d0d491dd40605f1a8e9393f7f5f4e54a3d0795f48b"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-e7ce3f27-d801-4552-986e-cdb7e0805862.jsonl",
+      "bytes": 171593,
+      "sha256": "ce3ab294bf8b77e0df8fa93e7726f086f54c1015b8c0f9ea97f9b0610f13bef9"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/profile/Nearpane/stage-groups-v2.json",
+      "bytes": 1089,
+      "sha256": "1a700e4729a018b21c3a68b91a62d487a9070453a2dae4e0310d4ea3dd41f206"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/profile/Nearpane/stage-visibility-v1.json",
+      "bytes": 24,
+      "sha256": "1849ad4d95f16317a2d717332e125b5a763e6bb5d554ae270d965198183b5acf"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/r4-press-43d9db94-00f0-440b-b982-d1ddd455cd20.result.json",
+      "bytes": 3774,
+      "sha256": "beee783fd98a08e9374daa093f5676458be11bfe7b2b9d68511e0e7d29832a1f"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product/r4-press-8533eccb-a6cd-4f9c-ae79-75b0ef17084b.result.json",
+      "bytes": 3682,
+      "sha256": "69403203b65052b5c7490e351a39cf1922b134496e00b735eae08505acf3f126"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/product.stderr.log",
+      "bytes": 246181,
+      "sha256": "e4038d22f98197b10dd7d52431b4c8bcb92b98ecdf56389a37dc427d55871a1a"
+    },
+    {
+      "path": "caa2/full/independent-runtime/runtime/summary.json",
+      "bytes": 33082,
+      "sha256": "43cc648c2e7df7b59b7ffc3573df28e42386175a6f639808fb309f208f96026e"
+    },
+    {
+      "path": "caa2/full/independent-runtime/summary.json",
+      "bytes": 35805,
+      "sha256": "8f147fb58f178ba5b8b0f99a02d912c287536258697895631a56ab675ec7fbd8"
+    },
+    {
+      "path": "caa2/full/independent-source/source/binding-attributes-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "caa2/full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    },
+    {
+      "path": "caa2/full/independent-source/source/read-only-context.json",
+      "bytes": 114,
+      "sha256": "9bff68b8484e6126080177e997b6d45b4f424314e5c2b2b542f49b132bacef8c"
+    },
+    {
+      "path": "caa2/full/independent-source/source/rust.log",
+      "bytes": 17086,
+      "sha256": "2956b9acce7ad906406094f007142782e4477c7503b7616c34d3bc626492eaba"
+    },
+    {
+      "path": "caa2/full/independent-source/source/summary.json",
+      "bytes": 1921,
+      "sha256": "8092ec9687838cad431a1d3d8554e510bbd72d57d775adf5265eed7bcf193eb5"
+    },
+    {
+      "path": "caa2/full/independent-source/source/swift.log",
+      "bytes": 71648,
+      "sha256": "581d01ef3e873ad2ce4ddc2287fb68acc113a125d9754fbef5f766d5cc9adaa6"
+    },
+    {
+      "path": "caa2/full/independent-source/source/swift.stderr.log",
+      "bytes": 239220,
+      "sha256": "c564d105d96e1968aa5a4ce4a7d17f9d69460871705d08b2c34c512b0e334aed"
+    },
+    {
+      "path": "caa2/full/independent-source/source/swift.xml",
+      "bytes": 42430,
+      "sha256": "7be14cc93a0909f75e7d99ce7b29606d58926d60dfd955925ed03b0c339f626c"
+    },
+    {
+      "path": "caa2/full/independent-source/source/windowserver-context.json",
+      "bytes": 1989,
+      "sha256": "d99941fa58e0ce4f6b6988b1a8db6c0c7264a7d4d78635c15071d672d8fe819a"
+    }
+  ],
+  "archive": {
+    "path": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/runtime-traces-caa2.tar.gz",
+    "bytes": 186412,
+    "sha256": "4ac06e112c93f97a2d54c742db9b7b94528835391d7ebc5473b52d4aaa07188f",
+    "memberCount": 49
+  }
+}

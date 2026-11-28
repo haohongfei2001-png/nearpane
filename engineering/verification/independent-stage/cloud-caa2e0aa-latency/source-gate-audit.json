@@ -1,0 +1,204 @@
+{
+  "schema": 1,
+  "revision": "caa2e0aa4998baa9515dec85ae3c2bdc119639fd",
+  "runID": 46112069026,
+  "jobID": 140877585315,
+  "sourceGate": "PASS",
+  "contextArtifact": {
+    "id": 15250635224,
+    "providerSHA256": "d59957dbbf1394dd969c7354f167043cbac2b6e544a8d626401dd927733e384f",
+    "localSHA256": "d59957dbbf1394dd969c7354f167043cbac2b6e544a8d626401dd927733e384f",
+    "zip": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/source/context.zip",
+    "directory": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/source/context"
+  },
+  "swift": {
+    "passed": 255,
+    "skipped": 1,
+    "failed": 0,
+    "reportedTotal": 256,
+    "suiteCount": 42,
+    "skippedCases": [
+      "\u279c Test observeSignedInactiveSiblingAcrossItsOwnMinimizeAndRestore() skipped."
+    ],
+    "compiledSources": [
+      "Compiling NearpaneUI StageWindowEngineWitness.swift",
+      "Compiling NearpaneUI StageWindowEngineHost.swift",
+      "Compiling NearpaneUITests StageHostInitialRosterReadTests.swift"
+    ],
+    "newTestFunctions": 7,
+    "newTestCases": 43,
+    "newResults": [
+      {
+        "name": "oneRosterChangeUsesOnlyTheLaterCompleteDirectoryWithoutRepairingTheFailedOne",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 0.845,
+        "logLine": "\u2714 Test oneRosterChangeUsesOnlyTheLaterCompleteDirectoryWithoutRepairingTheFailedOne() passed after 0.845 seconds."
+      },
+      {
+        "name": "aSecondIncompleteDirectoryFailsAfterExactlyOneFreshRead",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 1.499,
+        "logLine": "\u2714 Test aSecondIncompleteDirectoryFailsAfterExactlyOneFreshRead() passed after 1.499 seconds."
+      },
+      {
+        "name": "anExistingOrSpecializedWitnessNeverRetries",
+        "status": "PASS",
+        "caseCount": 5,
+        "startedCaseCount": 5,
+        "durationSeconds": 0.847,
+        "logLine": "\u2714 Test anExistingOrSpecializedWitnessNeverRetries(_:) with 5 test cases passed after 0.847 seconds."
+      },
+      {
+        "name": "otherOrPotentiallyTruncatedIssuesCannotAuthorizeARetry",
+        "status": "PASS",
+        "caseCount": 10,
+        "startedCaseCount": 10,
+        "durationSeconds": 0.846,
+        "logLine": "\u2714 Test otherOrPotentiallyTruncatedIssuesCannotAuthorizeARetry(_:) with 10 test cases passed after 0.846 seconds."
+      },
+      {
+        "name": "aLostInitialContextCannotRequestAnotherDirectory",
+        "status": "PASS",
+        "caseCount": 6,
+        "startedCaseCount": 6,
+        "durationSeconds": 1.503,
+        "logLine": "\u2714 Test aLostInitialContextCannotRequestAnotherDirectory(_:) with 6 test cases passed after 1.503 seconds."
+      },
+      {
+        "name": "aFreshResponseCannotChangeIdentityScopeTargetOrTheSamplingBoundary",
+        "status": "PASS",
+        "caseCount": 13,
+        "startedCaseCount": 13,
+        "durationSeconds": 1.503,
+        "logLine": "\u2714 Test aFreshResponseCannotChangeIdentityScopeTargetOrTheSamplingBoundary(_:) with 13 test cases passed after 1.503 seconds."
+      },
+      {
+        "name": "theOriginalSelectionAndUnenrolledStateMustSurviveTheAwait",
+        "status": "PASS",
+        "caseCount": 7,
+        "startedCaseCount": 7,
+        "durationSeconds": 2.937,
+        "logLine": "\u2714 Test theOriginalSelectionAndUnenrolledStateMustSurviveTheAwait(_:) with 7 test cases passed after 2.937 seconds."
+      }
+    ],
+    "readerFunctions": 9,
+    "readerCases": 10,
+    "readerResults": [
+      {
+        "name": "repeatedRequestsReuseOneChildAndPreserveDistinctFragmentedReplies",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.699,
+        "logLine": "\u2714 Test repeatedRequestsReuseOneChildAndPreserveDistinctFragmentedReplies() passed after 3.699 seconds."
+      },
+      {
+        "name": "anotherFeedUsesANewChildAndRetiresThePreviousOne",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.685,
+        "logLine": "\u2714 Test anotherFeedUsesANewChildAndRetiresThePreviousOne() passed after 3.685 seconds."
+      },
+      {
+        "name": "malformedFrameCannotBeConsumedByTheNextRequest",
+        "status": "PASS",
+        "caseCount": 2,
+        "startedCaseCount": 2,
+        "durationSeconds": 3.606,
+        "logLine": "\u2714 Test malformedFrameCannotBeConsumedByTheNextRequest(_:) with 2 test cases passed after 3.606 seconds."
+      },
+      {
+        "name": "cancellationDoesNotBlockTheMainActorAndReapsItsExactChild",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.655,
+        "logLine": "\u2714 Test cancellationDoesNotBlockTheMainActorAndReapsItsExactChild() passed after 3.655 seconds."
+      },
+      {
+        "name": "timeoutReapsChildAndDoesNotReturnAnyLateResponse",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.813,
+        "logLine": "\u2714 Test timeoutReapsChildAndDoesNotReturnAnyLateResponse() passed after 3.813 seconds."
+      },
+      {
+        "name": "cancelledQueuedReadCannotRetireTheSuccessfulPredecessorsChild",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.731,
+        "logLine": "\u2714 Test cancelledQueuedReadCannotRetireTheSuccessfulPredecessorsChild() passed after 3.731 seconds."
+      },
+      {
+        "name": "unusedFeedReleasesItsChildAndTheNextReadStartsCleanly",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.834,
+        "logLine": "\u2714 Test unusedFeedReleasesItsChildAndTheNextReadStartsCleanly() passed after 3.834 seconds."
+      },
+      {
+        "name": "invalidSnapshotInvalidatesTheChannelEvenWhenFramingIsCorrect",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.693,
+        "logLine": "\u2714 Test invalidSnapshotInvalidatesTheChannelEvenWhenFramingIsCorrect() passed after 3.693 seconds."
+      },
+      {
+        "name": "changedExecutableCannotStartANewReader",
+        "status": "PASS",
+        "caseCount": 1,
+        "startedCaseCount": 1,
+        "durationSeconds": 3.51,
+        "logLine": "\u2714 Test changedExecutableCannotStartANewReader() passed after 3.510 seconds."
+      }
+    ],
+    "log": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/source/context/source/swift.log",
+      "sha256": "581d01ef3e873ad2ce4ddc2287fb68acc113a125d9754fbef5f766d5cc9adaa6"
+    },
+    "compileLog": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/source/context/source/swift.stderr.log",
+      "sha256": "c564d105d96e1968aa5a4ce4a7d17f9d69460871705d08b2c34c512b0e334aed"
+    },
+    "rawXMLVerified": true,
+    "xml": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/full/independent-source/source/swift.xml",
+      "sha256": "7be14cc93a0909f75e7d99ce7b29606d58926d60dfd955925ed03b0c339f626c"
+    },
+    "fullArtifactLogsMatchContext": true
+  },
+  "rust": {
+    "summaryStatus": "PASS",
+    "summaryPassed": 180,
+    "rawLogVerified": true,
+    "passed": 180,
+    "failed": 0,
+    "ignored": 0,
+    "log": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/full/independent-source/source/rust.log",
+      "sha256": "2956b9acce7ad906406094f007142782e4477c7503b7616c34d3bc626492eaba"
+    }
+  },
+  "bindingAttributes": {
+    "buildStatus": "PASS",
+    "runStatus": "PASS",
+    "rawLogVerified": true,
+    "passed": 25,
+    "failed": 0,
+    "windowWrites": 0,
+    "log": {
+      "path": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/full/independent-source/source/binding-attributes.log",
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    }
+  },
+  "scope": "Source gate verified against context and full artifact originals; not a target-Mac execution or production R4 pass."
+}

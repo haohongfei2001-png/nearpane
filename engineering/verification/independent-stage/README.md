@@ -4,7 +4,23 @@ Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github
 Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: 1e5d357a
+## Current source/runtime checkpoint: caa2e0aa
+
+Exact source passes **180 Rust, 255 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete release build/signature pass. Unsampled full
+confirms one real R4 switch in **1890.56 ms**. Its next SHOW succeeds, but the
+first full confirmation after focus rejects an unbound directory item's
+changing membership. Unsampled fast stops earlier at live-window binding, before
+a worker exists. Both Host releases and independent two-read home checks pass.
+Continuous R4 operation and release qualification remain incomplete.
+
+[Original caa2 source/runtime evidence, precise post-focus failure and click cost partition](cloud-caa2e0aa-latency/README.md).
+The initial-directory retry passes 43 parameter cases but is not exercised by
+either runtime lane. The next diagnostic change adds first-failed binding
+conditions and bounded existing facts about rejected catalog rows; it does not
+ignore those failures or expand the retry to already-bound windows.
+
+## Earlier initial-read checkpoint: 1e5d357a
 
 Exact-source validation passes **180 Rust, 248 Swift (one existing skip), and
 25 native AX decoder checks**; the complete application and strict signature

@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "repository": "haohongfei2001-png/nearpane",
+  "pullRequest": 16,
+  "runID": 46112069026,
+  "commit": "caa2e0aa4998baa9515dec85ae3c2bdc119639fd",
+  "baselineCommits": [
+    "5e3a7ea4b0adceae401ef222a79f7d1887268324",
+    "1e5d357a6649fc8afb64b97334769bc00eef9379"
+  ],
+  "baselineProvenance": [
+    "/workspace/scratch/519883d1dfd8/r4-audit/5e3a/provenance.json",
+    "/workspace/scratch/519883d1dfd8/r4-audit/1e5d/provenance.json"
+  ],
+  "createdUTC": "2026-11-28T05:46:39.512056+00:00",
+  "artifacts": [
+    {
+      "artifactID": 15250635224,
+      "artifactName": "nearpane-independent-context-caa2e0aa4998baa9515dec85ae3c2bdc119639fd-full",
+      "runID": 46112069026,
+      "commit": "caa2e0aa4998baa9515dec85ae3c2bdc119639fd",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15250635224",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/source/context.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/source/context",
+      "downloadBytes": 30827,
+      "downloadSHA256": "d59957dbbf1394dd969c7354f167043cbac2b6e544a8d626401dd927733e384f",
+      "providerDigest": "sha256:d59957dbbf1394dd969c7354f167043cbac2b6e544a8d626401dd927733e384f",
+      "digestMatches": true
+    },
+    {
+      "artifactID": 15250495509,
+      "artifactName": "nearpane-independent-stage-caa2e0aa4998baa9515dec85ae3c2bdc119639fd-r4-fast",
+      "runID": 46112069026,
+      "commit": "caa2e0aa4998baa9515dec85ae3c2bdc119639fd",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15250495509",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/fast.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/fast",
+      "downloadBytes": 24887864,
+      "downloadSHA256": "e0422b0c0c3bf14bd84f3d9304f3dca78ace70757ab7b3d22d285bea0b11674b",
+      "providerDigest": "sha256:e0422b0c0c3bf14bd84f3d9304f3dca78ace70757ab7b3d22d285bea0b11674b",
+      "digestMatches": true
+    },
+    {
+      "artifactID": 15250481947,
+      "artifactName": "nearpane-independent-stage-caa2e0aa4998baa9515dec85ae3c2bdc119639fd-full",
+      "runID": 46112069026,
+      "commit": "caa2e0aa4998baa9515dec85ae3c2bdc119639fd",
+      "providerURL": "https://api.github.com/repos/haohongfei2001-png/nearpane/actions/artifacts/15250481947",
+      "zipPath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/full.zip",
+      "extractedPath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/full",
+      "downloadBytes": 53506448,
+      "downloadSHA256": "bb1ba7d4033537a4bcf0f75b7c64a21b237750bbaf32be23534025999a96149f",
+      "providerDigest": "sha256:bb1ba7d4033537a4bcf0f75b7c64a21b237750bbaf32be23534025999a96149f",
+      "digestMatches": true
+    }
+  ],
+  "workflowJobs": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/workflow-jobs.json",
+  "apiMetadata": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/artifact-api-metadata.json",
+  "sourceGateAudit": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/source/audit.json",
+  "derivedFiles": {
+    "comparison.json": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/comparison.json",
+    "click-timelines.json": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/click-timelines.json",
+    "full-analysis.json": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/full-analysis.json",
+    "fast-analysis.json": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/fast-analysis.json",
+    "recompute.py": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/recompute.py",
+    "finalize_evidence.py": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/finalize_evidence.py"
+  },
+  "selectedRawEvidence": {
+    "archivePath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/runtime-traces-caa2.tar.gz",
+    "archiveBytes": 186412,
+    "archiveSHA256": "4ac06e112c93f97a2d54c742db9b7b94528835391d7ebc5473b52d4aaa07188f",
+    "members": 49,
+    "manifestPath": "/workspace/scratch/519883d1dfd8/r4-audit/caa2/runtime-traces-manifest.json"
+  },
+  "dataFrozenUTC": "2026-11-28T05:46:39.512056+00:00"
+}
