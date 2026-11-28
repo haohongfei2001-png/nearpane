@@ -2,11 +2,46 @@
 
 Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github.com/haohongfei2001-png/nearpane/pull/16).
 Implementation started from PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8`.
-PR #16 currently targets `main`; the product constitution on `main` was rechecked
-and matches this branch.
+PR #16 targets `main`. Its current product constitution and branch-governance
+rules were rechecked at `c74ea94520f55bc784f110176c59f5a38f1f1935` and copied
+exactly into this branch. The existing PR #16 branch remains the explicit engine-work exception;
+no main-app source refactor is overwritten by this focused R4 change.
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: ef5c91c4
+## Current source/runtime checkpoint: 3f531dae
+
+Exact source passes **295 Swift functions (one existing skip), 188 Rust and 25
+native AX decoder checks**. The new Dock handoff suite executes all 20 parameter
+cases and the shared edit queue suite all 11 cases. Complete candidate and strict
+signature also pass; release qualification remains false.
+
+FAST reaches **12 real inputs / 12 external double physical confirmations**. The
+last singleton explicitly settles; the cross-app join executes through the same
+queued handler as the UI, then leaving and restoring that combined group both
+physically confirm. The timer actually consumes completed Dock readings before
+their MainActor callbacks, and no Dock expiry occurs. Following the first input,
+the nine singleton switches have a **2017.906 ms median**; group leave and restore
+physically confirm in **5216.669 / 6108.214 ms**, with later transaction completion.
+Repeated complete witness work dominates those long segments, not worker poll queues.
+
+The next exact-member input is **not issued**: its button extends beyond the R4
+panel, and the original input guard rejects it. A separate incomplete background
+directory is retained as distinct evidence. The next source fixes actual button
+layout using the visible canvas intersection and a correctly cropped full-size
+picture, while leaving the input guard intact. It also separates physical-read
+execution from actor resumption and records existing enumeration/filter counts;
+these changes still require their own native run.
+
+Full independently records **four real inputs / three physical confirmations**.
+Its next foreground directory has an incomplete roster, revoking the held session
+before the fourth job can SHOW its member. All 39 worker requests and its launch
+canary pass. Both lanes complete recovery and independent external home checks,
+but neither passes formal R4. The target Mac is offline and exact-target GUI
+acceptance remains NOT_RUN.
+
+[Exact 3f531 source/runtime evidence, actual queued join, Dock handoff and distinct failures](cloud-3f531dae-latency/README.md).
+
+## Earlier source/runtime checkpoint: ef5c91c4
 
 Exact source passes **188 Rust, 281 Swift (one existing skip), and 25 native AX
 decoder checks**. The eight new observer-preparation functions execute all

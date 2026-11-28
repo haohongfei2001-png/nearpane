@@ -274,6 +274,9 @@ extension Reader {
                 catalogComplete: inventory != nil && complete))
         result.native?.catalogIssues = catalogIssues.isEmpty ? nil : catalogIssues
         result.native?.catalogIssueWindows = catalogIssueWindows.isEmpty ? nil : catalogIssueWindows
+        if !complete, let firstCensus = first.census, let secondCensus = second.census {
+            result.native?.catalogCensus = .init(first: firstCensus, second: secondCensus)
+        }
         if let targets = request.sidebarAuditWindows {
             result.native?.sidebarWindowAudit = targets.prefix(2).map { key in
                 var flags = ["catalogueAvailable": canRead, "readerAXTrusted": trusted, "backgroundInventory": backgroundInventory != nil,

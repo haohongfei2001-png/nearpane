@@ -210,12 +210,28 @@ private struct StageOriginalAXReceiver: @unchecked Sendable {
     let element: AXUIElement
 }
 
+private struct StageHostPhysicalReadResult: Sendable {
+    let outcome: Result<StageWindowPhysicalObservation, Error>
+    let actorEnteredUptime: TimeInterval?
+    let nativeBeganUptime: TimeInterval?, nativeEndedUptime: TimeInterval?
+    let actorFinishedUptime: TimeInterval?
+}
+
 private actor StageHostPhysicalReader {
     private let original: StageOriginalAXReceiver
     init(_ original: StageOriginalAXReceiver) { self.original = original }
-    func read(_ id: ManagedWindowID, home: OrdinaryDesktopIdentity) throws -> StageWindowPhysicalObservation {
-        try Task.checkCancellation()
-        return try StageWindowPhysicalReader.read(id, original: original.element, home: home, retainedStandardWindow: true)
+    func read(_ id: ManagedWindowID, home: OrdinaryDesktopIdentity, tracing: Bool) -> StageHostPhysicalReadResult {
+        let entered = tracing ? ProcessInfo.processInfo.systemUptime : nil
+        var began: TimeInterval?, ended: TimeInterval?
+        let outcome = Result<StageWindowPhysicalObservation, Error> {
+            try Task.checkCancellation()
+            if tracing { began = ProcessInfo.processInfo.systemUptime }
+            defer { if tracing { ended = ProcessInfo.processInfo.systemUptime } }
+            return try StageWindowPhysicalReader.read(id, original: original.element, home: home, retainedStandardWindow: true)
+        }
+        return .init(outcome: outcome, actorEnteredUptime: entered,
+            nativeBeganUptime: began, nativeEndedUptime: ended,
+            actorFinishedUptime: tracing ? ProcessInfo.processInfo.systemUptime : nil)
     }
 }
 
@@ -312,20 +328,53 @@ private struct StagePreparedHostWindow: Sendable {
     /// observer or process-binding state. The same original AX receiver is used
     /// for every read, including while its owner's AXWindows list is empty.
     package func observationAsync(home: OrdinaryDesktopIdentity) async throws -> StageWindowPhysicalObservation {
-        let began = ProcessInfo.processInfo.systemUptime
+        let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil
+        let began = tracing ? ProcessInfo.processInfo.systemUptime : 0
         var phase = "entry", rejection: String?, checks = [String: Bool](), completed = false
+        var phaseBegan = began, phaseMS = [String: Double]()
+        var submittedUptime: TimeInterval?, resumedUptime: TimeInterval?
+        var physicalRead: StageHostPhysicalReadResult?
+        func enter(_ next: String) {
+            if tracing {
+                let now = ProcessInfo.processInfo.systemUptime
+                phaseMS[phase] = (now - phaseBegan) * 1000
+                phaseBegan = now
+            }
+            phase = next
+        }
         func checked(_ value: Bool, _ name: String) -> Bool {
             checks[phase + "/" + name] = value
             if !value { rejection = name }
             return value
         }
         defer {
-            if !completed, ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil {
+            if tracing {
                 let ended = ProcessInfo.processInfo.systemUptime
-                var facts: [String: Any] = ["event": "stageHostObservationRejected", "phase": phase,
-                    "pid": id.pid, "window": id.number, "checks": checks,
+                phaseMS[phase] = (ended - phaseBegan) * 1000
+                var facts: [String: Any] = ["event": completed ? "stageHostObservationCompleted" : "stageHostObservationRejected", "phase": phase,
+                    "pid": id.pid, "birth": id.launch, "window": id.number, "checks": checks,
+                    "completed": completed, "phaseMS": phaseMS, "timingsAreWallClock": true,
                     "beganUptime": began, "uptime": ended, "durationMS": (ended - began) * 1000]
                 if let rejection { facts["guardRejection"] = rejection }
+                if let submittedUptime { facts["actorSubmittedUptime"] = submittedUptime }
+                if let resumedUptime { facts["mainActorResumedUptime"] = resumedUptime }
+                if let physicalRead {
+                    if let entered = physicalRead.actorEnteredUptime {
+                        facts["actorEnteredUptime"] = entered
+                        if let submittedUptime { facts["actorQueueMS"] = (entered - submittedUptime) * 1000 }
+                    }
+                    if let nativeBegan = physicalRead.nativeBeganUptime { facts["nativeBeganUptime"] = nativeBegan }
+                    if let nativeEnded = physicalRead.nativeEndedUptime {
+                        facts["nativeEndedUptime"] = nativeEnded
+                        if let nativeBegan = physicalRead.nativeBeganUptime {
+                            facts["nativeReadMS"] = (nativeEnded - nativeBegan) * 1000
+                        }
+                    }
+                    if let finished = physicalRead.actorFinishedUptime {
+                        facts["actorFinishedUptime"] = finished
+                        if let resumedUptime { facts["actorToMainActorMS"] = (resumedUptime - finished) * 1000 }
+                    }
+                }
                 if var data = try? JSONSerialization.data(withJSONObject: facts, options: [.sortedKeys]) {
                     data.append(0x0a); try? FileHandle.standardError.write(contentsOf: data)
                 }
@@ -335,22 +384,28 @@ private struct StagePreparedHostWindow: Sendable {
               checked(self.home == home, "home"), checked(monitor.canListAgain, "can-list-again") else {
             throw StageSwitchError.interrupted
         }
-        phase = "access-before"
+        enter("access-before")
         try access.check()
-        phase = "owner-before"
+        enter("owner-before")
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         accessPhase = .reading
         defer { accessPhase = .idle }
-        phase = "physical-await"
-        let sample = try await physicalReader.read(id, home: home)
-        phase = "return"
+        enter("physical-await")
+        if tracing { submittedUptime = ProcessInfo.processInfo.systemUptime }
+        let read = await physicalReader.read(id, home: home, tracing: tracing)
+        if tracing {
+            resumedUptime = ProcessInfo.processInfo.systemUptime
+            physicalRead = read
+        }
+        let sample = try read.outcome.get()
+        enter("return")
         guard checked(!Task.isCancelled, "not-cancelled"), checked(accessPhase == .reading, "reading"),
               checked(self.home == home, "home"), checked(monitor.canListAgain, "can-list-again") else {
             throw StageSwitchError.interrupted
         }
-        phase = "access-after"
+        enter("access-after")
         try access.check()
-        phase = "owner-after"
+        enter("owner-after")
         try checkOwner(owner, pid: id.pid, launch: id.launch, bundle: bundle)
         completed = true
         return sample

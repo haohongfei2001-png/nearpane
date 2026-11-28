@@ -443,6 +443,11 @@ import NearpaneOrdinaryWindowRuntime
             facts["catalogIssueCount"] = issues.count
             facts["catalogIssues"] = issues.prefix(12).map { String($0.prefix(200)) }
             facts["catalogIssuesTruncated"] = issues.count > 12 || issues.contains { $0.count > 200 }
+            if let census = native.catalogCensus,
+               let data = try? JSONEncoder().encode(census),
+               let counts = try? JSONSerialization.jsonObject(with: data) {
+                facts["catalogCensus"] = counts
+            }
             if let samples = native.catalogIssueWindows,
                let data = try? JSONEncoder().encode(Array(samples.prefix(CatalogIssueWindowFacts.limit))),
                let rows = try? JSONSerialization.jsonObject(with: data) {

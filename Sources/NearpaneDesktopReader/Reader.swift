@@ -34,6 +34,7 @@ struct Reader {
         var windows: [CGWindowMetadata] = []
         var limited = false
         var backgroundCollectionComplete = false
+        var census: CatalogCensusFacts.Sample?
         var audit = [UInt32: [String: Bool]]()
         var orderedAcrossSpaces = Set<UInt32>()
         var observedAcrossSpaces: Set<UInt32>?
@@ -53,6 +54,10 @@ struct Reader {
         }
         guard var list = descriptions as? [[String: Any]] else { throw DesktopActionError.unsupported }
         var result = List()
+        if overview {
+            result.census = .init()
+            result.census?.publicRows = list.count
+        }
         let requestedAudit = Array((request.sidebarAuditWindows ?? []).prefix(2))
         func auditRows(_ name: String, in rows: [[String: Any]]) {
             for w in requestedAudit {
@@ -106,26 +111,43 @@ struct Reader {
             }
         }
         var seen = Set<UInt32>(), allowed = [Int32: Bool](), processes = [Int32: ProcessIdentity]()
+        result.census?.expandedRows = list.count
         for row in list {
             guard let pid = (row[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value, pid > 0,
                   let number = (row[kCGWindowNumber as String] as? NSNumber)?.uint32Value, number != 0,
                   (row[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
                   overview || (row[kCGWindowIsOnscreen as String] as? NSNumber)?.boolValue == true,
                   (row[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 0 > 0 else { continue }
+            result.census?.eligibleSurfaceRows += 1
             if let fixture {
                 guard pid == request.parentPID, fixture.contains(number) || anchors.contains(number) else { continue }
             } else if pid == request.parentPID {
-                guard anchors.contains(number) else { continue }
+                guard anchors.contains(number) else {
+                    result.census?.parentExcludedRows += 1
+                    continue
+                }
             } else {
                 if allowed[pid] == nil {
                     let app = NSRunningApplication(processIdentifier: pid)
                     if overview, app?.isHidden == false { result.unhiddenOwners.insert(pid) }
                     let id = app?.bundleIdentifier?.lowercased() ?? ""
-                    allowed[pid] = app?.activationPolicy == .regular && !id.isEmpty && !id.hasPrefix("com.holdsnow.nearpane")
+                    let regular = app?.activationPolicy == .regular
+                    allowed[pid] = regular && !id.isEmpty && !id.hasPrefix("com.holdsnow.nearpane")
                         && (!overview || !id.hasPrefix("org.nearpane."))
                         && !["com.apple.dock","com.apple.windowmanager","com.apple.loginwindow"].contains(id)
+                    if overview {
+                        result.census?.ownersChecked += 1
+                        if allowed[pid] == true { result.census?.ownersAccepted += 1 }
+                        else if app == nil { result.census?.ownersUnavailable += 1 }
+                        else if !regular { result.census?.ownersNotRegular += 1 }
+                        else if id.isEmpty { result.census?.ownersMissingBundle += 1 }
+                        else { result.census?.ownersExcludedBundle += 1 }
+                    }
                 }
-                guard allowed[pid] == true else { continue }
+                guard allowed[pid] == true else {
+                    result.census?.ownerRejectedRows += 1
+                    continue
+                }
             }
             guard seen.insert(number).inserted, let fields = row[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: fields) else { throw GeometryError.invalidGeometry }
@@ -142,6 +164,7 @@ struct Reader {
                 isOnscreen: reportedOnscreen,
                 frontToBackIndex: result.windows.count))
         }
+        result.census?.acceptedWindows = result.windows.count
         return result
     }
 

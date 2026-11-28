@@ -40,13 +40,52 @@ struct DesktopReaderFrameTests {
         let old = issueSnapshot(), oldBytes = try JSONEncoder().encode(old)
         let object = try #require(JSONSerialization.jsonObject(with: oldBytes) as? [String: Any])
         #expect((object["native"] as? [String: Any])?["catalogIssueWindows"] == nil)
+        #expect((object["native"] as? [String: Any])?["catalogCensus"] == nil)
         let legacy = try JSONDecoder().decode(DesktopSnapshot.self, from: oldBytes)
         #expect(legacy == old && legacy.isStructurallyValid && legacy.native?.catalogIssueWindows == nil)
+        #expect(legacy.native?.catalogCensus == nil)
         let current = issueSnapshot([issueFacts()])
         let decoded = try JSONDecoder().decode(DesktopSnapshot.self, from: JSONEncoder().encode(current))
         #expect(decoded == current && decoded.isStructurallyValid)
         #expect(decoded.native?.catalogComplete == false && decoded.native?.catalogIssues == old.native?.catalogIssues)
         #expect(decoded.windows == old.windows && decoded.capabilities == old.capabilities)
+    }
+
+    @Test func censusDistinguishesFilteringFromAnEmptyEnumerationWithoutRepairingTheRoster() throws {
+        var first = CatalogCensusFacts.Sample()
+        first.publicRows = 24; first.expandedRows = 27; first.eligibleSurfaceRows = 20
+        first.ownersChecked = 3; first.ownersUnavailable = 3; first.ownerRejectedRows = 20
+        var second = first
+        second.acceptedWindows = 20; second.ownersAccepted = 3
+        second.ownersUnavailable = 0; second.ownerRejectedRows = 0
+        let original = issueSnapshot()
+        var snapshot = original
+        snapshot.native?.catalogCensus = .init(first: first, second: second)
+        let decoded = try JSONDecoder().decode(DesktopSnapshot.self, from: JSONEncoder().encode(snapshot))
+        #expect(decoded == snapshot && decoded.isStructurallyValid)
+        #expect(decoded.native?.catalogCensus?.first.publicRows == 24)
+        #expect(decoded.native?.catalogCensus?.first.acceptedWindows == 0)
+        #expect(decoded.native?.catalogCensus?.second.acceptedWindows == 20)
+        #expect(decoded.native?.catalogComplete == false)
+        #expect(decoded.native?.catalogIssues == original.native?.catalogIssues)
+        #expect(decoded.windows == original.windows && decoded.capabilities == original.capabilities)
+    }
+
+    @Test(arguments: ["negative", "overflow", "accepted-without-surface", "owner-partition"])
+    func malformedCensusCountsFailWireValidation(_ mutation: String) throws {
+        var sample = CatalogCensusFacts.Sample()
+        sample.publicRows = 1; sample.expandedRows = 1; sample.eligibleSurfaceRows = 1
+        sample.ownersChecked = 1; sample.ownersAccepted = 1; sample.acceptedWindows = 1
+        switch mutation {
+        case "negative": sample.parentExcludedRows = -1
+        case "overflow": sample.ownersUnavailable = Int.max
+        case "accepted-without-surface": sample.acceptedWindows = 2
+        default: sample.ownersUnavailable = 1
+        }
+        var snapshot = issueSnapshot()
+        snapshot.native?.catalogCensus = .init(first: sample, second: .init())
+        let decoded = try JSONDecoder().decode(DesktopSnapshot.self, from: JSONEncoder().encode(snapshot))
+        #expect(!decoded.isStructurallyValid)
     }
 
     @Test func catalogFailureFactsBoundMembershipAndCanEncodeInvalidDiagnosticFrames() throws {

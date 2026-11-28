@@ -85,6 +85,24 @@ struct StageGroupMemberChoice: Identifiable {
     }
 }
 
+/// The clickable viewport is the visible intersection; the picture keeps its
+/// original dimensions and is cropped inside that viewport.
+struct StageGroupMiniatureFrame: Equatable {
+    let original: SurfaceRect
+    let visible: SurfaceRect
+
+    init?(original: SurfaceRect, canvas: SurfaceRect) {
+        guard let intersection = original.geometry.intersection(canvas.geometry) else { return nil }
+        self.original = original
+        self.visible = SurfaceRect(intersection)
+    }
+
+    var pictureInVisibleFrame: SurfaceRect {
+        SurfaceRect(x: original.x - visible.x, y: original.y - visible.y,
+                    width: original.width, height: original.height)
+    }
+}
+
 struct NativeWindowGroupCard: View {
     let destination: NativeSidebarDestination
     let display: DisplayObservation
@@ -130,14 +148,15 @@ struct NativeWindowGroupCard: View {
                             if let canvas, let frame = projectedFrame(window, canvas: canvas) {
                                 Group {
                                     if let choice = byKey[row.id] {
-                                        miniature(choice, icon: badges[window.id]?.icon,
-                                                  width: frame.width * scale, height: frame.height * scale)
+                                        miniature(choice, icon: badges[window.id]?.icon, frame: frame, scale: scale)
                                     } else if feed.departingPictures != nil, let target = DesktopWindowTarget(window, in: snapshot) {
-                                        WindowPanePicture(gallery: gallery, target: target, permitted: permitted, icon: badges[window.id]?.icon)
-                                            .frame(width: frame.width * scale, height: frame.height * scale)
+                                        croppedPicture(frame, scale: scale) {
+                                            WindowPanePicture(gallery: gallery, target: target, permitted: permitted, icon: badges[window.id]?.icon)
+                                        }
                                     }
                                 }
-                                .offset(x: dx + (frame.x - canvas.x) * scale, y: dy + (frame.y - canvas.y) * scale)
+                                .offset(x: dx + (frame.visible.x - canvas.x) * scale,
+                                        y: dy + (frame.visible.y - canvas.y) * scale)
                             }
                         }
                     }
@@ -201,7 +220,7 @@ struct NativeWindowGroupCard: View {
         }
     }
 
-    private func projectedFrame(_ window: WindowObservation, canvas: SurfaceRect?) -> SurfaceRect? {
+    private func projectedFrame(_ window: WindowObservation, canvas: SurfaceRect?) -> StageGroupMiniatureFrame? {
         guard let canvas, let meta = window.metadata else { return nil }
         let frame: SurfaceRect
         if let logical = meta.catalogLogicalFrame {
@@ -211,23 +230,37 @@ struct NativeWindowGroupCard: View {
             guard meta.hasCatalogGeometry == true else { return nil }
             frame = window.bounds
         }
-        return frame.geometry.intersection(canvas.geometry) == nil ? nil : frame
+        return StageGroupMiniatureFrame(original: frame, canvas: canvas)
+    }
+
+    private func croppedPicture<Content: View>(_ frame: StageGroupMiniatureFrame, scale: CGFloat,
+                                               @ViewBuilder content: () -> Content) -> some View {
+        let picture = frame.pictureInVisibleFrame
+        return content()
+            .frame(width: picture.width * scale, height: picture.height * scale)
+            .offset(x: picture.x * scale, y: picture.y * scale)
+            .frame(width: frame.visible.width * scale, height: frame.visible.height * scale, alignment: .topLeading)
+            .clipped()
     }
 
     private func miniature(_ choice: StageGroupMemberChoice, icon: NSImage?,
-                           width: CGFloat, height: CGFloat) -> some View {
+                           frame: StageGroupMiniatureFrame, scale: CGFloat) -> some View {
         let member = choice.member
         let dest = member.source
         let target = DesktopWindowTarget.preview(choice.window, in: snapshot)
+        let width = frame.visible.width * scale, height = frame.visible.height * scale
+        let pictureWidth = frame.original.width * scale, pictureHeight = frame.original.height * scale
         return Button { select(member, choice.lifetime) } label: {
-            ZStack {
-                RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
-                if let target {
-                    WindowPanePicture(gallery:gallery,target:target,permitted:permitted,icon:icon,groupHistory:{
-                        gallery?.observedImage(member.key,group:id,snapshot:snapshot,permitted:permitted)
-                    })
-                } else if let icon, min(width, height) > 11 {
-                    Image(nsImage: icon).resizable().scaledToFit().frame(width: min(16, width), height: min(16, height))
+            croppedPicture(frame, scale: scale) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 2).fill(DesktopWindowCard.windowBacking(for: scheme))
+                    if let target {
+                        WindowPanePicture(gallery:gallery,target:target,permitted:permitted,icon:icon,groupHistory:{
+                            gallery?.observedImage(member.key,group:id,snapshot:snapshot,permitted:permitted)
+                        })
+                    } else if let icon, min(pictureWidth, pictureHeight) > 11 {
+                        Image(nsImage: icon).resizable().scaledToFit().frame(width: min(16, pictureWidth), height: min(16, pictureHeight))
+                    }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 2))
@@ -235,6 +268,7 @@ struct NativeWindowGroupCard: View {
             .frame(width: width, height: height).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .frame(width: width, height: height)
         .contextMenu { Button("从组合中移出") { remove(member) } }
         .modifier(GalleryCardExposure(gallery: gallery, target: target))
         .help(choice.label)

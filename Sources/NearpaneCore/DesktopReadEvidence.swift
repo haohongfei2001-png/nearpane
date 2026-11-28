@@ -159,6 +159,35 @@ public struct SidebarWindowReaderProof: Equatable, Codable, Sendable {
     public init(_ window: NativeSpaceWindow, flags: [String: Bool]) { self.window = window; self.flags = flags }
 }
 
+/// Counts from the two existing catalog enumerations. These diagnose whether a
+/// missing row disappeared before or during filtering; they grant no authority.
+public struct CatalogCensusFacts: Equatable, Codable, Sendable {
+    public struct Sample: Equatable, Codable, Sendable {
+        public var publicRows = 0, expandedRows = 0, eligibleSurfaceRows = 0, acceptedWindows = 0
+        public var parentExcludedRows = 0, ownerRejectedRows = 0
+        public var ownersChecked = 0, ownersAccepted = 0, ownersUnavailable = 0
+        public var ownersNotRegular = 0, ownersMissingBundle = 0, ownersExcludedBundle = 0
+
+        public init() {}
+
+        fileprivate var valid: Bool {
+            let counts = [publicRows, expandedRows, eligibleSurfaceRows, acceptedWindows,
+                parentExcludedRows, ownerRejectedRows, ownersChecked, ownersAccepted, ownersUnavailable,
+                ownersNotRegular, ownersMissingBundle, ownersExcludedBundle]
+            return counts.allSatisfy { $0 >= 0 && $0 <= 1_000_000 } &&
+                publicRows <= expandedRows && eligibleSurfaceRows <= expandedRows &&
+                acceptedWindows <= eligibleSurfaceRows && parentExcludedRows <= eligibleSurfaceRows &&
+                ownerRejectedRows <= eligibleSurfaceRows && ownersChecked <= eligibleSurfaceRows &&
+                ownersChecked == ownersAccepted + ownersUnavailable + ownersNotRegular +
+                    ownersMissingBundle + ownersExcludedBundle
+        }
+    }
+
+    public let first, second: Sample
+    public init(first: Sample, second: Sample) { self.first = first; self.second = second }
+    fileprivate var valid: Bool { first.valid && second.valid }
+}
+
 /// Diagnostic samples for existing catalog failures. They never admit a window
 /// or supply membership to the roster. No title, content or action handle is stored.
 public struct CatalogIssueWindowFacts: Equatable, Codable, Sendable {
@@ -254,6 +283,8 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     public var catalogIssues: [String]? = nil
     /// Up to eight samples from the same failed directory, linked to catalogIssues by index.
     public var catalogIssueWindows: [CatalogIssueWindowFacts]? = nil
+    /// Aggregate counts only, from the same two failed native enumerations.
+    public var catalogCensus: CatalogCensusFacts? = nil
     public let population: DesktopReadPopulation
     public package(set) var accessibility: AXReadStatus
     public var spaces: SpaceReadStatus
@@ -275,6 +306,7 @@ public struct DesktopReadEvidence: Equatable, Codable, Sendable {
     }
 
     func validates(_ snapshot: DesktopSnapshot) -> Bool {
+        if catalogCensus?.valid == false { return false }
         if let facts = catalogIssueWindows {
             guard facts.count <= CatalogIssueWindowFacts.limit,
                   facts.allSatisfy({ $0.valid(issueCount: catalogIssues?.count ?? 0) }) else { return false }

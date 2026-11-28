@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "head": "3f531dae67108f94d2d56629799c08f347004a4d",
+  "workflowRunID": 46132883604,
+  "jobID": 140941734682,
+  "artifactID": 15258289754,
+  "providerDigest": "sha256:1f14a8e20953584c68fca2fbea41446d804194ae64d61c4144bc11ce50727f22",
+  "frozenUTC": "2026-11-28T10:19:41.233700+00:00",
+  "downloadCount": 1,
+  "rawFileCount": 150,
+  "allRawFilesMatchProviderZIP": true,
+  "rawNeverModified": true,
+  "files": [
+    {
+      "path": "fast.zip",
+      "bytes": 25990576,
+      "sha256": "1f14a8e20953584c68fca2fbea41446d804194ae64d61c4144bc11ce50727f22"
+    },
+    {
+      "path": "fast-artifact-api-metadata.json",
+      "bytes": 826,
+      "sha256": "fa526d9efeaeaed0ec853856a3d670e7dce63115d17d5efc98dc173460c40078"
+    },
+    {
+      "path": "fast-download-receipt.json",
+      "bytes": 353,
+      "sha256": "6f1674cab86e982d1b4aac7978c673742a73db639b889af408f63638d4eee9b1"
+    },
+    {
+      "path": "fast-job-terminal.json",
+      "bytes": 7407,
+      "sha256": "3deddf46ff20b2f9c56a302aa066de6881a17e91b9f47bd99c908ae160532405"
+    },
+    {
+      "path": "fast-raw-manifest.json",
+      "bytes": 32043,
+      "sha256": "1e134bab4534cc5883ca47529212c45abed03afd9fa0af6e17976e14611df011"
+    },
+    {
+      "path": "fast-analysis.json",
+      "bytes": 2517381,
+      "sha256": "c2bbc4f742aea9e2651981fad5b2106625bcb5aeba3bb170cb5dc3d449b05457"
+    },
+    {
+      "path": "fast-interpretation.json",
+      "bytes": 145346,
+      "sha256": "6ee1728fcda1b3be2982cd0b8dd41921604ab469681fec2b853e7367d19a30e8"
+    },
+    {
+      "path": "analyze-fast.py",
+      "bytes": 9707,
+      "sha256": "ccb3333eff62d28baff9c789507e632bc0bfa370053fab2b66f4f584d62c37a1"
+    },
+    {
+      "path": "interpret-fast.py",
+      "bytes": 17226,
+      "sha256": "4c6e4cbbe96c9c6011b1c773749cec67a0bcd3a021b3f1311b76c76f190f2728"
+    }
+  ],
+  "analysisOwnerModifiedTestedSource": false,
+  "testedArtifactAndExactHeadUnchanged": true,
+  "concurrentNextPatchEditsAreNotPartOfRun": true
+}
