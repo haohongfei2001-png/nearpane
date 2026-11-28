@@ -1,0 +1,72 @@
+name: Nearpane film v2 actual Host cards
+on:
+  push:
+    branches: [creative/nearpane-first-film-v2-20261128]
+    paths:
+      - Marketing/FirstFilmV2/host-capture/**
+      - .github/workflows/film-v2-host.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: film-v2-host-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  capture:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Identify toolchain
+        id: toolchain
+        run: |
+          python3 - <<'PY'
+          import hashlib,os,subprocess
+          value=subprocess.check_output(['xcrun','swift','--version'])+subprocess.check_output(['xcode-select','-p'])
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('fingerprint='+hashlib.sha256(value).hexdigest()[:16]+'\n')
+          PY
+      - name: Restore native dependency cache
+        id: cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-
+      - name: Build isolated complete Host and real capture tools
+        run: |
+          set -o pipefail
+          mkdir -p build/film-v2-host
+          python3 Marketing/FirstFilmV2/host-capture/prepare_host_camera.py . "$RUNNER_TEMP/film-v2-host-repo"
+          (cd "$RUNNER_TEMP/film-v2-host-repo" && bash scripts/build-app.sh debug) 2>&1 | tee build/film-v2-host/build.log
+          swiftc -parse-as-library -swift-version 5 -O Marketing/FirstFilmV2/native/FilmAVCapture.swift -framework AppKit -framework ScreenCaptureKit -framework AVFoundation -framework CoreMedia -o "$RUNNER_TEMP/film-av-capture" 2>&1 | tee build/film-v2-host/recorder-build.log
+          swiftc -swift-version 5 -O Marketing/FirstFilmV2/native/FilmNativeWindow.swift -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/film-native-window" 2>&1 | tee build/film-v2-host/window-build.log
+          swiftc -swift-version 5 -O Marketing/FirstFilmV2/host-capture/FilmHostInput.swift -framework AppKit -framework ApplicationServices -o "$RUNNER_TEMP/film-host-input" 2>&1 | tee build/film-v2-host/input-build.log
+      - name: Prepare owned song and real 4K desktop
+        run: |
+          command -v ffmpeg || brew install ffmpeg
+          python3 Marketing/FirstFilmV2/native/build_good_to_go.py --output "$RUNNER_TEMP/good-to-go.m4a" --source-dir "$RUNNER_TEMP/song-originals" > build/film-v2-host/audio-source.json
+          python3 Marketing/FirstFilmV2/native/set_motion_preference.py build/film-v2-host
+          python3 Marketing/FirstFilmV2/native/prepare_hidpi.py build/film-v2-host
+          defaults write com.apple.dock autohide -bool true
+          killall Dock || true
+      - name: Film actual module order and actual screenshot
+        run: |
+          python3 Marketing/FirstFilmV2/host-capture/drive_host_capture.py --repo "$RUNNER_TEMP/film-v2-host-repo" --app "$RUNNER_TEMP/film-v2-host-repo/build/debug/Nearpane.app" --audio "$RUNNER_TEMP/good-to-go.m4a" --pdf Marketing/FirstFilmV2/assets/workspace/field-notes-zh.pdf --wallpaper Marketing/FirstFilmV2/assets/workspace/morning-water-photography.jpg --recorder "$RUNNER_TEMP/film-av-capture" --output build/film-v2-host --native Marketing/FirstFilmV2/native
+          ffprobe -v error -show_streams -show_format -of json build/film-v2-host/host-fullscreen.mov > build/film-v2-host/media-probe.json
+      - name: Preserve actual take and scoped evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Nearpane-film-v2-actual-host
+          path: build/film-v2-host
+          retention-days: 30
+          if-no-files-found: warn

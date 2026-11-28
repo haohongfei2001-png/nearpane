@@ -31,6 +31,7 @@ if !trusted {
     persist(); exit(0)
 }
 func attribute(_ element: AXUIElement, _ name: String) -> CFTypeRef? {
+    AXUIElementSetMessagingTimeout(element, 0.15)
     var value: CFTypeRef?
     return AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success ? value : nil
 }
@@ -129,6 +130,34 @@ while Date() < deadline {
             let buttons = fresh.filter { $0.enabled
                 && $0.labels.contains(where: { normalized($0) == normalized(label) })
                 && supportsPress($0.element) }
+            if buttons.count != 1, label == "Not Now", bundle == "com.apple.Music", CGPreflightPostEventAccess() {
+                // On this observed macOS build Not Now is a native static text
+                // link without AXPress. Use its freshly reported geometry,
+                // only inside the exact real marketing sheet already matched.
+                var targets:[CGPoint]=[]
+                for node in fresh where node.labels.contains(where:{normalized($0)=="not now"}) {
+                    guard let a=attribute(node.element,kAXPositionAttribute),let b=attribute(node.element,kAXSizeAttribute),
+                          CFGetTypeID(a)==AXValueGetTypeID(),CFGetTypeID(b)==AXValueGetTypeID() else {continue}
+                    var position=CGPoint.zero;var size=CGSize.zero
+                    guard AXValueGetValue(a as! AXValue,.cgPoint,&position),AXValueGetValue(b as! AXValue,.cgSize,&size),size.width>0,size.height>0 else{continue}
+                    let point=CGPoint(x:position.x+size.width/2,y:position.y+size.height/2)
+                    if !targets.contains(where:{abs($0.x-point.x)<2 && abs($0.y-point.y)<2}){targets.append(point)}
+                }
+                if targets.count==1 {
+                    let point=targets[0];var hit:AXUIElement?;var owner:pid_t=0
+                    let status=AXUIElementCopyElementAtPosition(AXUIElementCreateSystemWide(),Float(point.x),Float(point.y),&hit)
+                    if let hit {_ = AXUIElementGetPid(hit,&owner)}
+                    if status == .success,owner==app.processIdentifier {
+                        for type in [CGEventType.mouseMoved,.leftMouseDown,.leftMouseUp] {
+                            CGEvent(mouseEventSource:nil,mouseType:type,mouseCursorPosition:point,mouseButton:.left)?.post(tap:.cghidEventTap)
+                            RunLoop.main.run(until:Date().addingTimeInterval(0.06))
+                        }
+                        actionRecords.append(["pid":app.processIdentifier,"bundleID":bundle,"button":label,"method":"CGEvent at fresh native AX link geometry","point":[point.x,point.y],"hitPID":owner,"timestamp":ISO8601DateFormatter().string(from:Date())])
+                        pressedKinds.insert(label);report["actions"]=actionRecords;report["coordinateClicks"]=true;persist()
+                    }
+                }
+                continue
+            }
             guard buttons.count == 1 else { continue }
             let result = AXUIElementPerformAction(buttons[0].element, kAXPressAction as CFString)
             actionRecords.append(["pid": app.processIdentifier, "bundleID": bundle,

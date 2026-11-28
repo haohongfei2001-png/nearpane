@@ -98,7 +98,7 @@ import LyricPlayback
             if let bytes=try? Data(contentsOf:command),let request=(try? JSONSerialization.jsonObject(with:bytes)) as? [String:String],let action=request["action"] {
                 try? FileManager.default.removeItem(at:command)
                 let primaryHeight=NSScreen.screens.first?.frame.height ?? screen.frame.height
-                let end=action == "enter" ? NSPoint(x:panel.frame.midX,y:panel.frame.midY) : NSPoint(x:panel.frame.minX-90,y:panel.frame.midY-20)
+                let end=action == "enter" ? NSPoint(x:panel.frame.midX+38,y:panel.frame.minY+52) : NSPoint(x:panel.frame.minX-90,y:panel.frame.midY-20)
                 let begin=NSEvent.mouseLocation
                 for tick in 1...24 {
                     let t=Double(tick)/24;let smooth=t*t*(3-2*t)

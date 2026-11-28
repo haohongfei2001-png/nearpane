@@ -8,7 +8,7 @@ let args=Array(CommandLine.arguments.dropFirst())
 guard ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == "true",args.count>=2 else { exit(2) }
 let bundle=args[0];let output=URL(fileURLWithPath:args[1])
 var report:[String:Any]=["bundleID":bundle,"accessibilityTrusted":AXIsProcessTrusted(),"uptime":ProcessInfo.processInfo.systemUptime]
-func attr(_ e:AXUIElement,_ name:String)->CFTypeRef? { var x:CFTypeRef?;return AXUIElementCopyAttributeValue(e,name as CFString,&x) == .success ? x : nil }
+func attr(_ e:AXUIElement,_ name:String)->CFTypeRef? { AXUIElementSetMessagingTimeout(e,0.25);var x:CFTypeRef?;return AXUIElementCopyAttributeValue(e,name as CFString,&x) == .success ? x : nil }
 func bounds(_ e:AXUIElement)->[String:Double]? {
     guard let a=attr(e,kAXPositionAttribute),let b=attr(e,kAXSizeAttribute),CFGetTypeID(a)==AXValueGetTypeID(),CFGetTypeID(b)==AXValueGetTypeID() else {return nil}
     var p=CGPoint.zero;var s=CGSize.zero

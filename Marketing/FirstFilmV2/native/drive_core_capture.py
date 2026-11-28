@@ -40,8 +40,8 @@ def native_window(bundle,name,*arguments):
     helper=Path(os.environ['RUNNER_TEMP'])/'film-native-window'
     try:
         result=subprocess.run([str(helper),bundle,str(out/name),*[str(x) for x in arguments]],capture_output=True,text=True,timeout=10)
-        if result.returncode:event('optional-native-window-error',name=name,stderr=result.stderr)
-    except (OSError,subprocess.TimeoutExpired) as error:event('optional-native-window-error',name=name,error=str(error))
+        if result.returncode:event('optional-native-window-error',reportName=name,stderr=result.stderr)
+    except (OSError,subprocess.TimeoutExpired) as error:event('optional-native-window-error',reportName=name,error=str(error))
 def seek_real(seconds):
     deadline=time.monotonic()+12
     attempts=[]
@@ -158,7 +158,22 @@ try:
     geometry=json.loads((out/'camera-host.json').read_text());sf=geometry['screenFrame']
     # AppleScript window positions use the global top-left coordinates.
     x=int(sf[0]+120);y=112
+    # Warm the real document before the take. Opening Preview for the first time
+    # can spend seconds decoding fonts/PDF while its AX window is still pending.
+    subprocess.run(['open','-a','Preview',str(a.pdf.resolve())],check=True)
+    time.sleep(2)
+    native_window('com.apple.Preview','preview-preloaded-position.json',x,y,1352,838)
+    native_window('com.apple.Preview','preview-preloaded-sidebar.json','--key','hide-sidebar')
+    native_window('com.apple.Preview','preview-preloaded-fit.json','--key','fit')
+    snap('prepared-document-4k.png')
     native_window('com.apple.Music','music-main-position.json',x,y,1352,838)
+    deadline=time.monotonic()+8
+    while time.monotonic()<deadline:
+        try:
+            report=json.loads((out/'permission-ui/native-permission-ui.json').read_text())
+            if any(row.get('button')=='Not Now' for row in report.get('actions',[])):break
+        except (OSError,ValueError):pass
+        time.sleep(.15)
     # Reveal the actual current song in the real library; artwork remains original.
     apple('tell application "Music" to reveal current track',required=False)
     # Native MiniPlayer is a real Apple Music command; use the large artwork view if available.
@@ -171,6 +186,13 @@ try:
     time.sleep(.6)
     snap('core-first-frame-4k.png')
     event('capture-source-position',readback=apple('tell application "Music" to return {player state,player position,name of current track}'))
+    # The independent safety recording has served its purpose. Finish it before
+    # the primary 4K encoder starts, so the two encoders do not contend.
+    diagnostic_stop.touch()
+    if diagnostic:
+        try:diagnostic.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            event('diagnostic-clean-stop-timeout');diagnostic.terminate();diagnostic.wait(timeout=3)
     recorder=subprocess.Popen([str(a.recorder),os.environ['NEARPANE_FILM_DISPLAY_ID'],'18',str(out/'core-fullscreen.mov')],stdout=(out/'recorder.log').open('w'),stderr=subprocess.STDOUT)
     backend='ScreenCaptureKit'
     try:
@@ -194,11 +216,9 @@ try:
     while time.monotonic()<switch_at:time.sleep(.04)
     event('preview-open-request')
     subprocess.run(['open','-a','Preview',str(a.pdf.resolve())],check=True)
-    time.sleep(.65)
-    native_window('com.apple.Preview','preview-position.json',x,y,1352,838)
-    # Actual Preview Fit and hide-sidebar keyboard/menu commands, never a fake window.
-    native_window('com.apple.Preview','preview-sidebar-key.json','--key','hide-sidebar')
-    native_window('com.apple.Preview','preview-fit-key.json','--key','fit')
+    # This is the same actual preloaded Preview window, raised by LaunchServices.
+    # Do not spend the filmed action re-running optional AX geometry queries.
+    time.sleep(.3)
     apple('tell application "System Events" to set visible of process "Music" to false',required=False)
     event('preview-frontmost',readback=apple('tell application "Music" to return {player state,player position,name of current track}'))
     time.sleep(1)
