@@ -66,7 +66,7 @@ func inspect(_ root: AXUIElement) -> [Node] {
 }
 func eligibleAction(_ nodes: [Node], bundle: String) -> String? {
     let text = normalized(nodes.flatMap(\.labels).joined(separator: "\n"))
-    if mode == "music", bundle.hasPrefix("com.apple."), text.contains("wants access to control \"music\""),
+    if mode == "music", bundle.hasPrefix("com.apple."), (text.contains("wants access to control \"music\"") || text.contains("wants access to control \"system events\"")),
        (text.contains("\"hosted-compute-agent\"") || text.contains("\"lyrictile\"") || text.contains("\"nearpane film v2\"")),
        text.contains("allowing control will provide access to documents and data in") {
         return "Allow"

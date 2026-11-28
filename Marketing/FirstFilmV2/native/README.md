@@ -14,8 +14,15 @@ are supplied.
 
 The camera host is a small isolated executable linking those embedded libraries;
 it is **not** the complete shipping Nearpane Host or a release acceptance test.
-The production source files are copied unchanged. One extra extension exposes
-the existing local-file import action to this bounded capture driver. The view
+The production repository source files are unchanged. One extra extension exposes
+the existing local-file import action to this bounded capture driver. A read-only
+bridge diagnostic records the actual `rawData` class and image payload. If, and
+only if, the actual current-track payload is a typed descriptor/proxy, its track
+identity is stable, its bytes are at most 8 MiB and ffprobe decodes a real image,
+the same VM may apply a two-line descriptor-unwrapping **unreleased candidate**
+inside the isolated camera copy. Its exact diff and image hash are preserved.
+The candidate must still return real artwork through the ordinary model/decoder
+before a hover shot is accepted. No album image is injected into the view. The view
 keeps its canonical 208 × 192-point composition, with a stated photographic
 scale of 280/208 on a verified real 2× display. The native window is positioned
 at the upper right for this photograph. This is not evidence of a new product
@@ -23,8 +30,9 @@ window-placement control.
 
 ScreenCaptureKit captures the actual full WindowServer desktop, actual cursor,
 and actual system audio at the source display's physical resolution. The first
-take begins with the real Music window, opens the supplied original PDF in real
-Preview, then enters and leaves the native lyric view with real CGEvents. Native
+take begins with the real Music window and opens the supplied original PDF in real
+Preview. Ordinary lyrics can be filmed even if the optional product artwork path
+is missing. An independently verified candidate hover take uses real CGEvents. Native
 state samples include frontmost application, track, player position, cue text,
 artwork bytes and control visibility. Audio buffer counts and movie PTS are
 recorded; a successful command alone is not proof of usable sound or visuals.

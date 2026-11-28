@@ -71,7 +71,7 @@ import LyricPlayback
         let hosting=NSHostingView(rootView:root)
         panel=FilmPanel(contentRect:NSRect(origin:.zero,size:size),styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
         panel.isOpaque=false; panel.backgroundColor = .clear; panel.hasShadow=true
-        panel.level = .floating; panel.hidesOnDeactivate=false
+        panel.level = .floating; panel.hidesOnDeactivate=false; panel.acceptsMouseMovedEvents=true
         panel.collectionBehavior=[.canJoinAllSpaces,.fullScreenAuxiliary]
         panel.contentView=hosting
         panel.setFrame(NSRect(x:screen.frame.maxX-size.width-28,y:screen.frame.maxY-size.height-52,width:size.width,height:size.height),display:true)
@@ -123,7 +123,8 @@ import LyricPlayback
                 "mouse":[pointer.x,pointer.y]
             ]
             records.append(row)
-            if !ready, model.title == "Good To Go", model.artwork != nil, model.leadCues.count > 0, model.snapshot.state == .playing {
+            if !ready, model.title == "Good To Go", model.leadCues.count > 0, model.snapshot.state == .playing,
+               (environment["FILM_V2_REQUIRE_ARTWORK"] != "1" || model.artwork != nil) {
                 ready=true
                 var receipt=row
                 if let art=model.snapshot.artwork {

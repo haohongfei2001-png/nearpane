@@ -37,6 +37,18 @@ public extension LyricAppModel {
     }
 }
 ''')
+bridge=dest/'Sources/CPlayerBridge/CPlayerBridge.m'
+text=bridge.read_text()
+marker='NSData *LTPReadPlayer(int32_t pid, BOOL spotify, BOOL includeArtwork) {'
+assert text.count(marker)==1
+text=text.replace(marker,(assets/'FilmArtworkDiagnostic.m.inc').read_text()+'\n'+marker)
+text=text.replace('if (includeArtwork && !spotify) {\n                    @try {','if (includeArtwork && !spotify) {\n                    id filmRaw = nil;\n                    @try {')
+text=text.replace('id raw = [art valueForKey:@"rawData"];','id raw = [art valueForKey:@"rawData"];\n                            filmRaw = raw;')
+guard='if (!identity.length || ![identity isEqualToString:artIdentity]) [result removeObjectForKey:@"artworkBase64"];'
+assert text.count(guard)==1
+text=text.replace(guard,guard+'\n                        LTPFilmArtworkProbe(filmRaw, identity.length && [identity isEqualToString:artIdentity], nil);')
+text=text.replace('@catch (NSException *artError) {','@catch (NSException *artError) {\n                        LTPFilmArtworkProbe(filmRaw, NO, entry.errorDelegate.lastError);')
+bridge.write_text(text)
 (dest/'Package.swift').write_text('''// swift-tools-version: 6.0
 import PackageDescription
 let package = Package(name: "NearpaneFilmV2", platforms: [.macOS("26.0")],
@@ -57,7 +69,8 @@ let package = Package(name: "NearpaneFilmV2", platforms: [.macOS("26.0")],
 (dest/'source-manifest.json').write_text(json.dumps({
  'sourceCommit':'d5767d87bc45245b31d0980e91e43778c5f424ed',
  'scope':'Current embedded NearpaneLyricsModule in an isolated photography host. Actual Music metadata/artwork/playback, actual product lyric importer/view/controls; not a packaged Host release qualification.',
- 'productionSourceFilesModified':[],
+ 'productionRepositorySourceFilesModified':[],
+ 'isolatedInstrumentation':'CPlayerBridge logs actual rawData class/descriptor payload to diagnose missing production artwork. It does not change the baseline artwork result or inject an image.',
  'addedBridge':'LyricUI/FilmLocalImport.swift exposes the existing importLyrics(from:for:) path for an explicit licensed local LRC.',
  'uiRecreation':False,'sourceSHA256':inventory},indent=2)+'\n')
 print(dest)

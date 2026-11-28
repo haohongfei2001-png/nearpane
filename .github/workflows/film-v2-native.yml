@@ -49,3 +49,25 @@ jobs:
           path: build/film-v2-core
           retention-days: 30
           if-no-files-found: warn
+      - name: Evaluate actual artwork descriptor and build a candidate only if proven
+        if: ${{ !cancelled() && hashFiles('build/film-v2-core/artwork-bridge-probe.json') != '' }}
+        run: |
+          python3 Marketing/FirstFilmV2/native/repair_artwork_if_proven.py "$RUNNER_TEMP/film-v2-package" build/film-v2-core
+          if python3 -c "import json; raise SystemExit(0 if json.load(open('build/film-v2-core/artwork-candidate-decision.json'))['status']=='APPLIED_UNRELEASED_CANDIDATE' else 1)"; then
+            python3 Marketing/FirstFilmV2/native/build_camera_app.py "$RUNNER_TEMP/film-v2-package" "$RUNNER_TEMP/Nearpane Film V2.app" > build/film-v2-core/candidate-build.log 2>&1
+            python3 Marketing/FirstFilmV2/native/drive_hover_capture.py --app "$RUNNER_TEMP/Nearpane Film V2.app" --recorder "$RUNNER_TEMP/film-av-capture" --baseline build/film-v2-core --output build/film-v2-hover
+          fi
+      - name: Preserve descriptor proof and optional native hover
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Nearpane-film-v2-artwork-proof
+          path: |
+            build/film-v2-core/artwork-bridge-probe.json
+            build/film-v2-core/actual-player-artwork-probe.bin
+            build/film-v2-core/artwork-candidate-decision.json
+            build/film-v2-core/unreleased-artwork-candidate.patch
+            build/film-v2-core/candidate-build.log
+            build/film-v2-hover
+          retention-days: 30
+          if-no-files-found: warn

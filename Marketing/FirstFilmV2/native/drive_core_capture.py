@@ -71,7 +71,7 @@ try:
     env['FILM_V2_WALLPAPER']=str(a.wallpaper.resolve())
     log=(out/'camera-host.log').open('w')
     app=subprocess.Popen([str(a.app/'Contents/MacOS/FilmV2Capture')],env=env,stdout=log,stderr=log)
-    ready=wait_json('ready.json',80);event('native-product-ready',ready=ready)
+    ready=wait_json('ready.json',35);event('native-product-ready',ready=ready)
     geometry=json.loads((out/'camera-host.json').read_text());sf=geometry['screenFrame']
     # AppleScript window positions use the global top-left coordinates.
     x=int(sf[0]+120);y=112
@@ -101,17 +101,16 @@ try:
     apple('tell application "System Events" to tell process "Preview"\nset frontmost to true\nset position of front window to {'+f'{x},{y}'+'}\nset size of front window to {1352,838}\nend tell',required=False)
     # Actual Preview Fit and hide-sidebar keyboard/menu commands, never a fake window.
     apple('tell application "System Events" to tell process "Preview"\nkeystroke "1" using {command down,option down}\nkeystroke "9" using {command down}\nend tell',required=False)
+    apple('tell application "System Events" to set visible of process "Music" to false',required=False)
     event('preview-frontmost',readback=apple('tell application "Music" to return {player state,player position,name of current track}'))
     time.sleep(1)
     snap('core-document-frame-4k.png')
-    for offset,action in [(12,'enter'),(14.4,'leave')]:
-        while time.monotonic()<take_start+offset:time.sleep(.04)
-        (out/'pointer-command.json').write_text(json.dumps({'action':action}))
-        event('native-pointer-'+action)
+    # Baseline captures the ordinary lyric state. A missing production artwork
+    # path must not produce a fake cover or an advertised placeholder hover.
     recorder.wait(timeout=30)
     if recorder.returncode:raise RuntimeError('Actual screen/audio recorder failed')
     event('core-complete',readback=apple('tell application "Music" to return {player state,player position,name of current track}'))
-    save('core-result.json',{'status':'CAPTURED','player':'Apple Music','sourceTrack':'Good To Go','artist':'Josh Woodward','durationRequested':18,'actualPlayback':True,'artworkFromActualPlayer':True,'desktopNative':True,'sourceView':'NearpaneLyricsModule','workflowRun':os.environ['GITHUB_RUN_ID'],'limitations':['Isolated photography host, not a release Host qualification','LRC real lyrics, ASR-derived source-clock timings pending final listening check']})
+    save('core-result.json',{'status':'CAPTURED','player':'Apple Music','sourceTrack':'Good To Go','artist':'Josh Woodward','durationRequested':18,'actualPlayback':True,'realMusicTrackArtworkCountVerified':1,'lyricViewArtworkDecoded':ready.get('artworkDecoded',False),'desktopNative':True,'sourceView':'NearpaneLyricsModule','workflowRun':os.environ['GITHUB_RUN_ID'],'limitations':['Isolated photography host, not a release Host qualification','LRC real lyrics, ASR-derived source-clock timings pending final listening check','No hover advertised in baseline until actual product artwork is confirmed']})
 except Exception as error:
     save('core-result.json',{'status':'BLOCKED','error':str(error),'events':events})
     try:snap('failure-desktop.png')

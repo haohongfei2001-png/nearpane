@@ -10,8 +10,8 @@
   "scope": "Only the selected final-chorus passage; this is not a complete full-song LRC.",
   "lyrics_text_source": "https://www.youtube.com/watch?v=lqzEFoG2XUE",
   "wording_verification": "Checked against the artist’s own published lyrics; repeated title phrases match automatic recognition of the actual recording. No invented replacement lyrics.",
-  "timing_method": "faster-whisper tiny.en word timestamps from the downloaded licensed OGG; line starts and punctuation were assigned from these observations.",
-  "timing_status": "AUTOMATIC_ALIGNMENT_NOT_AUDITIONED; local phrase-start uncertainty remains, especially sustained first words. Needs native playback review before final sync approval.",
+  "timing_method": "Original tiny.en timing cross-checked by base.en and small.en on the exact135–170s PCM slice after full original decode from0. The director adopted146.60,151.70,157.80,162.75; the later168.34/177.74 cues are unchanged. No new recognition runs are needed for this revision.",
+  "timing_status": "MACHINE_CROSSCHECKED_NOT_LISTENING_VERIFIED",
   "rejected_database_records": [
     10481852,
     28965523
@@ -19,8 +19,8 @@
   "rejection_reason": "Those LRCLIB records contain a different song, despite a Good to Go title. Not used.",
   "cues": [
     {
-      "source_seconds": 147.68,
-      "relative_excerpt_seconds": 0.08,
+      "source_seconds": 146.6,
+      "relative_excerpt_seconds": -1.0,
       "text": "You gave me hope, and set me free"
     },
     {
@@ -29,13 +29,13 @@
       "text": "And yeah, I know I've been a little slow"
     },
     {
-      "source_seconds": 158.32,
-      "relative_excerpt_seconds": 10.72,
+      "source_seconds": 157.8,
+      "relative_excerpt_seconds": 10.2,
       "text": "But hey..."
     },
     {
-      "source_seconds": 163.1,
-      "relative_excerpt_seconds": 15.5,
+      "source_seconds": 162.75,
+      "relative_excerpt_seconds": 15.15,
       "text": "I'm good to go"
     },
     {
@@ -48,5 +48,10 @@
       "relative_excerpt_seconds": 30.14,
       "text": "I'm good to go"
     }
-  ]
+  ],
+  "revision": 2,
+  "revision_note": "The147.60–183.60 music selection is unchanged. At the start of filming the first lyric is already active; its relative LRC time is-1.00s by design.",
+  "remaining_uncertainty": "Machine phrase starts are estimates, especially sustained/weak first syllables. The third transition has about0.2s inter-model spread around the adopted estimate. This does not certify acoustic word synchronization or subjective listening approval.",
+  "crosscheck_record": "../analysis/lyric-timing-crosscheck.json",
+  "lrc_sha256": "7f7a228ac3b6bbb43517842f4ebf6cc3ed4e2b0bfd12b20dac9bc8153e909333"
 }
