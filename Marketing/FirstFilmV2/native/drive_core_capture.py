@@ -33,6 +33,24 @@ def wait_json(name,seconds=60):
     raise RuntimeError('Timed out waiting for '+name)
 def snap(name):
     subprocess.run(['/usr/sbin/screencapture','-x','-C','-D',os.environ['NEARPANE_FILM_SCREEN_INDEX'],str(out/name)],check=True)
+def seek_real(seconds):
+    deadline=time.monotonic()+12
+    attempts=[]
+    while time.monotonic()<deadline:
+        try:
+            before=apple('tell application "Music" to return {player state,name of current track,player position}',timeout=5)
+            if 'Good To Go' not in before or 'playing' not in before:
+                attempts.append({'readback':before});time.sleep(.25);continue
+            apple('tell application "Music" to set player position to '+str(seconds),timeout=5)
+            actual=float(apple('tell application "Music" to get player position',timeout=5))
+            attempts.append({'readback':before,'seekReadback':actual})
+            if abs(actual-seconds)<1.5:
+                event('real-seek-confirmed',target=seconds,actual=actual,attempts=attempts)
+                return
+        except (RuntimeError,ValueError) as error:attempts.append({'error':str(error)})
+        time.sleep(.25)
+    event('real-seek-not-confirmed',target=seconds,attempts=attempts)
+    raise RuntimeError('Actual Music did not confirm the requested playback position')
 
 permission=None;app=None;recorder=None
 try:
@@ -43,8 +61,8 @@ try:
     subprocess.run(['open','-a','Music'],check=True)
     playlist='Nearpane Film '+os.environ['GITHUB_RUN_ID']
     apple('tell application "Music"\nset sound volume to 72\nset filmList to make new user playlist with properties {name:'+quote(playlist)+'}\nadd POSIX file '+quote(a.audio.resolve())+' to filmList\nend tell',timeout=50)
-    apple('tell application "Music"\nset filmList to first user playlist whose name is '+quote(playlist)+'\nplay first track of filmList\nset player position to 147.60\nend tell')
-    time.sleep(.8)
+    apple('tell application "Music"\nset filmList to first user playlist whose name is '+quote(playlist)+'\nplay first track of filmList\nend tell')
+    seek_real(147.60)
     identity=apple('tell application "Music" to return {name of current track,artist of current track,album of current track,persistent ID of current track,player position,count of artworks of current track}')
     event('real-music-import-and-play',readback=identity)
     if 'Good To Go' not in identity or 'Josh Woodward' not in identity:raise RuntimeError('Actual Music source identity did not match')
