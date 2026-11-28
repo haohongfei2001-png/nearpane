@@ -1,0 +1,161 @@
+{
+  "commit": "0a3ad95cdfd7c5161e6d9254993d7b625f87f55a",
+  "scope": "Verbatim native and host-capture sources from the final recorded repository commit; live filming requires a macOS checkout of the parent repository.",
+  "files": [
+    {
+      "path": "host-capture/CloudPermissionHelper.swift",
+      "sha256": "7f52882bc313bf5b1cebadd2be3e762df3d97b979b60721726dea8fd7fb76ec9",
+      "bytes": 10315
+    },
+    {
+      "path": "host-capture/FilmAVCapture.swift",
+      "sha256": "e39b92e4e51e1ab8bbbda4b9a616eb94532afcc9dd5df9c93e15f7d9376615a9",
+      "bytes": 8261
+    },
+    {
+      "path": "host-capture/FilmDualCards.swift",
+      "sha256": "e90786d3785134efa323e2703b6744b19025a9e1aa2e0cb2f32c5f61b48416d9",
+      "bytes": 2827
+    },
+    {
+      "path": "host-capture/FilmHostInput.swift",
+      "sha256": "d495c1908e11250a165d3c2272fb4be88fd0a7e7a421b07e7e89f4bc66a55eac",
+      "bytes": 6428
+    },
+    {
+      "path": "host-capture/FilmHostScene.swift.inc",
+      "sha256": "08db741061addfcb516999c42285932aacf974a7e6a26ab1a3f079fbcc5b047a",
+      "bytes": 7688
+    },
+    {
+      "path": "host-capture/README.md",
+      "sha256": "5dd1552cf5169c8817a042565443f6f2d73abc2ca2996447ecb39665d8410f0d",
+      "bytes": 1858
+    },
+    {
+      "path": "host-capture/cloud_ui.py",
+      "sha256": "bf3e26310db850141df9140327a1529d5d8f42e86bb1a00aca0bf64d1b505ceb",
+      "bytes": 2846
+    },
+    {
+      "path": "host-capture/drive_host_capture.py",
+      "sha256": "b3ab13341158a12250ceb2e5e5949029a6c7b172361a87b5b8f833cb16507171",
+      "bytes": 11322
+    },
+    {
+      "path": "host-capture/prepare_host_camera.py",
+      "sha256": "d8dc23cd28bad435aceb732e3c4b49af1f2b7b5bd8c5928e88394a85166621c0",
+      "bytes": 2967
+    },
+    {
+      "path": "native/CloudPermissionHelper.swift",
+      "sha256": "c2faa0282995b5f888dc4cb08780248289024d5a8f67b1a99217723d6ce3ab61",
+      "bytes": 10282
+    },
+    {
+      "path": "native/FilmAVCapture.swift",
+      "sha256": "078dba343f9bdc458faa87134bfd6404cc7f5d81b7d2cd9ec5706bc2dfea6f14",
+      "bytes": 5613
+    },
+    {
+      "path": "native/FilmArtworkDiagnostic.m.inc",
+      "sha256": "29060072f1d69e4da46ca7520aef279748814a22fb88497266a6c606cbc87d84",
+      "bytes": 2268
+    },
+    {
+      "path": "native/FilmNativeWindow.swift",
+      "sha256": "e6be017210e03a728619bd44e8d3b184b6e346dda8ef9b801a00af874ea4881f",
+      "bytes": 3973
+    },
+    {
+      "path": "native/FilmV2Capture.swift",
+      "sha256": "af4bdf517dd38158f5ad421cb2e3707e37a12df2195e493b7285ca7da816db46",
+      "bytes": 8764
+    },
+    {
+      "path": "native/README.md",
+      "sha256": "41e13e57076e39035f9da7fce6d547907f1dc83b55b1c889eedf04db5d3d0085",
+      "bytes": 5559
+    },
+    {
+      "path": "native/build_camera_app.py",
+      "sha256": "782fe62e9e130cd81663576deb1f66eb3f198819d8087a9444b357d1f4a06bf2",
+      "bytes": 1626
+    },
+    {
+      "path": "native/build_good_to_go.py",
+      "sha256": "5c7dcce7de2fabebe972689630d13c23a7d6c63678d826caeb1a9ecaccc0c4c5",
+      "bytes": 3095
+    },
+    {
+      "path": "native/cloud_ui.py",
+      "sha256": "bf3e26310db850141df9140327a1529d5d8f42e86bb1a00aca0bf64d1b505ceb",
+      "bytes": 2846
+    },
+    {
+      "path": "native/drive_core_capture.py",
+      "sha256": "5d86b170efec69d1a84013bbf292555868eca18b825a1b4bcb60cf110fc9299e",
+      "bytes": 16838
+    },
+    {
+      "path": "native/drive_hover_capture.py",
+      "sha256": "3018891c150e9d41763287a38d7e6cb0288d2b6f07b3904976367882659c742e",
+      "bytes": 4511
+    },
+    {
+      "path": "native/good-to-go-lrc-provenance.json",
+      "sha256": "6afedd97b50fa1fe1bcc2cea2b9434eae824199ba802bd06a34363cee478537f",
+      "bytes": 2590
+    },
+    {
+      "path": "native/good-to-go-lyrics.txt",
+      "sha256": "f541176b859db17aa9a5df0fd4c00e74fabecdfe61aa3fcbd60ca6c025bae2cb",
+      "bytes": 955
+    },
+    {
+      "path": "native/good-to-go-selected-sourceclock.lrc",
+      "sha256": "5a3476b4e917b567ec57ab6533ffa8eca384ed1ec13af89c5dc865239802c96d",
+      "bytes": 345
+    },
+    {
+      "path": "native/np-hidpi-notes.md",
+      "sha256": "d4e7c078f86ba743e889d9c72004125220efa3740a6b891798316798666613a6",
+      "bytes": 6157
+    },
+    {
+      "path": "native/np-hidpi-third-party.txt",
+      "sha256": "233bd42dab698a78666e2ea9d911b5231e6174fce0850f8b6989550ad2b6c52b",
+      "bytes": 1952
+    },
+    {
+      "path": "native/np-virtual-hidpi.m",
+      "sha256": "b674adaaf0e4a9916452ec02e3ba5a1c67b9b66ee2a81e2d9bec34d7032dd7cb",
+      "bytes": 13221
+    },
+    {
+      "path": "native/prepare_film_package.py",
+      "sha256": "3da20b3de7a8d36687206f1c39084feae1157425019a7b265e30fe913a76d40a",
+      "bytes": 5142
+    },
+    {
+      "path": "native/prepare_hidpi.py",
+      "sha256": "14d0af7841fc65b1d8a539306e8700ddcb2d521b01dec58c00105245aea36b31",
+      "bytes": 3618
+    },
+    {
+      "path": "native/repair_artwork_if_proven.py",
+      "sha256": "3960aa80789d0f1e62fad8ebfbc863c00b3637a1a1a1055cb67307d9fbf5e456",
+      "bytes": 3012
+    },
+    {
+      "path": "native/set_motion_preference.py",
+      "sha256": "ba4c25f942b0af86892f99b94878cce98b97647013a20c450035a5c512b15306",
+      "bytes": 1626
+    },
+    {
+      "path": "native/unreleased-artwork-fix-evidence.json",
+      "sha256": "9a8513c7fc49cb442f313975c00ed9ac0f141a60f96b41478e812abd00c535c1",
+      "bytes": 903
+    }
+  ]
+}

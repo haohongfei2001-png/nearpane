@@ -1,0 +1,156 @@
+{
+  "scenes": [
+    {
+      "file": "../assets/native/core/core-fullscreen.mov",
+      "in": 0.5236244841,
+      "duration": 17.4763755159,
+      "provenance": "Native Music to Preview continuous recording, production lyric view and actual cover/control state; source=video+147.0763755159."
+    },
+    {
+      "file": "../assets/native/qqmusic/source2-fullscreen.mov",
+      "in": 4.5313738875,
+      "duration": 5.5236244841,
+      "provenance": "Real QQ Music local playback and native lyric card; source=video+160.5450016285."
+    },
+    {
+      "file": "../assets/processed/dual-order-detail-4k.mkv",
+      "in": 0,
+      "duration": 8.3674172046,
+      "provenance": "Editorial reframe of same-time actual enabled rows and actual two cards, original speed. Raw Host2.4825827954–10.85; visible lyrics aligned to original song. No unshipped module rows.",
+      "portrait": {
+        "file": "../assets/native/dual/host-fullscreen.mov",
+        "in": 2.4825827954,
+        "dual": true,
+        "work_crop": [
+          624,
+          488,
+          1950,
+          368
+        ],
+        "work_y": 1114,
+        "work_shadow": false,
+        "work_fade_out": [
+          6,
+          0.4
+        ],
+        "card_crops": [
+          [
+            3224,
+            104,
+            560,
+            518
+          ],
+          [
+            3224,
+            653,
+            560,
+            518
+          ]
+        ]
+      }
+    },
+    {
+      "file": "../assets/native/dual/host-fullscreen.mov",
+      "in": 10.85,
+      "duration": 0.6325827954,
+      "provenance": "Actual full native desktop with two equal cards after real order change. Song timing remains matched.",
+      "portrait": {
+        "dual": true,
+        "card_crops": [
+          [
+            3224,
+            104,
+            560,
+            518
+          ],
+          [
+            3224,
+            653,
+            560,
+            518
+          ]
+        ]
+      }
+    },
+    {
+      "file": "../assets/native/dual/host-fullscreen.mov",
+      "in": 17.5,
+      "duration": 2.5,
+      "crop": [
+        800,
+        720,
+        1600,
+        900
+      ],
+      "crop_fill": true,
+      "provenance": "Actual region selection of owned desktop wallpaper, original speed; editorial cutaway excludes all lyric/player UI. Original song continues as score.",
+      "portrait": {
+        "work_crop": [
+          800,
+          720,
+          1600,
+          900
+        ],
+        "work_y": 846,
+        "card_crops": []
+      }
+    },
+    {
+      "file": "../assets/processed/riftlet-result-detail-4k.mkv",
+      "in": 0,
+      "duration": 1.5,
+      "provenance": "Actual recorded Riftlet thumbnail at Host21.5–23.0 plus the actual1320×600 acquired PNG. Explicit editorial detail, no lyric/player UI. Original song continues as score.",
+      "portrait": {
+        "file": "../assets/native/dual/host-fullscreen.mov",
+        "in": 21.5,
+        "acquired_photo": "../assets/native/dual/actual-captured-water.png",
+        "card_crops": [
+          [
+            3224,
+            104,
+            560,
+            518
+          ]
+        ]
+      }
+    }
+  ],
+  "captions": [
+    {
+      "key": "opening",
+      "start": 0.3,
+      "end": 3.5
+    },
+    {
+      "key": "continuity",
+      "start": 5.6,
+      "end": 9.9
+    },
+    {
+      "key": "sources",
+      "start": 17.9,
+      "end": 22.7
+    },
+    {
+      "key": "modules",
+      "start": 23.35,
+      "end": 30.8,
+      "paper": true
+    }
+  ],
+  "end_duration": 3,
+  "audio": {
+    "file": "../assets/audio/good-to-go-master39.wav",
+    "original_source_interval": [
+      147.6,
+      186.6
+    ],
+    "method": "Continuous licensed recording. Every visible lyric shot from0–32s is matched to real captured system audio. The32–36s Riftlet-only cutaways contain no lyric/player UI and use the same recording as score. Final3s has natural quiet decay. No time stretch or pitch shift.",
+    "fade_in_seconds": 0.005,
+    "fade_out_seconds": 2.4,
+    "target_lufs": -16
+  },
+  "release_stage": "Product preview; unified public Nearpane download and release preset not verified as shipped.",
+  "runtime_seconds": 39,
+  "frame_conformance": "Original-speed native VFR footage conformed to 30fps without optical flow; cumulative scene boundaries quantized to nearest frame, then explicitly frame-trimmed to prevent long EOF packets extending a shot."
+}

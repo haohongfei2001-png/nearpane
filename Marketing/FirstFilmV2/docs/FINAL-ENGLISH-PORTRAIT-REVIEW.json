@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "reviewer": "root",
+  "file": "Nearpane-EN-Vertical.mp4",
+  "sha256": "118036d456632362a05b58999a260c8975faff160ba25c295f1055a1194ae301",
+  "actual_viewed_seconds": [
+    1.4,
+    7.5,
+    20.2,
+    28.8,
+    35.0,
+    37.5
+  ],
+  "observations": [
+    "English headline line breaks fit without colliding with native cards.",
+    "Actual player/document remain proportional and legible in their intended hierarchy.",
+    "Two cards and actual enabled rows stay within mobile safe area.",
+    "Actual acquired image and native Riftlet thumbnail clearly appear at35.0s.",
+    "Brand, English tagline, verified website, preview invitation and licensed-music credit are intact at37.5s."
+  ],
+  "language_scope": "English editorial copy/end only; actual native app labels and reading document are preserved.",
+  "not_reviewed": "No subjective audio hearing."
+}

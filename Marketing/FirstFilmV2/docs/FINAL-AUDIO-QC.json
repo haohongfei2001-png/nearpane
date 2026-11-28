@@ -1,0 +1,414 @@
+{
+  "schema_version": 1,
+  "status": "PASS_NUMERICAL_AUDIO_QC",
+  "scope": "Actual encoded Chinese1080p final39-second MP4. No new recording, ASR, product-code or renderer changes.",
+  "film": {
+    "path": "/workspace/scratch/be9b9c627bdc/film-v2-delivery/Nearpane-ZH-1080p.mp4",
+    "bytes": 3882960,
+    "sha256": "6556e81a643b8c5488ddc8b76362cf2cc3308a9d07b51960e816976ec23c76d7",
+    "video_duration_seconds": 39.0,
+    "video_start_pts_seconds": 0.0,
+    "video_fps": "30/1"
+  },
+  "encoded_audio": {
+    "codec": "aac",
+    "profile": "LC",
+    "sample_rate_hz": 48000,
+    "channels": 2,
+    "channel_layout": "stereo",
+    "start_time_seconds": 0.0,
+    "presented_duration_seconds": 39.0,
+    "encoded_average_bitrate_bps": 310751,
+    "aac_packet_payload_hash": "SHA256=a1bb530ac572501ccd548fc50bcd20ba9b7216d8d1a2a0935302f77e896b098d",
+    "fully_decoded_sample_frames_before_presentation_trim": 1872896,
+    "sample_frames_in39_second_presentation": 1872000,
+    "decoded_padding_beyond_presentation_seconds": 0.018666666666668164,
+    "presented_pcm_f32le_sha256": "9f2e1972dab40cdb9b48345232eff356f8ecae934d44ddf9b3fad6812a07c16b",
+    "decoder_exit_code": 0,
+    "decode_error_observed": false,
+    "padding_note": "AAC frame granularity can produce decoded samples after the declared39-second presentation. Analysis trims at the declared end; this is not an audio/video duration mismatch."
+  },
+  "loudness": {
+    "method": "FFmpeg loudnorm measurement of actual AAC decode; input_* values describe the existing encoded file. Filter output_* values are not used as delivery measurements.",
+    "measurement_command": "ffmpeg -hide_banner -nostdin -i film-v2-delivery/Nearpane-ZH-1080p.mp4 -map 0:a:0 -vn -af loudnorm=I=-16:TP=-1:LRA=11:print_format=json -f null -",
+    "integrated_lufs": -15.99,
+    "true_peak_dbtp": -7.04,
+    "loudness_range_lu": 7.4,
+    "threshold_lufs": -26.92,
+    "target_lufs": -16,
+    "true_peak_ceiling_dbtp": -1,
+    "result": "PASS",
+    "note": "The-1dBTP limit is a ceiling; no need to raise the peak to it."
+  },
+  "source_recording": {
+    "path": "/workspace/scratch/be9b9c627bdc/v2-song-research/candidates/good-to-go.ogg",
+    "sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64",
+    "planned_source_seconds": [
+      147.6,
+      186.6
+    ],
+    "duration_seconds": 187.4515
+  },
+  "visible_lyrics_first32_seconds": {
+    "video_range_seconds": [
+      0,
+      32
+    ],
+    "expected_source_range_seconds": [
+      147.6,
+      179.6
+    ],
+    "source_at_video_zero_measured_seconds": 147.60000000673034,
+    "expected_offset_error_ms": 6.73034605824796e-06,
+    "fitted_rate": 0.9999999995044445,
+    "rate_difference_ppm": -0.0004955554855357036,
+    "accumulated_fitted_rate_difference_over32s_ms": -1.5857775537142516e-05,
+    "anchor_count": 16,
+    "minimum_abs_correlation": 0.9998667655984653,
+    "median_abs_correlation": 0.9999385649072248,
+    "minimum_competing_peak_margin": 0.587079219735392,
+    "fit_residual_max_ms": 2.8825354547734605e-05,
+    "full32_second_stereo_correlation": 0.9998920738248337,
+    "estimated_master_linear_gain": 0.38503940494337435,
+    "source_identity_and_time_mapping": "PASS",
+    "pause_or_seek_detected": false,
+    "anchors": [
+      {
+        "video_start_seconds": 0.0,
+        "video_end_seconds": 2.5,
+        "source_start_seconds": 147.60000000984624,
+        "offset_seconds": 147.60000000984624,
+        "fine_correlation": 0.9998667655984653,
+        "coarse_correlation": 0.9998976321933284,
+        "competing_peak": 0.20406728275851257,
+        "competing_peak_margin": 0.7958303494348158
+      },
+      {
+        "video_start_seconds": 2.0,
+        "video_end_seconds": 4.5,
+        "source_start_seconds": 149.60000000070727,
+        "offset_seconds": 147.60000000070727,
+        "fine_correlation": 0.999940550211466,
+        "coarse_correlation": 0.9999656447101788,
+        "competing_peak": 0.21469816802040476,
+        "competing_peak_margin": 0.785267476689774
+      },
+      {
+        "video_start_seconds": 4.0,
+        "video_end_seconds": 6.5,
+        "source_start_seconds": 151.60000002438258,
+        "offset_seconds": 147.60000002438258,
+        "fine_correlation": 0.9999601508849091,
+        "coarse_correlation": 0.9999698732564332,
+        "competing_peak": 0.19886571504053668,
+        "competing_peak_margin": 0.8011041582158964
+      },
+      {
+        "video_start_seconds": 6.0,
+        "video_end_seconds": 8.5,
+        "source_start_seconds": 153.60000002682395,
+        "offset_seconds": 147.60000002682395,
+        "fine_correlation": 0.9998933483196961,
+        "coarse_correlation": 0.9999313851862243,
+        "competing_peak": 0.23761678159126282,
+        "competing_peak_margin": 0.7623146035949615
+      },
+      {
+        "video_start_seconds": 8.0,
+        "video_end_seconds": 10.5,
+        "source_start_seconds": 155.60000001789655,
+        "offset_seconds": 147.60000001789655,
+        "fine_correlation": 0.9999444120061881,
+        "coarse_correlation": 0.9999710541502507,
+        "competing_peak": 0.3347857764413535,
+        "competing_peak_margin": 0.6651852777088971
+      },
+      {
+        "video_start_seconds": 10.0,
+        "video_end_seconds": 12.5,
+        "source_start_seconds": 157.59999999773507,
+        "offset_seconds": 147.59999999773507,
+        "fine_correlation": 0.999927396365869,
+        "coarse_correlation": 0.9999427994342583,
+        "competing_peak": 0.22916336859640712,
+        "competing_peak_margin": 0.7707794308378513
+      },
+      {
+        "video_start_seconds": 12.0,
+        "video_end_seconds": 14.5,
+        "source_start_seconds": 159.59999998246397,
+        "offset_seconds": 147.59999998246397,
+        "fine_correlation": 0.9999514123241362,
+        "coarse_correlation": 0.9999701158683809,
+        "competing_peak": 0.26297868451192774,
+        "competing_peak_margin": 0.7369914313564532
+      },
+      {
+        "video_start_seconds": 14.0,
+        "video_end_seconds": 16.5,
+        "source_start_seconds": 161.6000000082015,
+        "offset_seconds": 147.6000000082015,
+        "fine_correlation": 0.9999885647704156,
+        "coarse_correlation": 0.9999937440103525,
+        "competing_peak": 0.3259757414493092,
+        "competing_peak_margin": 0.6740180025610433
+      },
+      {
+        "video_start_seconds": 16.0,
+        "video_end_seconds": 18.5,
+        "source_start_seconds": 163.600000000465,
+        "offset_seconds": 147.600000000465,
+        "fine_correlation": 0.9999204960039944,
+        "coarse_correlation": 0.9999320191899345,
+        "competing_peak": 0.41285279945454245,
+        "competing_peak_margin": 0.587079219735392
+      },
+      {
+        "video_start_seconds": 18.0,
+        "video_end_seconds": 20.5,
+        "source_start_seconds": 165.6000000052592,
+        "offset_seconds": 147.6000000052592,
+        "fine_correlation": 0.9998845701476013,
+        "coarse_correlation": 0.9999064768238951,
+        "competing_peak": 0.25753724149791113,
+        "competing_peak_margin": 0.742369235325984
+      },
+      {
+        "video_start_seconds": 20.0,
+        "video_end_seconds": 22.5,
+        "source_start_seconds": 167.60000001433954,
+        "offset_seconds": 147.60000001433954,
+        "fine_correlation": 0.999923439036539,
+        "coarse_correlation": 0.9999436226085561,
+        "competing_peak": 0.2402032352573664,
+        "competing_peak_margin": 0.7597403873511896
+      },
+      {
+        "video_start_seconds": 22.0,
+        "video_end_seconds": 24.5,
+        "source_start_seconds": 169.59999999803523,
+        "offset_seconds": 147.59999999803523,
+        "fine_correlation": 0.9999365796029834,
+        "coarse_correlation": 0.9999584628413726,
+        "competing_peak": 0.27375867549394645,
+        "competing_peak_margin": 0.7261997873474262
+      },
+      {
+        "video_start_seconds": 24.0,
+        "video_end_seconds": 26.5,
+        "source_start_seconds": 171.60000002107793,
+        "offset_seconds": 147.60000002107793,
+        "fine_correlation": 0.9999679233159319,
+        "coarse_correlation": 0.9999760419092926,
+        "competing_peak": 0.22355243508468697,
+        "competing_peak_margin": 0.7764236068246055
+      },
+      {
+        "video_start_seconds": 26.0,
+        "video_end_seconds": 28.5,
+        "source_start_seconds": 173.60000000152542,
+        "offset_seconds": 147.60000000152542,
+        "fine_correlation": 0.9999584717045572,
+        "coarse_correlation": 0.9999675599514819,
+        "competing_peak": 0.2092765763185262,
+        "competing_peak_margin": 0.7906909836329556
+      },
+      {
+        "video_start_seconds": 28.0,
+        "video_end_seconds": 30.5,
+        "source_start_seconds": 175.59999997040018,
+        "offset_seconds": 147.59999997040018,
+        "fine_correlation": 0.999922215968132,
+        "coarse_correlation": 0.999938502761114,
+        "competing_peak": 0.2310904165811662,
+        "competing_peak_margin": 0.7688480861799478
+      },
+      {
+        "video_start_seconds": 29.5,
+        "video_end_seconds": 32.0,
+        "source_start_seconds": 177.1000000117726,
+        "offset_seconds": 147.6000000117726,
+        "fine_correlation": 0.9999769533875936,
+        "coarse_correlation": 0.9999856240865526,
+        "competing_peak": 0.21586026107591233,
+        "competing_peak_margin": 0.7841253630106402
+      }
+    ],
+    "scope_note": "Confirms encoded soundtrack against original source time. Visual lyric-frame conformity relies on the separately measured native-capture mappings and locked edit; this waveform check does not perform OCR or subjective listening."
+  },
+  "ending": {
+    "rms_block_ms": 10,
+    "encoded_tail_below_threshold": [
+      {
+        "threshold_dbfs_rms": -50,
+        "last_active_block_end_video_seconds": 34.57,
+        "trailing_below_threshold_seconds": 4.43
+      },
+      {
+        "threshold_dbfs_rms": -60,
+        "last_active_block_end_video_seconds": 36.06,
+        "trailing_below_threshold_seconds": 2.9399999999999977
+      },
+      {
+        "threshold_dbfs_rms": -70,
+        "last_active_block_end_video_seconds": 36.88,
+        "trailing_below_threshold_seconds": 2.1199999999999974
+      },
+      {
+        "threshold_dbfs_rms": -80,
+        "last_active_block_end_video_seconds": 37.550000000000004,
+        "trailing_below_threshold_seconds": 1.4499999999999957
+      }
+    ],
+    "edge_measurements": {
+      "first_10ms": {
+        "rms_dbfs": -28.885757997068,
+        "peak_dbfs": -20.288294444800083
+      },
+      "last_10ms": {
+        "rms_dbfs": -151.580381706193,
+        "peak_dbfs": -140.56090266977233
+      },
+      "last_100ms": {
+        "rms_dbfs": -121.58942924330233,
+        "peak_dbfs": -107.51140593400001
+      }
+    },
+    "last_sample_peak_dbfs": -167.6658679914447,
+    "first_sample_peak_dbfs": -58.70063611376969,
+    "selected_tail_windows": [
+      {
+        "video_seconds": [
+          32,
+          32.1
+        ],
+        "rms_dbfs": -26.970053424762135,
+        "peak_dbfs": -18.10665823791555
+      },
+      {
+        "video_seconds": [
+          34,
+          34.1
+        ],
+        "rms_dbfs": -46.53722576909292,
+        "peak_dbfs": -38.9042037655607
+      },
+      {
+        "video_seconds": [
+          35,
+          35.1
+        ],
+        "rms_dbfs": -56.17861094875963,
+        "peak_dbfs": -46.31685546537927
+      },
+      {
+        "video_seconds": [
+          36,
+          36.1
+        ],
+        "rms_dbfs": -60.32129029378828,
+        "peak_dbfs": -51.88214950871448
+      },
+      {
+        "video_seconds": [
+          36.6,
+          36.7
+        ],
+        "rms_dbfs": -62.70201827315378,
+        "peak_dbfs": -55.282126367769834
+      },
+      {
+        "video_seconds": [
+          37,
+          37.1
+        ],
+        "rms_dbfs": -73.45029733915716,
+        "peak_dbfs": -64.37326908473736
+      },
+      {
+        "video_seconds": [
+          37.5,
+          37.6
+        ],
+        "rms_dbfs": -79.76163938039026,
+        "peak_dbfs": -70.21855391229009
+      },
+      {
+        "video_seconds": [
+          38,
+          38.1
+        ],
+        "rms_dbfs": -82.71723964954475,
+        "peak_dbfs": -75.09242932131397
+      },
+      {
+        "video_seconds": [
+          38.5,
+          38.6
+        ],
+        "rms_dbfs": -95.52440875925396,
+        "peak_dbfs": -86.37918434561325
+      },
+      {
+        "video_seconds": [
+          38.9,
+          39.0
+        ],
+        "rms_dbfs": -121.58942924330233,
+        "peak_dbfs": -107.51140593400001
+      }
+    ],
+    "original_tail_record": "analysis/final39-source-tail-review.json",
+    "interpretation": "The actual encoded last2.94s remain below-60dBFS RMS, consistent with the original natural decay plus measured master gain and the planned2.4s fade. This is expected low-level content, not a newly detected encoding dropout. No musical tail was invented.",
+    "abrupt_end_risk": "No meaningful end-level truncation: final10ms and endpoint are quantified above."
+  },
+  "limitations": [
+    "Numerical QC only; subjective listening review was not performed.",
+    "Sub-sample waveform estimates and small fit residuals express internal alignment consistency, not independently calibrated physical clock accuracy.",
+    "This report identifies the actual file by SHA256. If it is later replaced, verify AAC payload identity or rerun only affected checks.",
+    "The final4 seconds of Riftlet-only details and3-second brand ending use the song editorially; no stopped lyric board is certified as continuing playback."
+  ],
+  "mastering_receipt": {
+    "path": "/workspace/scratch/be9b9c627bdc/film-v2-project/assets/audio/good-to-go-master39.json",
+    "receipt_sha256": "cd04e95c032c27b720622816d0f4d06501511991f7df94ceca6aa30c2707d029",
+    "master_path": "/workspace/scratch/be9b9c627bdc/film-v2-project/assets/audio/good-to-go-master39.wav",
+    "master_sha256": "a72472488969f7b97afceeabfe0456e54c311a1ba82eefda082d31185511ac15",
+    "master_hash_matches_receipt": true,
+    "source_start_seconds": 147.6,
+    "duration_seconds": 39.0,
+    "fade_in_seconds": 0.005,
+    "fade_out_seconds": 2.4,
+    "fade_out_source_seconds": [
+      184.2,
+      186.6
+    ],
+    "no_tempo_or_pitch_change_per_receipt": true
+  },
+  "identity_refresh_history": [
+    {
+      "checked_at_utc": "2026-11-28T06:24:35.933511+00:00",
+      "reason_reported_by_director": "Visual rerender with exact cumulative per-scene frame clamps; audio master and encoding parameters unchanged.",
+      "previous_film_sha256": "3712df7d55acf6b2f17b8f6eaea0837d74817ddcb45ee272d49160466bd95428",
+      "current_film_sha256": "6556e81a643b8c5488ddc8b76362cf2cc3308a9d07b51960e816976ec23c76d7",
+      "previous_film_bytes": 4022455,
+      "current_film_bytes": 3882960,
+      "aac_packet_payload_hash": "SHA256=a1bb530ac572501ccd548fc50bcd20ba9b7216d8d1a2a0935302f77e896b098d",
+      "checks": {
+        "aac_packet_payload_identical": true,
+        "codec_identical": true,
+        "profile_identical": true,
+        "sample_rate_identical": true,
+        "channels_identical": true,
+        "channel_layout_identical": true,
+        "audio_start_identical": true,
+        "audio_duration_identical": true,
+        "video_start_identical": true,
+        "video_duration_identical": true
+      },
+      "audio_measurements_reused": true,
+      "loudness_or_global_waveform_analysis_repeated": false,
+      "video_frame_count": 1170,
+      "result": "IDENTICAL_AUDIO_CONFIRMED"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "reviewer": "root",
+  "file": "Nearpane-EN-4K.mp4",
+  "sha256": "78d884b6bc78c296490aa898e2141e7c499726c554a58f5ad732d52143a91105",
+  "actual_viewed_seconds": [
+    1.4,
+    7.5,
+    20.2,
+    28.8,
+    35.0,
+    37.5
+  ],
+  "observations": [
+    "English captions remain below the true native application window and away from the upper-right lyric panel.",
+    "Music cover, continued reading lyrics and actual second player are correctly retained.",
+    "Paper-backed module caption uses ink color and remains readable.",
+    "Actual image and Riftlet thumbnail are separately clear before the end fade.",
+    "English Nearpane tagline, verified website, preview invitation and music/art credit fit the end card."
+  ],
+  "language_scope": "English editorial text and end card; captured native app labels and reading content are preserved."
+}

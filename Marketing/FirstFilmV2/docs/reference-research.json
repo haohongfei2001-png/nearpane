@@ -1,6 +1,6 @@
 {
   "date": "2026-11-28",
-  "scope": "Official motion references visually inspected for original Nearpane film; copyrighted clips for internal reference only, excluded from production assets.",
+  "scope": "Official motion references visually inspected for original Nearpane film; copyrighted clips for internal reference only, excluded from production assets. Reference-direction notes are research proposals, not a description or certification of the final39-second edit; approved-edit.json governs the delivered film.",
   "references": [
     {
       "brand": "Linear",
@@ -100,7 +100,7 @@
         }
       ],
       "use_for_nearpane": [
-        "歌词本身即是叙事：原创歌词按音乐变化，先保持稳定机位让观众读到一句。",
+        "歌词本身即是叙事：已授权真实歌曲的歌词按音乐变化，先保持稳定机位让观众读到一句。",
         "上下文歌词应退到次要层，视觉焦点不与鼠标、镜头、字幕同时争抢。"
       ],
       "do_not_copy": [
@@ -113,7 +113,7 @@
   "recommended_direction": {
     "concept": "让音乐，留在手边。 / Keep the music close.",
     "visual_language": "Warm off-white desktop; a single muted cool accent; actual product UI at readable scale; edge light and real shadow; almost no decorative animation.",
-    "narrative": "音乐开始时，歌词板出现；完成一小段真实阅读/写作；鼠标靠近揭示控制；歌词随播放变化；音乐停止时退场；最多3秒扩展功能；Nearpane品牌及实际下载入口驻留。",
+    "narrative": "Research proposal, superseded by config/approved-edit.json after actual product verification. The final film is a product preview: real Music and QQ playback, continued lyrics while reading, native hover, brief native host ordering and screenshot intake, verified official website.",
     "camera": "Establish desk relationship once, then move smoothly to panel. One 6–8s unbroken experience shot. Static framing while the key lyric changes. Return to spatial context before outro.",
     "attention_rule": "同一瞬间只让歌词、鼠标或镜头中的一个承担主动态，其他稳定。",
     "brand_rule": "早段只以小型Nearpane标识建立归属，片尾主品牌Nearpane；LyricTile只解释歌词板，不作为独立下载。",

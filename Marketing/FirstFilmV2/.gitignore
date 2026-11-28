@@ -8,3 +8,4 @@ assets/environment/
 assets/brand/
 __pycache__/
 *.rendering.mp4
+assets/processed/

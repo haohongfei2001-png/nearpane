@@ -1,0 +1,102 @@
+{
+  "schema": 1,
+  "dateUTC": "2026-11-28",
+  "branch": "creative/nearpane-first-film-v2-20261128",
+  "currentHead": "0a3ad95cdfd7c5161e6d9254993d7b625f87f55a",
+  "baseProductCommit": "d5767d87bc45245b31d0980e91e43778c5f424ed",
+  "scope": {
+    "core": "Real production NearpaneLyricsModule in a camera host; actual Apple Music current track and actual local lyric import; no playback fixtures.",
+    "dual": "Complete production Host lifecycle, management page, order mutation and real Riftlet intake, in a disposable executable-bound profile.",
+    "photography": "Canonical208x192 native views enlarged to280pt on verified2x3840x2160 display, right28pt/top52pt. Riftlet outer frame/material unified with lyrics as explicitly requested; content opacity unchanged.",
+    "unreleasedProductFix": "CPlayerBridge unwraps actual SBObject.get -> NSAppleEventDescriptor.data before original NSData,8MiB and identity guards. Proven actual cover SHA matches licensed original; independent creative branch, not main/released."
+  },
+  "core": {
+    "run": 46111605475,
+    "sourceCommit": "d6f46cf96b7255953f1659e3840e332d443fc97d",
+    "artifact": 15249818038,
+    "movie": "capture-core-7/core-fullscreen.mov",
+    "sha256": "434d5f8619a8823e87a1650ccf720ed4b6474476d9614b00009562319d218122",
+    "pixels": [
+      3840,
+      2160
+    ],
+    "capturedSystemAudio": true,
+    "cursorIncluded": true,
+    "realMusicCover": true,
+    "actualMusicToPreviewSwitch": true,
+    "realHoverCoverAndControls": true,
+    "audioAlignmentFile": "capture-core-7/capture-audio-alignment.json"
+  },
+  "supplementalSample": {
+    "movie": "capture-core-6/core-fullscreen.mov",
+    "reviewedSafeRangeSeconds": [
+      5.3,
+      18.0
+    ],
+    "reason": "Real Preview work plus native hover; blank MiniPlayer opening excluded."
+  },
+  "dual": {
+    "status": "accepted actual native source; final editorial cut determined by root",
+    "run": 46114170511,
+    "sourceCommit": "0a3ad95cdfd7c5161e6d9254993d7b625f87f55a",
+    "artifact": 15251172291,
+    "movie": "capture-host-5/host-fullscreen.mov",
+    "sha256": "aca78b969fffae72b250d5751a919affcd6e319ec3780ca37e0eb0f56f7bdc5d",
+    "duration": 24.216667,
+    "pixels": [
+      3840,
+      2160
+    ],
+    "nativeVideoFrames": 648,
+    "systemAudioBuffers": 1204,
+    "writerCompleted": true,
+    "ffmpegFullAudioVideoDecodePassed": true,
+    "actualManagementDragPointerDownUpPTS": [
+      4.2010957083,
+      7.8183730833
+    ],
+    "actualCardOrderChangedPTS": 7.8668481667,
+    "actualScreenshotPointerDownUpPTS": [
+      16.4188563333,
+      19.94771625
+    ],
+    "actualScreenshotModelAssetPTS": 21.2455622917,
+    "actualThumbnailVisiblePTS": 21.5,
+    "actualThumbnailStableRange": [
+      21.5,
+      23.5
+    ],
+    "sourceOfActualScreenshot": "Owned photographic wallpaper. Preview was not visible in this take; do not claim the screenshot shows a PDF region.",
+    "musicSourceTimeAtVideoZeroWaveformMeasured": 168.1174172046,
+    "musicAlignmentEvidence": "capture-host-5/capture-audio-alignment.json",
+    "sourceMovieHasNativeCursor": true,
+    "actualManagementEnabledRowsCropPixels": [
+      624,
+      488,
+      1950,
+      368
+    ],
+    "observedCardLogicalDimensions": [
+      280,
+      258.46153846153845
+    ],
+    "observedCardTopY": 52,
+    "observedCardRightMargin": 28,
+    "photographyMaterialAdjustment": "Riftlet outer native popover material/frame matched to LyricTile, as explicitly requested. Actual TraySurface inside; text/image opacity unchanged.",
+    "noNewDesktopDragCapabilityClaimed": true,
+    "editorialConstraint": "A continuous9–10second excerpt beginning at source170.6 includes reorder/coexistence but not the screenshot. Actual screenshot result is later in the same24second take; use honest cuts or extended duration, not retimed fabricated state.",
+    "priorTakesExcluded": "Host1 screenshot occurred after movie end. Host2 cold import blocked. Host3 writer failed/no moov. Host4 transient current-track read aborted before capture. Only Host5 is accepted final motion source."
+  },
+  "releaseGaps": [
+    "New-install lyrics default enabled not implemented at checkedR4 base",
+    "Riftlet statically linked; true network download/removal not implemented",
+    "No public unified Nearpane download verified; product preview and visit nearpane.com CTA only"
+  ],
+  "exactSupportedPlayerEnum": [
+    "appleMusic",
+    "spotify",
+    "qqMusic",
+    "netease"
+  ],
+  "evidenceLimit": "Apple Music actual new song recorded; QQ actual same recording separately filmed by source2 agent; NetEase older real local-track CI passes; Spotify adapter presence alone is not actual signed-in compatibility verification."
+}

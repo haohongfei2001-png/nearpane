@@ -1,0 +1,67 @@
+{
+  "reviewed_at_utc": "2026-11-28T06:24:58.958095+00:00",
+  "export_status": "新中文1080p导出：指定三处修复实际编码帧复核PASS。",
+  "source": {
+    "path": "film-v2-delivery/Nearpane-ZH-1080p.mp4",
+    "sha256": "6556e81a643b8c5488ddc8b76362cf2cc3308a9d07b51960e816976ec23c76d7",
+    "bytes": 3882960,
+    "duration_seconds": 39,
+    "canvas": [
+      1920,
+      1080
+    ],
+    "fps": 30,
+    "encoded_frame_count": 1170
+  },
+  "scope": "只按零起始编码帧号检查指定边界；通过ffmpeg select(n)直接取实际帧，未以预期配置替代成片。未重复首23秒、未追加音频复核。",
+  "verdict": "PASS；旧导出的两项阻塞均已在对应实际帧中消除，没有本轮剩余阻塞。",
+  "fixed_checks": [
+    {
+      "id": "clean-desktop-entry",
+      "checked_frames": [
+        938,
+        939,
+        940,
+        941,
+        942,
+        943,
+        944
+      ],
+      "result": "frame940/31.333333s仍为同时间双卡构图；frame941/31.366667s切入干净原桌面。未见完整管理窗残影或未交付模块区。"
+    },
+    {
+      "id": "selection-without-lyric-ui",
+      "checked_frames": [
+        958,
+        959,
+        960,
+        961,
+        962
+      ],
+      "result": "frame959/31.966667s仍为桌面双卡；frame960/32.000000s精确切到区域框选特写，之后没有歌词或播放器UI。"
+    },
+    {
+      "id": "result-and-brand-fade",
+      "checked_frames": [
+        1033,
+        1034,
+        1035,
+        1036,
+        1037,
+        1038,
+        1060,
+        1061,
+        1062,
+        1063,
+        1064,
+        1065
+      ],
+      "result": "frame1034/34.466667s为框选；frame1035/34.500000s切入真实截图结果构图。frame1061/35.366667s仍干净显示结果；35.4s为fade起点、frame1063/35.433333s可见品牌渐入。结果至少有34.5–35.4s约0.9秒独立清晰展示；无歌词UI。"
+    }
+  ],
+  "historical_report": "review-old-export.json",
+  "preserved_old_export_sha256": "3712df7d55acf6b2f17b8f6eaea0837d74817ddcb45ee272d49160466bd95428",
+  "inspection_artifacts": "revised-boundaries/",
+  "audio_scope": "未主观听审、未重复歌曲波形验证。",
+  "changes_made": "仅独立QA帧与本记录；没有修改MP4、源码、Git或工作流。"
+}

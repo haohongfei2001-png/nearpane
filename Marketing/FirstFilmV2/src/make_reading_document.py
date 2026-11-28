@@ -13,7 +13,7 @@ from fontTools.ttLib import TTFont
 from fontTools import subset
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'assets/workspace/v2'
+OUT = ROOT / 'assets/workspace'
 OUT.mkdir(parents=True, exist_ok=True)
 FONTDIR = OUT / 'fonts'
 FONTDIR.mkdir(exist_ok=True)
@@ -54,7 +54,7 @@ def make(lang):
     # The original landscape is placed directly; no generated UI or photo edits.
     photo_file = OUT / 'morning-water-photography.jpg'
     if not photo_file.exists():
-        Image.open(ROOT/'assets/backgrounds/morning-water.png').convert('RGB').save(photo_file, quality=95, subsampling=0)
+        Image.open(ROOT/'assets/environment/morning-water.png').convert('RGB').save(photo_file, quality=95, subsampling=0)
     source_image = fitz.open(photo_file)
     photo = fitz.open('pdf', source_image.convert_to_pdf())
     rect = photo[0].rect

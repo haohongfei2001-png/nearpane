@@ -1,17 +1,74 @@
 {
   "revision": 2,
-  "status": "awaiting actual capture review",
+  "status": "Completed39-second product-preview film. All six final files passed technical checks; actual frames and representative continuous boundaries reviewed. See disclosed limits.",
   "gates": [
-    {"id": "song", "requirement": "The audible released song, actual player metadata, corresponding original cover and displayed canonical words agree.", "status": "pending"},
-    {"id": "continuity", "requirement": "A real foreground app changes from a music player to a real reading document while native lyrics continue through at least two actual cue changes.", "status": "pending"},
-    {"id": "position", "requirement": "The lyric panel remains near the upper-right screen edge at an ordinary desktop scale; no oversized central panel replaces the context.", "status": "pending"},
-    {"id": "input", "requirement": "The actual OS pointer enters the production view and reveals its native controls; any executed control action has real player readback and matching audio.", "status": "pending"},
-    {"id": "players", "requirement": "A second supported actual client is shown playing; no invented source metadata or unsupported logo is substituted.", "status": "pending"},
-    {"id": "cards", "requirement": "Two equally sized native cards share the lyric material in the explicitly authorized filming copy, with readable full-opacity foreground content.", "status": "pending"},
-    {"id": "order", "requirement": "The real host ordering operation leads to the visible vertical card order change; desktop dragging is not falsely presented as supported.", "status": "pending"},
-    {"id": "screenshot", "requirement": "An actual screenshot appears as a recognizable result in the native screenshot module.", "status": "pending"},
-    {"id": "technical", "requirement": "Continuous frame inspection, 30fps conformance, complete decode, explicit BT.709 metadata and measured audio headroom pass.", "status": "pending"},
-    {"id": "release", "requirement": "Nearpane is the named product and the official site is accurate; the preview does not promise an unverified downloadable integrated release.", "status": "design checked; actual end render pending"}
+    {
+      "id": "song",
+      "requirement": "The audible released song, actual player metadata, corresponding original cover and displayed canonical words agree.",
+      "status": "PASS",
+      "evidence": "FINAL-AUDIO-QC.json; CORE7-AUDIO-ALIGNMENT.json; QQMUSIC-AUDIO-ALIGNMENT.json; actual hover/players show the released artwork."
+    },
+    {
+      "id": "continuity",
+      "requirement": "A real foreground app changes from a music player to a real reading document while native lyrics continue through at least two actual cue changes.",
+      "status": "PASS",
+      "evidence": "LOCKED-MUSIC-BODY-REVIEW.json; continuous native Music→Preview footage and actual lyric cue changes."
+    },
+    {
+      "id": "position",
+      "requirement": "The lyric panel remains near the upper-right screen edge at an ordinary desktop scale; no oversized central panel replaces the context.",
+      "status": "PASS",
+      "evidence": "Native crop=[3224,104,560,518] on3840×2160. Actual app composition preserved in desktop editions."
+    },
+    {
+      "id": "input",
+      "requirement": "The actual OS pointer enters the production view and reveals its native controls; any executed control action has real player readback and matching audio.",
+      "status": "PASS FOR HOVER REVEAL",
+      "evidence": "Native pointer/real artwork/controls appear. The film does not claim an executed pause, seek or next-track interaction."
+    },
+    {
+      "id": "players",
+      "requirement": "A second supported actual client is shown playing; no invented source metadata or unsupported logo is substituted.",
+      "status": "PASS",
+      "evidence": "Real Music and QQ Music client sessions; same recording; local LRC. Not a claim about every player or seamless automatic handoff."
+    },
+    {
+      "id": "cards",
+      "requirement": "Two equally sized native cards share the lyric material in the explicitly authorized filming copy, with readable full-opacity foreground content.",
+      "status": "PASS WITH DISCLOSURE",
+      "evidence": "HOST-FINAL-INDEPENDENT-REVIEW.json; equal native dimensions and user-authorized filming-only shared exterior material."
+    },
+    {
+      "id": "order",
+      "requirement": "The real host ordering operation leads to the visible vertical card order change; desktop dragging is not falsely presented as supported.",
+      "status": "PASS",
+      "evidence": "Actual management-row drag changes native card order. No invented desktop drag."
+    },
+    {
+      "id": "screenshot",
+      "requirement": "An actual screenshot appears as a recognizable result in the native screenshot module.",
+      "status": "PASS",
+      "evidence": "Actual region selection and acquired PNG appear in the final movie and native Riftlet thumbnail."
+    },
+    {
+      "id": "technical",
+      "requirement": "Continuous frame inspection, 30fps conformance, complete decode, explicit BT.709 metadata and measured audio headroom pass.",
+      "status": "PASS",
+      "evidence": "FINAL-TECHNICAL-REVIEW.json plus actual landscape, portrait, English and4K visual reviews. Six files:39s,1170frames, complete decoding, BT.709TV and AAC48k stereo."
+    },
+    {
+      "id": "release",
+      "requirement": "Nearpane is the named product and the official site is accurate; the preview does not promise an unverified downloadable integrated release.",
+      "status": "PASS AS PRODUCT PREVIEW",
+      "evidence": "Verifiednearpane.com; no unified public installer verified; preview CTA retained; RELEASE-GAPS.md."
+    }
   ],
-  "audio_listening": "Not available in this runtime; automated speech recognition and numerical signal checks are not subjective hearing."
+  "audio_listening": "NOT AVAILABLE. Numerical audio checks and actual waveform alignment do not constitute subjective listening approval.",
+  "material_limits": [
+    "No subjective audio audition was available; not marked as passed.",
+    "Local canonical LRC import; automatic online matching for this track not demonstrated.",
+    "Riftlet outer size/material adaptation is filming-only.",
+    "No unified public Nearpane download, new-install lyric preset or network module lifecycle verified as shipped.",
+    "Pause/next/seek controls are revealed; those actions are not individually performed in this film."
+  ]
 }

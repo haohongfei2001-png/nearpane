@@ -28,7 +28,7 @@ app occupies x=120, y=112, width=1352, height=838. This keeps both the work and
 the companion in a believable desktop relationship.
 
 Two-module photography uses equal exterior dimensions and matching outer
-popover material, with an 18-point gap. The Riftlet interior remains its actual
+popover material, with the recorded 16-point gap. The Riftlet interior remains its actual
 UI. This exterior harmonization is a user-authorized filming adaptation, not a
 claim that the shipping product already has this exact appearance.
 

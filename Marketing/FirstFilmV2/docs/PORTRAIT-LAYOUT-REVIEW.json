@@ -1,0 +1,49 @@
+{
+  "status": "COMPOSITION_VERIFIED_ON_RENDERED_8S_SAMPLE",
+  "canvas": [
+    1080,
+    1920
+  ],
+  "film_type": "Editorial mobile recomposition of actual native crops",
+  "card_dest": [
+    594,
+    180,
+    420,
+    388
+  ],
+  "workspace_dest": [
+    66,
+    846,
+    948,
+    588
+  ],
+  "source_card_crop": [
+    3224,
+    104,
+    560,
+    518
+  ],
+  "source_workspace_crop": [
+    240,
+    224,
+    2704,
+    1676
+  ],
+  "native_aspect_ratios_preserved": true,
+  "generated_product_pixels": false,
+  "inspected_sample": "Nearpane-Work-Continuity-8s-Vertical.mp4",
+  "inspected_time_seconds": 4.7,
+  "correction": "Workspace matte radius increased to18px to align with actual rounded native window edge; confirmed stray dark corner pixels removed.",
+  "color_pipeline": "Explicit RGB composition and BT.709 limited-range encode; final H264 VUI and MP4 colr set.",
+  "decoded_paper_rgb": [
+    245,
+    245,
+    240
+  ],
+  "intended_paper_rgb": [
+    246,
+    246,
+    242
+  ],
+  "full_movie_review": "Pending final tail assembly and full technical/visual check."
+}

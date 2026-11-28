@@ -1,0 +1,31 @@
+[
+  {
+    "file": "Nearpane-EN-Vertical.mp4",
+    "sha256": "118036d456632362a05b58999a260c8975faff160ba25c295f1055a1194ae301",
+    "bytes": 2759479,
+    "duration": 39.0,
+    "video": {
+      "codec_name": "h264",
+      "width": 1080,
+      "height": 1920,
+      "pix_fmt": "yuv420p",
+      "r_frame_rate": "30/1",
+      "nb_frames": "1170",
+      "color_range": "tv",
+      "color_space": "bt709",
+      "color_transfer": "bt709",
+      "color_primaries": "bt709"
+    },
+    "audio": {
+      "codec_name": "aac",
+      "sample_rate": "48000",
+      "channels": 2,
+      "bit_rate": "310751"
+    },
+    "decoded_without_errors": true,
+    "loudness_lufs": -15.99,
+    "true_peak_dbtp": -7.04,
+    "audio_listening_review": "NOT AVAILABLE IN THIS RUNTIME; numerical checks are not listening",
+    "not_a_quality_certification": "Composition and motion need visual review; package and product claims need their own evidence."
+  }
+]

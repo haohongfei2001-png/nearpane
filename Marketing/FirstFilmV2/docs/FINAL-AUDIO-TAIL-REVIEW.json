@@ -1,0 +1,154 @@
+{
+  "recording": "Good To Go — Josh Woodward / The Simple Life",
+  "original": {
+    "path": "candidates/good-to-go.ogg",
+    "sha256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64",
+    "fully_decoded_duration_seconds": 187.4515
+  },
+  "final_film_source_seconds": [
+    147.6,
+    186.6
+  ],
+  "duration_seconds": 39.0,
+  "source_coverage": "Full39-second range exists within the licensed original recording; no extension, loop or generated tail is needed.",
+  "measurement": "Full original decoded from0,48kHz stereo PCM;10ms RMS blocks. No master fade or loudness processing applied in this measurement.",
+  "trailing_low_energy": [
+    {
+      "threshold_dbfs_rms": -80,
+      "rms_block_ms": 10,
+      "last_active_block_end_excerpt_seconds": 38.92,
+      "last_active_block_end_source_seconds": 186.51999999999998,
+      "trailing_below_threshold_seconds": 0.0799999999999983
+    },
+    {
+      "threshold_dbfs_rms": -70,
+      "rms_block_ms": 10,
+      "last_active_block_end_excerpt_seconds": 38.19,
+      "last_active_block_end_source_seconds": 185.79,
+      "trailing_below_threshold_seconds": 0.8100000000000023
+    },
+    {
+      "threshold_dbfs_rms": -60,
+      "rms_block_ms": 10,
+      "last_active_block_end_excerpt_seconds": 36.88,
+      "last_active_block_end_source_seconds": 184.48,
+      "trailing_below_threshold_seconds": 2.1199999999999974
+    },
+    {
+      "threshold_dbfs_rms": -50,
+      "rms_block_ms": 10,
+      "last_active_block_end_excerpt_seconds": 35.46,
+      "last_active_block_end_source_seconds": 183.06,
+      "trailing_below_threshold_seconds": 3.539999999999999
+    },
+    {
+      "threshold_dbfs_rms": -40,
+      "rms_block_ms": 10,
+      "last_active_block_end_excerpt_seconds": 34.12,
+      "last_active_block_end_source_seconds": 181.72,
+      "trailing_below_threshold_seconds": 4.880000000000003
+    }
+  ],
+  "exact_zero_tail_seconds": 0.0,
+  "last_original_windows": [
+    {
+      "source_seconds": [
+        183.6,
+        183.79999999999998
+      ],
+      "rms_dbfs": -52.842547992212864,
+      "peak_dbfs": -43.58217289462238
+    },
+    {
+      "source_seconds": [
+        184.2,
+        184.39999999999998
+      ],
+      "rms_dbfs": -54.93176035630999,
+      "peak_dbfs": -46.88766006743293
+    },
+    {
+      "source_seconds": [
+        184.6,
+        184.79999999999998
+      ],
+      "rms_dbfs": -62.252764484983814,
+      "peak_dbfs": -54.04562940357232
+    },
+    {
+      "source_seconds": [
+        185.0,
+        185.2
+      ],
+      "rms_dbfs": -65.32985614923392,
+      "peak_dbfs": -55.848045200005394
+    },
+    {
+      "source_seconds": [
+        185.2,
+        185.39999999999998
+      ],
+      "rms_dbfs": -69.15006779993695,
+      "peak_dbfs": -57.60717731849681
+    },
+    {
+      "source_seconds": [
+        185.4,
+        185.6
+      ],
+      "rms_dbfs": -66.14308794268646,
+      "peak_dbfs": -56.349273340112624
+    },
+    {
+      "source_seconds": [
+        185.6,
+        185.79999999999998
+      ],
+      "rms_dbfs": -67.47619464845488,
+      "peak_dbfs": -58.87969599948208
+    },
+    {
+      "source_seconds": [
+        185.8,
+        186.0
+      ],
+      "rms_dbfs": -73.60630325769742,
+      "peak_dbfs": -62.54437186653397
+    },
+    {
+      "source_seconds": [
+        186.0,
+        186.2
+      ],
+      "rms_dbfs": -72.875917959338,
+      "peak_dbfs": -63.31902606673877
+    },
+    {
+      "source_seconds": [
+        186.2,
+        186.39999999999998
+      ],
+      "rms_dbfs": -74.27756351036851,
+      "peak_dbfs": -64.56964721711154
+    },
+    {
+      "source_seconds": [
+        186.4,
+        186.6
+      ],
+      "rms_dbfs": -80.03465005653025,
+      "peak_dbfs": -68.82374036045466
+    }
+  ],
+  "editorial_use": {
+    "film_seconds_0_to32": "Visible lyrics maintain exact continuous song time, source147.6–179.6.",
+    "film_seconds_32_to36": "Two Riftlet-only detail shots; LyricTile fully excluded. Song continues as editorial soundtrack, source179.6–183.6.",
+    "film_seconds_36_to39": "Brand ending over original source183.6–186.6.",
+    "planned_master_fade": "Final2.4seconds, film36.6–39.0 / source184.2–186.6, applied by final-film producer."
+  },
+  "limitations": [
+    "Thresholds quantify low energy, not subjective audibility in a particular listening environment.",
+    "Values describe the original before final master processing. Final39-second export still requires numerical audio verification.",
+    "No subjective listening review, new recording or recognition run is claimed."
+  ]
+}

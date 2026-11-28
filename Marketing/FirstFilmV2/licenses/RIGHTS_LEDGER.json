@@ -4,7 +4,7 @@
   "selected_track": "good-to-go",
   "selected_segment_seconds": [
     147.6,
-    183.6
+    186.6
   ],
   "publication_status": "Licensed selected track/artwork. Picture intervals are independently matched to actual native system audio; see audio alignment reports. Subjective listening was not available.",
   "rights_distinguished": [
@@ -83,15 +83,16 @@
       "cover_artwork": "shared_cover",
       "selected_source_seconds": [
         147.6,
-        183.6
+        186.6
       ],
       "selection_rationale": "The final positive chorus and title refrain; voice is present from the start of the selected passage. This avoids the negative workday language in Morning Blue and the more anxious theme of I’m Letting Go. The decision is based on canonical lyric meaning and measured phrase placement, not an invented listening review."
     }
   ],
   "mastering_record": {
-    "path": "edits/good-to-go-excerpt.json",
-    "bytes": 2432,
-    "sha256": "ea1aa1311ac1be087c0194b128a40c316954b6abe68bd8ccdf3c87d058cde42e"
+    "path": "assets/audio/good-to-go-master39.json",
+    "relative_to": "project root",
+    "bytes": 954,
+    "sha256": "cd04e95c032c27b720622816d0f4d06501511991f7df94ceca6aa30c2707d029"
   },
   "selected_lrc_record": {
     "path": "player-ready/good-to-go-lrc-provenance.json",
@@ -120,7 +121,7 @@
   ],
   "qq_cover_processing": {
     "original": {
-      "file": "artwork/simple-life-original-1425.jpg",
+      "file": "candidates/simple-life-cover.jpg",
       "width": 1425,
       "height": 1424,
       "bytes": 486932,
@@ -131,7 +132,7 @@
       "VRTConfirmationTicket": "2013022010009149"
     },
     "embeddedAPIC": {
-      "file": "artwork/simple-life-apic-600.jpg",
+      "file": "qq-compatibility/simple-life-apic-600.jpg",
       "width": 600,
       "height": 600,
       "bytes": 92605,
@@ -149,7 +150,7 @@
   "film_sources": {
     "core": "Native production lyric component with verified unreleased two-line artwork decoding fix; real Music playback, actual imported LRC, actual Preview PDF.",
     "qq": "Second real QQ Music client session, original lyrics and record; temporal edit matches same song, not a claim of automatic gapless player handoff.",
-    "host": "Actual Nearpane Host; user-authorized photography-only exterior material/geometry harmonization. Final movie acceptance recorded separately."
+    "host": "Actual Nearpane Host, final capture5. Same-size cards, real registry reorder and genuine region screenshot with native thumbnail. User-authorized filming-only outer material/geometry harmonization. The screenshot records the owned coastal wallpaper, not the reading PDF."
   },
   "fonts": [
     {
@@ -168,5 +169,22 @@
     "source_in_media": "assets/environment/",
     "original_document": "assets/workspace/"
   },
-  "evidence_paths_relative_to": "assets/music-source/"
+  "evidence_paths_relative_to": "assets/music-source/",
+  "final_edit_timing": {
+    "duration_seconds": 39,
+    "lyric_visible_interval": [
+      0,
+      32
+    ],
+    "lyric_synchronization": "Each native session matched to original system audio; frame boundaries conformed to30fps.",
+    "riftlet_only_score_interval": [
+      32,
+      36
+    ],
+    "brand_natural_decay_interval": [
+      36,
+      39
+    ]
+  },
+  "qq_playback_derivative": "assets/music-source/qq-compatibility/good-to-go-source2.mp3"
 }

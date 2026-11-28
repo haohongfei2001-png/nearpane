@@ -1,0 +1,69 @@
+{
+  "reviewed_at_utc": "2026-11-28T06:38:44.134485+00:00",
+  "source": {
+    "path": "film-v2-delivery/Nearpane-ZH-4K.mp4",
+    "bytes": 8887877,
+    "sha256": "2503500326807b90b778c3a76d9f3334307ad83e00e135ab6f191429db3f57a0",
+    "canvas": [
+      3840,
+      2160
+    ],
+    "duration_seconds": 39,
+    "fps": 30,
+    "encoded_frame_count": 1170,
+    "video_time_base": "1/15360"
+  },
+  "verdict": "指定4K拼接点、14秒原像素细节、35秒结果及37.5秒尾板检查PASS；无本轮阻断。",
+  "scope": "独立检查实际MP4编码帧及五个拼接点前后显示PTS，原帧以ffmpeg select(n)提取；未重复整片叙事，未主观听审或声画同步复核。",
+  "splice_checks": [
+    {
+      "frame": 524,
+      "time_seconds": 17.466667,
+      "observed": "Preview到QQ，主歌词与卡片位置连续，无黑帧或错图。"
+    },
+    {
+      "frame": 690,
+      "time_seconds": 23.0,
+      "observed": "QQ到真实管理行/双卡编辑构图，切点正确，无残留推荐页或未交付模块。"
+    },
+    {
+      "frame": 941,
+      "time_seconds": 31.366667,
+      "observed": "同时间双卡构图到干净原桌面，没有完整管理窗关闭残影。"
+    },
+    {
+      "frame": 960,
+      "time_seconds": 32.0,
+      "observed": "精确进入真实框选特写；歌词/播放器UI排除。"
+    },
+    {
+      "frame": 1035,
+      "time_seconds": 34.5,
+      "observed": "精确进入实际截图结果构图，无黑帧、选择框冻结或歌词UI。"
+    }
+  ],
+  "timing_check": "五个拼接点前后PTS均连续递增，每步0.033333或0.033334秒（十进制舍入），未见时间戳间隙或接点停顿证据。完整数据见boundary-timing.json。",
+  "detail_checks": [
+    {
+      "frame": 420,
+      "time_seconds": 14,
+      "inspection": "4K原像素640×650裁片，未缩放",
+      "observed": "原封面、Good To Go、Josh Woodward、主歌词But hey...、传输按钮与进度文字清楚，无明显编码块或字形破损；指针位于控制区空隙。"
+    },
+    {
+      "frame": 1050,
+      "time_seconds": 35,
+      "inspection": "实际4K帧缩至1920×1080总览",
+      "observed": "实际截图缩略图与所得图片独立完整可见，无歌词UI。"
+    },
+    {
+      "frame": 1125,
+      "time_seconds": 37.5,
+      "inspection": "实际4K帧缩至1920×1080总览",
+      "observed": "品牌、宣传语、官网、产品预览及署名完整，未出现裁切或错误场景。"
+    }
+  ],
+  "remaining_blockers": [],
+  "limitations": "帧与PTS检查不冒称完整实时播放或主观听审。",
+  "changes_made": "仅QA实际帧、PTS记录和本报告；没有改交付片、源码、Git或工作流。"
+}

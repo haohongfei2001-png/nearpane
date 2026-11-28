@@ -60,11 +60,11 @@ CAPTIONS={
  'en':{'opening':'Nearpane','continuity':'Your music stays with you.','sources':'With the player you already love.','modules':'Bring your essentials together.'}
 }
 
-def caption(width,height,lang,key):
+def caption(width,height,lang,key,paper=False):
     im=Image.new('RGBA',(width,height),(0,0,0,0))
     s=width/1920
     # The label stays below the captured application window and away from cards.
-    put(im,CAPTIONS[lang][key],(120*s,1018*s),(32 if key=='opening' else 26)*s,(246,246,242,255),weight=510 if key=='opening' else 450,anchor='lm')
+    put(im,CAPTIONS[lang][key],(120*s,1018*s),(32 if key=='opening' else 26)*s,INK if paper else (246,246,242,255),weight=510 if key=='opening' else 450,anchor='lm')
     return im
 
 def main():

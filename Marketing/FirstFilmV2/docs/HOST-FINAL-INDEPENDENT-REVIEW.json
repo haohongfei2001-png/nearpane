@@ -1,0 +1,83 @@
+{
+  "reviewed_at_utc": "2026-11-28T06:03:57.368050+00:00",
+  "source": {
+    "path": "v2-native-evidence/capture-host-5/host-fullscreen.mov",
+    "bytes": 34813432,
+    "sha256": "aca78b969fffae72b250d5751a919affcd6e319ec3780ca37e0eb0f56f7bdc5d",
+    "duration_seconds": 24.216667,
+    "frame_size": [
+      3840,
+      2160
+    ],
+    "encoded_frame_count": 648,
+    "variable_frame_rate": true
+  },
+  "scope": "实际查看MOV编码帧的全桌面联系表、截图动作时序，以及0.5/8.4/21.5秒双卡原像素细节；未主观听审、未另行音频同步。",
+  "verdict": "视觉PASS；没有新增拍摄需求。",
+  "observations": [
+    {
+      "item": "顶卡圆角",
+      "result": "0.5秒及换位后的8.4秒，两顶角完整，旧摄影Spacer裁切已消失。"
+    },
+    {
+      "item": "双卡尺寸与材质",
+      "result": "AX两卡均280×258.4615逻辑像素；实帧等宽等高。外层珍珠白原生玻璃与阴影一致，Riftlet内部灰色格属于真实内部UI。外框匹配仍属于摄影适配，不声称正式产品已统一全部像素或透明度。"
+    },
+    {
+      "item": "管理页真实换位",
+      "result": "6.5秒可见实际拖动和插入提示；7.9秒管理两行及右上双卡均已换位；8.4秒稳定。只能将enabled两行裁入片，禁入未交付模块区。"
+    },
+    {
+      "item": "真实框选",
+      "result": "17.5–19.8秒可见区域选择框真实扩展与选定，20秒已结束选区。"
+    },
+    {
+      "item": "影片内真实截图结果",
+      "result": "21.25秒先出现加载格；21.5秒实际海岸/水面缩略图可辨，23.5秒仍稳定。明确来自MOV编码帧，本次不是录后单张PNG。"
+    }
+  ],
+  "actual_inspected_times": [
+    0.5,
+    6.5,
+    7.9,
+    8.4,
+    10.7,
+    13.8,
+    16.5,
+    17,
+    17.5,
+    18,
+    18.5,
+    19,
+    19.5,
+    19.8,
+    20,
+    20.5,
+    21,
+    21.25,
+    21.4,
+    21.5,
+    23.5
+  ],
+  "usable_ranges_movie_pts_seconds": [
+    {
+      "in": 6.5,
+      "out": 8.4,
+      "purpose": "真实管理两行排序与双卡上下换位",
+      "management_limit": "只裁enabled两行，不展示下方未交付模块。"
+    },
+    {
+      "in": 17.5,
+      "out": 19.8,
+      "purpose": "真实区域框选动作"
+    },
+    {
+      "in": 21.5,
+      "out": 24.1,
+      "purpose": "真实截图缩略图稳定出现"
+    }
+  ],
+  "audio_status": "未做独立听审或波形复核；本报告仅视觉QA。",
+  "source_recovery_used": false,
+  "source_or_git_or_workflow_modified": false
+}
