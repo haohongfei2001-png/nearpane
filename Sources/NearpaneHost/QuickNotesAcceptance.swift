@@ -286,6 +286,12 @@ import NearpaneUI
             }.count == 1, "All module and record routes retained the single management window.")
 
             edge.hide()
+            var temporarySettings = host.panelPresentationSettings(on: screen.id)
+            temporarySettings.fullscreenTools.enabled = true
+            host.setDisplaySettings(temporarySettings, id: screen.id)
+            try check("temporary-tools-opt-in-fixture", host.panelPresentationSettings(on: screen.id).fullscreenTools.enabled,
+                      "The isolated display opts into the existing fullscreen tool workspace through production settings; not a native settings-control input claim.",
+                      kind: "labelled-fixture-setup")
             tools.show(on: screen, expanded: .workspace, open: { _ in }, close: {})
             guard let temporary = tools.window, temporary.isVisible else {
                 throw Failure("Production temporary tools workspace was unavailable.")
