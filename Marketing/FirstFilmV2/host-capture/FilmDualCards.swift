@@ -39,7 +39,6 @@ import LyricUI
                         .accessibilityIdentifier("film-riftlet-card")
                 }
             }
-            Spacer(minLength:0)
         }
         .environment(\.colorScheme,.light)
         .nativeVerificationAccessibility()

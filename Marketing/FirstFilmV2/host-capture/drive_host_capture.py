@@ -70,7 +70,7 @@ try:
     snap('dual-initial-4k.png');input_action('inspect')
     seek_real(168.60)
     apple('tell application "Music"\npause\nset player position to 168.60\nend tell')
-    recorder=subprocess.Popen([str(a.recorder),os.environ['NEARPANE_FILM_DISPLAY_ID'],'16',str(out/'host-fullscreen.mov')],stdout=(out/'recorder.log').open('w'),stderr=subprocess.STDOUT)
+    recorder=subprocess.Popen([str(a.recorder),os.environ['NEARPANE_FILM_DISPLAY_ID'],'24',str(out/'host-fullscreen.mov')],stdout=(out/'recorder.log').open('w'),stderr=subprocess.STDOUT)
     wait_json('capture-first-frame.json',15);start=time.monotonic()
     apple('tell application "Music" to play');event('host-take-resumed',readback=apple('tell application "Music" to return {player state,player position}'))
     wait_offset(start,1.7);input_action('reorder')
@@ -84,11 +84,14 @@ try:
     # on the real PDF page, with generous margins from text/toolbars/cards.
     input_action('select-region',x+350,y+320,660,300)
     wait_offset(start,11.6);input_action('leave');snap('dual-actual-capture-result-4k.png')
+    shot_state=json.loads((out/'dual-state.json').read_text());event('actual-screenshot-readback',state=shot_state)
     recorder.wait(timeout=20)
     final=json.loads((out/'dual-state.json').read_text())
     actual_reordered=final.get('hostOrder',[])[:2]==['com.holdsnow.nearpane.riftlet','com.holdsnow.nearpane.lyrictile']
     actual_shot=bool(final.get('trayVisibleIDs'))
-    save('host-result.json',{'status':'CAPTURED' if recorder.returncode==0 else 'RECORDER_FAILED','actualReordered':actual_reordered,'actualScreenshotAppeared':actual_shot,'actualState':final,'requestedSeconds':16,'systemAudioRequested':True,'fixturePlayback':False,'seededImages':False,'sourceView':'Complete production Host SettingsView/HostLyrics/TraySurface in isolated photographic composition','photographicAdjustment':'Riftlet outer card size/material matched to LyricTile, both280pt at verified2x; no content opacity reduction','limitations':['Unreleased two-line actual artwork bridge fix on creative branch','No release qualification or public-download assertion','Desktop card dragging is not implemented; actual management-window drag/drop is filmed']})
+    capture=json.loads((out/'capture-completed.json').read_text())
+    shot_in_movie=bool(shot_state.get('trayVisibleIDs')) and capture['firstPTS']<=shot_state['uptime']<=capture['lastPTS']
+    save('host-result.json',{'status':'CAPTURED' if recorder.returncode==0 else 'RECORDER_FAILED','actualReordered':actual_reordered,'actualScreenshotAppeared':actual_shot,'actualScreenshotReadbackInsideRecordedPTS':shot_in_movie,'actualState':final,'requestedSeconds':24,'systemAudioRequested':True,'fixturePlayback':False,'seededImages':False,'sourceView':'Complete production Host SettingsView/HostLyrics/TraySurface in isolated photographic composition','photographicAdjustment':'Riftlet outer card size/material matched to LyricTile, both280pt at verified2x; no content opacity reduction','limitations':['Unreleased two-line actual artwork bridge fix on creative branch','No release qualification or public-download assertion','Desktop card dragging is not implemented; actual management-window drag/drop is filmed']})
     if not actual_reordered or not actual_shot:event('take-preserved-with-incomplete-action',reordered=actual_reordered,screenshot=actual_shot)
 except Exception as error:
     save('host-result.json',{'status':'BLOCKED','error':str(error),'events':events})

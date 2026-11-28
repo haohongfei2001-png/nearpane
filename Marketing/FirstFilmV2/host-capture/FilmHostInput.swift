@@ -31,7 +31,10 @@ visit(root,0)
 report["observedControls"]=nodes.filter{!str($0,kAXIdentifierAttribute).isEmpty || str($0,kAXRoleAttribute)==kAXButtonRole}.map(info)
 func named(_ name:String)->AXUIElement?{nodes.first{str($0,kAXIdentifierAttribute)==name || str($0,kAXTitleAttribute)==name || str($0,kAXDescriptionAttribute)==name}}
 func point(_ e:AXUIElement)->CGPoint?{rect(e).map{CGPoint(x:$0.midX,y:$0.midY)}}
-func pump(_ seconds:Double){RunLoop.main.run(until:Date().addingTimeInterval(seconds))}
+// This is a separate input process, not the UI process. Thread.sleep keeps the
+// intended event cadence; RunLoop's minimum wake interval stretched each 25 ms
+// sample toward 100 ms on this CI image and made a nominal 1 s drag take 4 s.
+func pump(_ seconds:Double){Thread.sleep(forTimeInterval:seconds)}
 func post(_ type:CGEventType,_ p:CGPoint){CGEvent(mouseEventSource:nil,mouseType:type,mouseCursorPosition:p,mouseButton:.left)?.post(tap:.cghidEventTap)}
 func move(_ target:CGPoint,_ seconds:Double=0.45){
     let initial=CGEvent(source:nil)?.location ?? target
@@ -45,8 +48,8 @@ func hit(_ p:CGPoint)->Bool{
     return status == .success && owner==pid
 }
 func click(_ e:AXUIElement)->Bool{guard let p=point(e) else{return false};move(p);guard hit(p) else{return false};post(.leftMouseDown,p);pump(0.08);post(.leftMouseUp,p);return true}
-func drag(_ from:CGPoint,_ to:CGPoint){
-    move(from);post(.leftMouseDown,from);pump(0.25)
+func drag(_ from:CGPoint,_ to:CGPoint,moved:Bool=false){
+    if !moved{move(from)};post(.leftMouseDown,from);pump(0.25)
     for i in 1...40 {let t=Double(i)/40;let u=t*t*(3-2*t);post(.leftMouseDragged,CGPoint(x:from.x+(to.x-from.x)*u,y:from.y+(to.y-from.y)*u));pump(0.025)}
     pump(0.15);post(.leftMouseUp,to)
 }
@@ -56,7 +59,7 @@ case "inspect":ok=true
 case "reorder":
     if let from=named("module-open-com.holdsnow.nearpane.riftlet"),let to=named("module-open-com.holdsnow.nearpane.lyrictile"),let p=point(from),let q=point(to){
         report["source"]=info(from);report["destination"]=info(to)
-        move(p);if hit(p){drag(p,q);ok=true}
+        move(p);if hit(p){drag(p,q,moved:true);ok=true}
     }
 case "close-management":
     let windows=attr(root,kAXWindowsAttribute) as? [AXUIElement] ?? []

@@ -43,7 +43,8 @@
         guard let management=settings?.window else { throw CocoaError(.validationMissingMandatoryProperty) }
         management.setFrame(NSRect(x:screen.frame.minX+120,y:screen.frame.maxY-112-740,width:1180,height:740),display:true)
         management.appearance=NSAppearance(named:.aqua)
-        let size=NSSize(width:280,height:192*280/208*2+16)
+        let cardHeight:CGFloat=192.0*280.0/208.0
+        let size=NSSize(width:280,height:cardHeight*2+16)
         let camera=NSPanel(contentRect:NSRect(origin:.zero,size:size),styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
         camera.isOpaque=false;camera.backgroundColor = .clear;camera.hasShadow=true
         camera.level = .floating;camera.hidesOnDeactivate=false;camera.acceptsMouseMovedEvents=true
