@@ -35,6 +35,26 @@ import Testing
     var observationsBeforeFirstWrite = [NativeSpaceWindow]()
     var writtenReadbackIntents = [UUID]()
     var effects: [(UInt32,NativeSpaceWindow)] = [], ordinaryEffects: [StageWindowAction] = [], revokes = 0, closes = 0
+    var metadataEnabled = false
+    var metadataActive = Set<StageMetadataReadScope>()
+    var metadataEvents = [(phase: String, scope: StageMetadataReadScope?)]()
+    var afterMetadataBegin: (() -> Void)?, beforeMetadataEnd: ((StageMetadataReadScope) -> Void)?
+    func beginMetadataReadScope(owner: StageEngineOwner, purpose: StageMetadataReadScope.Purpose) async throws -> StageMetadataReadScope? {
+        guard metadataEnabled else { return nil }
+        let scope = StageMetadataReadScope(purpose: purpose)
+        metadataActive.insert(scope); metadataEvents.append(("begin", scope)); afterMetadataBegin?()
+        return scope
+    }
+    func endMetadataReadScope(_ scope: StageMetadataReadScope) {
+        guard metadataActive.remove(scope) != nil else { return }
+        beforeMetadataEnd?(scope); metadataEvents.append(("end", scope))
+    }
+    func cancelMetadataReadScopes() { for scope in Array(metadataActive) { endMetadataReadScope(scope) } }
+    func read(_ scope: StageGroupScope, owner: StageEngineOwner, within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
+        if let metadata, !metadataActive.contains(metadata) { throw StageSwitchError.interrupted }
+        if metadataEnabled { metadataEvents.append(("read", metadata)) }
+        return try await read(scope, owner: owner)
+    }
     func permits(_ owner: StageEngineOwner, restoring: Bool) -> Bool { restoring ? recovery : health }
     func read(_ scope: StageGroupScope, owner: StageEngineOwner) async throws -> StageWindowSample {
         beforeRead?()
@@ -77,6 +97,7 @@ import Testing
               windows[proof.command.before.window] == proof.command.before else { throw StageSwitchError.incomplete }
     }
     func submit(_ op: UInt32, owner: StageEngineOwner, _ c: StageWindowCommand) throws -> StageEngineReply {
+        if metadataEnabled { metadataEvents.append(("op\(op)", metadataActive.count == 1 ? metadataActive.first : nil)) }
         let id = c.before.window
         if op == 3, loseHideTransportAfterAdmission == false { throw CornerHideAdmissionRefused(StageSwitchError.incomplete) }
         if [3,4,5].contains(op), withdrawn.contains(c.intent) || !writeIntents.insert(c.intent).inserted { throw StageSwitchError.ownership }
@@ -524,6 +545,7 @@ import Testing
             ? StageEngineOwner(spacesCandidate: environment, generation: fixture.epoch, evidence: UUID())
             : StageEngineOwner(qualification: qualification(.corner), generation: fixture.epoch)
         let session = StageEngineSession(owner: owner, witness: fixture, transport: fixture)
+        fixture.metadataEnabled = true
         session.intentIsCurrent = { true }
         let baseline = try await session.read(fixture.scope)
         let hide = StageWindowCommand(intent: UUID(), group: focus.group, member: focus.member, generation: owner.generation,
@@ -536,6 +558,89 @@ import Testing
         let result = try await session.dispatch(restore, coordinatedPreflight: nil)
         #expect(result == nil && fixture.sequence - boundary == 2)
         #expect(fixture.windows[hide.before.window] == hide.before && fixture.writtenReadbackIntents.count == 2)
+        #expect(fixture.metadataActive.isEmpty)
+        let purposes = fixture.metadataEvents.filter { $0.phase == "begin" }.compactMap { $0.scope?.purpose }
+        #expect(purposes == (backend == .spaces ? [.hide, .restoreShow] : []))
+    }
+
+    @Test func oneMetadataScopeCoversThePrimitiveAndBothConfirmationsUntilItsWALAfterImage() async throws {
+        let (profile, store, _, fixture, groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = try await spacesController(profile, store, fixture)
+        fixture.metadataEnabled = true
+        var sealed = 0
+        fixture.beforeMetadataEnd = { scope in
+            guard scope.purpose == .hide || scope.purpose == .show else { return }
+            #expect((try? readJournal(profile))?.pending?.entries.last?.after != nil)
+            sealed += 1
+        }
+        try await activate(groups[0], controller, fixture)
+        try await activate(groups[1], controller, fixture)
+        let scopes = fixture.metadataEvents.filter { $0.phase == "begin" }.compactMap(\.scope)
+        #expect(scopes.count == 3 && Set(scopes).count == 3 && sealed == 3 && fixture.metadataActive.isEmpty)
+        for scope in scopes {
+            let phases = fixture.metadataEvents.filter { $0.scope == scope }.map(\.phase)
+            #expect(phases.first == "begin" && phases.last == "end")
+            #expect(phases.filter { $0 == "op6" }.count == 1 && phases.filter { $0 == "op2" }.count == 1)
+            #expect(phases.filter { $0 == "read" }.count == 3)
+            let write = try #require(phases.firstIndex { $0 == "op3" || $0 == "op4" })
+            #expect(phases[..<write].contains("op6") && phases[..<write].contains("read"))
+            #expect(phases[phases.index(after: write)...].filter { $0 == "read" }.count == 2)
+        }
+        #expect(fixture.metadataEvents.filter { ["op3", "op4"].contains($0.phase) }.allSatisfy { $0.scope != nil })
+        fixture.beforeMetadataEnd = nil
+        try await controller.release()
+        #expect(fixture.metadataActive.isEmpty)
+    }
+
+    @Test(arguments: ["health", "preflight", "cancelDuringAcquire", "freeze"])
+    func aFailedPrimitivePreparationCannotLeakItsMetadataScopeOrIssueAWrite(_ failure: String) async throws {
+        let (profile, store, _, fixture, groups) = try setup(2)
+        defer { try? FileManager.default.removeItem(at: profile) }
+        let controller = try await spacesController(profile, store, fixture)
+        fixture.metadataEnabled = true
+        switch failure {
+        case "health": fixture.onPrimitiveHealth = { _ in fixture.health = false }
+        case "preflight": fixture.onPrimitiveHealth = { _ in fixture.nextReadFails = true }
+        case "cancelDuringAcquire": fixture.afterMetadataBegin = { withUnsafeCurrentTask { $0?.cancel() } }
+        default: fixture.afterMetadataBegin = { controller.session?.freeze() }
+        }
+        let action = Task { try await activate(groups[0], controller, fixture) }
+        await #expect(throws: StageSwitchError.self) { try await action.value }
+        #expect(fixture.metadataActive.isEmpty && fixture.effects.isEmpty && store.activeGroup(in: fixture.scope) == nil)
+        #expect(fixture.metadataEvents.filter { $0.phase == "begin" }.count == 1)
+        #expect(fixture.metadataEvents.filter { $0.phase == "end" }.count == 1)
+        if failure == "cancelDuringAcquire" || failure == "freeze" {
+            #expect(!fixture.metadataEvents.contains { $0.phase == "op6" })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancellationReleasesTheExactMetadataScopeBeforeABlockedOperationReturns() async throws {
+        let (session, fixture, _, _) = try await focusPreflight()
+        fixture.metadataEnabled = true
+        let entered = AsyncStream<Void>.makeStream(), ended = AsyncStream<Void>.makeStream()
+        var release: CheckedContinuation<Void, Never>?
+        var returned = false
+        fixture.beforeMetadataEnd = { _ in ended.continuation.yield(()) }
+        let action = Task {
+            try await session.withMetadataReadScope(purpose: .hide) { scope in
+                #expect(scope != nil)
+                await withCheckedContinuation { continuation in
+                    release = continuation; entered.continuation.yield(())
+                }
+                returned = true
+            }
+        }
+        defer { release?.resume(); action.cancel(); entered.continuation.finish(); ended.continuation.finish() }
+        var start = entered.stream.makeAsyncIterator(), finish = ended.stream.makeAsyncIterator()
+        _ = try #require(await start.next())
+        action.cancel()
+        _ = try #require(await finish.next())
+        #expect(!returned && fixture.metadataActive.isEmpty)
+        let continuation = release; release = nil; continuation?.resume()
+        try await action.value
+        #expect(returned && fixture.metadataEvents.filter { $0.phase == "end" }.count == 1)
     }
 
     @Test func independentSpacesUsesRealMembershipAndRestoresEveryOriginalWindow() async throws {

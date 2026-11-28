@@ -471,11 +471,20 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
     }
     private struct PendingRead {
         let id: UUID, revision: UInt64
+        let metadata: StageMetadataReadScope?
         let task: Task<ReadOutcome?, Never>
     }
     @ObservationIgnored private var initialStage: InitialStage?
     @ObservationIgnored private var pending: PendingRead?
     @ObservationIgnored private var stageableRead: UUID?
+    private struct MetadataReservation {
+        let scope: StageMetadataReadScope, epoch: UUID
+        let started: TimeInterval
+        var ready = false
+    }
+    @ObservationIgnored private var metadataReservation: MetadataReservation?
+    @ObservationIgnored private var metadataWaiters = [UUID: CheckedContinuation<Void, Never>]()
+    @ObservationIgnored private var admittedObserver: UUID?
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var events: AsyncStream<Void>.Continuation?
     @ObservationIgnored private var reportedCounts: [Int]?
@@ -487,6 +496,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
     @ObservationIgnored var didFinishPublishingRead: ((UInt64?) -> Void)?
     @ObservationIgnored var didJoinPendingRead: ((UInt64) -> Void)?
     @ObservationIgnored var beforeFreshAfterActionRead: (@MainActor () async -> Void)?
+    @ObservationIgnored var didWaitForMetadataRead: ((String) -> Void)?
     private var panelRequested = false
     private var managementRequested = false
     private var stageOwnershipObserved = false
@@ -500,6 +510,88 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         self.readSidebarWindows = readSidebarWindows
         self.read = read; self.sessionAvailable = sessionAvailable; self.fingerprint = fingerprint
         stageEngine.attach(to:self)
+    }
+
+    private func metadataChanged() {
+        let waiters = metadataWaiters.values
+        metadataWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+
+    private func waitForMetadataChange(_ reason: String) async {
+        let id = UUID()
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                guard !Task.isCancelled else { continuation.resume(); return }
+                metadataWaiters[id] = continuation
+                didWaitForMetadataRead?(reason)
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.metadataWaiters.removeValue(forKey: id)?.resume() }
+        }
+    }
+
+    func hasMetadataReadScope(_ scope: StageMetadataReadScope) -> Bool {
+        metadataReservation?.scope == scope && metadataReservation?.epoch == epoch && metadataReservation?.ready == true
+    }
+
+    /// Close ordinary admission first. Every already-admitted producer and the
+    /// exact observer publication turn finish normally before foreground reads.
+    func acquireMetadataReadScope(_ scope: StageMetadataReadScope, current: @MainActor () -> Bool) async throws {
+        let expected = epoch, started = ProcessInfo.processInfo.systemUptime
+        func valid() -> Bool {
+            !Task.isCancelled && expected == epoch && events != nil && observationRequested && current()
+        }
+        do {
+            while metadataReservation != nil {
+                guard valid() else { throw StageSwitchError.interrupted }
+                await waitForMetadataChange("acquire")
+            }
+            guard valid() else { throw StageSwitchError.interrupted }
+            metadataReservation = .init(scope: scope, epoch: expected, started: started)
+            IndependentStageTrace.record("metadata-scope-reserved", ["scope": scope.id.uuidString,
+                "purpose": scope.purpose.rawValue, "epoch": expected.uuidString,
+                "pendingProducer": pending != nil, "pendingPublisher": admittedObserver != nil,
+                "queuedMS": (ProcessInfo.processInfo.systemUptime - started) * 1000])
+            while pending != nil || admittedObserver != nil {
+                guard valid(), metadataReservation?.scope == scope else { throw StageSwitchError.interrupted }
+                await waitForMetadataChange("drain")
+            }
+            guard valid(), metadataReservation?.scope == scope else { throw StageSwitchError.interrupted }
+            metadataReservation?.ready = true
+            IndependentStageTrace.record("metadata-scope-drained", ["scope": scope.id.uuidString,
+                "purpose": scope.purpose.rawValue, "epoch": expected.uuidString,
+                "pendingProducer": pending != nil, "pendingPublisher": admittedObserver != nil,
+                "durationMS": (ProcessInfo.processInfo.systemUptime - started) * 1000])
+        } catch {
+            endMetadataReadScope(scope)
+            throw error
+        }
+    }
+
+    func endMetadataReadScope(_ scope: StageMetadataReadScope) {
+        if let reservation = metadataReservation, reservation.scope == scope {
+            metadataReservation = nil
+            // An owner cancelled/frozen while its read awaited the helper. Its
+            // late result cannot mutate the feed after this scope was revoked.
+            if pending?.metadata == scope { pending?.task.cancel() }
+            IndependentStageTrace.record("metadata-scope-ended", ["scope": scope.id.uuidString,
+                "purpose": scope.purpose.rawValue, "epoch": reservation.epoch.uuidString, "drained": reservation.ready,
+                "durationMS": (ProcessInfo.processInfo.systemUptime - reservation.started) * 1000])
+        }
+        metadataChanged()
+    }
+
+    private func admitObserver() async -> UUID? {
+        let expected = epoch
+        while metadataReservation != nil {
+            guard !Task.isCancelled, expected == epoch else { return nil }
+            await waitForMetadataChange("observer")
+        }
+        guard !Task.isCancelled, expected == epoch, events != nil else { return nil }
+        let id = UUID()
+        admittedObserver = id
+        return id
     }
 
     func changed() { events?.yield(()) }
@@ -518,6 +610,8 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             ["reason": reason, "keepsOriginals": preservingOriginalWindows, "panelRequested": panelRequested])
         if !preservingOriginalWindows { sidebarWindows = .init() }
         epoch = UUID()
+        metadataReservation = nil
+        metadataChanged()
         initialStage = nil
         stageableRead = nil
         pending?.task.cancel()
@@ -617,7 +711,12 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             for await _ in stream {
                 guard !Task.isCancelled, let self else { return }
                 let expected = epoch
-                let outcome = await readOutcome()
+                guard let observer = await admitObserver() else { continue }
+                defer {
+                    if admittedObserver == observer { admittedObserver = nil }
+                    metadataChanged()
+                }
+                let outcome = await readOutcome(observer: observer)
                 defer { didFinishPublishingRead?(outcome?.snapshot.revision) }
                 if let beforePublishingRead { await beforePublishingRead(outcome?.snapshot.revision) }
                 guard !Task.isCancelled, expected == epoch else { continue }
@@ -687,7 +786,14 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
     }
 
     /// A gesture cannot use a coalesced inventory that started before its input or before its AX write.
-    func readAfterAction(staging: InitialDirectoryStaging? = nil) async -> DesktopSnapshot? {
+    func readAfterAction(staging: InitialDirectoryStaging? = nil,
+                         within metadata: StageMetadataReadScope? = nil) async -> DesktopSnapshot? {
+        let enteringEpoch = epoch
+        while metadata == nil && metadataReservation != nil {
+            guard !Task.isCancelled, enteringEpoch == epoch else { return nil }
+            await waitForMetadataChange("after-action")
+        }
+        guard enteringEpoch == epoch, metadata.map(hasMetadataReadScope) != false else { return nil }
         let boundary = revision, expected = epoch, afterDate = Date(), started = ProcessInfo.processInfo.systemUptime
         var registeredStaging: InitialDirectoryStaging?
         if let staging, !staging.registered, initialStage == nil {
@@ -720,12 +826,13 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             let began = ProcessInfo.processInfo.systemUptime
             priorResult = (await prior.task.value)?.snapshot
             priorMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
-            if pending?.id == prior.id { pending = nil }
+            if pending?.id == prior.id { pending = nil; metadataChanged() }
         }
         step = "epoch-after-prior"
         guard epoch == expected else { return nil }
         step = "observation-after-prior"
         guard !Task.isCancelled, observationRequested, events != nil else { return nil }
+        guard metadata.map(hasMetadataReadScope) != false else { return nil }
         // A queued request may not have begun its actual native sample until
         // after this call. Reuse only that complete, still-fresh sample; retain
         // its real revision so the next serial read must establish a later one.
@@ -751,7 +858,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         step = "fresh-read"
         if let beforeFreshAfterActionRead { await beforeFreshAfterActionRead() }
         let began = ProcessInfo.processInfo.systemUptime
-        let result = (await readOutcome(staging: registeredStaging))?.snapshot
+        let result = (await readOutcome(staging: registeredStaging, within: metadata))?.snapshot
         freshMS = (ProcessInfo.processInfo.systemUptime - began) * 1000
         step = "fresh-read-unavailable"
         guard let fresh = result else { return nil }
@@ -759,7 +866,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         step = "fresh-read-revision"
         guard fresh.revision > boundary else { return nil }
         step = "epoch-after-fresh"
-        guard epoch == expected else { return nil }
+        guard epoch == expected, metadata.map(hasMetadataReadScope) != false else { return nil }
         step = "complete"; completed = true
         return fresh
     }
@@ -768,7 +875,16 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
         (await readOutcome())?.snapshot
     }
 
-    private func readOutcome(staging: InitialDirectoryStaging? = nil) async -> ReadOutcome? {
+    private func readOutcome(staging: InitialDirectoryStaging? = nil, within metadata: StageMetadataReadScope? = nil,
+                             observer: UUID? = nil) async -> ReadOutcome? {
+        let enteringEpoch = epoch
+        // Never put a gated request in pending: its own foreground owner must
+        // not later join a producer that is waiting for that owner to release.
+        while metadata == nil && metadataReservation != nil && (observer == nil || observer != admittedObserver) {
+            guard !Task.isCancelled, enteringEpoch == epoch else { return nil }
+            await waitForMetadataChange("reader")
+        }
+        guard enteringEpoch == epoch, metadata.map(hasMetadataReadScope) != false else { return nil }
         guard events != nil, sessionAvailable() else {
             departingPictures = nil
             boundSidebarPair?.revoke(.feedInvalidated)
@@ -787,7 +903,7 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             bindInitialStage(to: pending.id, revision: pending.revision)
             didJoinPendingRead?(pending.revision)
             let result = await pending.task.value
-            return expected == epoch ? result : nil
+            return expected == epoch && metadata.map(hasMetadataReadScope) != false ? result : nil
         }
         revision &+= 1
         let token = UUID()
@@ -967,14 +1083,14 @@ final class InitialDirectoryReadCancellation: @unchecked Sendable {
             step = "complete"; completed = true
             return .init(snapshot: result, stagedFor: nil)
         }
-        pending = .init(id: token, revision: request.revision, task: task)
+        pending = .init(id: token, revision: request.revision, metadata: metadata, task: task)
         IndependentStageTrace.record("desktop-read-task-created", ["readSession": request.session.uuidString,
             "requestRevision": request.revision, "taskCreatedUptime": taskCreated,
             "creatorPriority": Task.currentPriority.rawValue,
             "dispatching": NativeSidebarNavigation.shared.isDispatching])
         let result = await task.value
-        if pending?.id == token { pending = nil }
-        return expected == epoch ? result : nil
+        if pending?.id == token { pending = nil; metadataChanged() }
+        return expected == epoch && metadata.map(hasMetadataReadScope) != false ? result : nil
     }
 
     /// A read-only wake-up hint, independent of AppKit and safe on a background executor.

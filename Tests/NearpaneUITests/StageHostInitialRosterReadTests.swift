@@ -211,6 +211,9 @@ import Testing
     var joined = Set<UInt64>(), publishing = Set<UInt64>(), finishedPublishing = Set<UInt64>()
     var published = [UInt64]()
     var publicationHolds = [UInt64: InitialDirectoryLatch]()
+    var metadataWaits = [String]()
+    var requestCount: Int { requests.count }
+    var hasUnansweredRequest: Bool { !replies.isEmpty }
     var first: DesktopSnapshot?, firstReturned = false, actionFinished = false
     var retries = 0
     var boundaries = [(revision: UInt64, date: Date)]()
@@ -262,6 +265,24 @@ import Testing
             deliver(prior)
         }
     }
+    func pump(until done: () -> Bool) async throws {
+        while !done() {
+            try await until { done() || !replies.isEmpty }
+            if !done(), let revision = replies.keys.min(), let request = requests[revision] {
+                answer(request, complete: true)
+            }
+        }
+    }
+    func acquire(_ metadata: StageMetadataReadScope) async throws {
+        var done = false
+        let task = Task {
+            defer { done = true; signal() }
+            try await feed.acquireMetadataReadScope(metadata, current: { true })
+        }
+        defer { task.cancel() }
+        try await pump { done }
+        try await task.value
+    }
     func sample(_ request: DesktopReadRequest, complete: Bool, numbers: [UInt32]? = nil,
                 issues: [String]? = nil) -> DesktopSnapshot {
         // 90 is an existing bystander; 88 appears only in the failed inventory.
@@ -299,6 +320,7 @@ import Testing
             boundaries.append((feed.revision, date)); signal()
         }
         feed.didJoinPendingRead = { [weak self] revision in self?.joined.insert(revision); self?.signal() }
+        feed.didWaitForMetadataRead = { [weak self] reason in self?.metadataWaits.append(reason); self?.signal() }
         feed.beforePublishingRead = { [weak self] revision in
             guard let self, let revision else { return }
             publishing.insert(revision); signal()
@@ -360,11 +382,133 @@ import Testing
     func close() {
         closed = true; duringEligibility = nil
         feed.beforeFreshAfterActionRead = nil
+        feed.didWaitForMetadataRead = nil
         for action in actions { action.cancel() }
         for latch in latches { latch.open() }
         for reply in replies.values { reply.finish() }
         feed.observe(false)
         changes.continuation.finish()
+    }
+}
+
+@MainActor struct StageHostMetadataReadSchedulingTests {
+    @Test(.timeLimit(.minutes(1)))
+    func ordinaryReadersWaitOutsidePendingWhileTheExactScopeReadsTwice() async throws {
+        let race = InitialDirectoryRace(), metadata = StageMetadataReadScope()
+        defer { race.feed.endMetadataReadScope(metadata); race.close() }
+        try await race.start()
+        try await race.acquire(metadata)
+        let before = race.requestCount
+        var plainDone = false, actionDone = false
+        let plain = Task { let result = await race.feed.readNow(); plainDone = true; race.signal(); return result }
+        defer { plain.cancel() }
+        try await race.until { race.metadataWaits.contains("reader") }
+        let action = Task { let result = await race.feed.readAfterAction(); actionDone = true; race.signal(); return result }
+        defer { action.cancel() }
+        try await race.until { race.metadataWaits.contains("after-action") }
+        race.feed.changed()
+        try await race.until { race.metadataWaits.contains("observer") }
+        #expect(race.requestCount == before && !race.hasUnansweredRequest && !plainDone && !actionDone)
+        #expect(await race.feed.readAfterAction(within: StageMetadataReadScope()) == nil)
+
+        for boundary in 0..<2 {
+            let owner = Task { await race.feed.readAfterAction(within: metadata) }
+            defer { owner.cancel() }
+            let request = try await race.freshRequest(boundary: boundary)
+            let sample = race.answer(request, complete: true)
+            #expect(await owner.value == sample)
+            #expect(race.feed.hasMetadataReadScope(metadata) && !plainDone && !actionDone)
+        }
+        #expect(race.requestCount == before + 2)
+        race.feed.endMetadataReadScope(metadata)
+        try await race.pump { plainDone && actionDone }
+        let plainResult = await plain.value, actionResult = await action.value
+        #expect(plainResult != nil && actionResult != nil)
+        #expect(!race.feed.hasMetadataReadScope(metadata))
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func anAdmittedProducerAndItsLatePublisherDrainWithoutDroppingTheOutcome(incomplete: Bool) async throws {
+        let race = InitialDirectoryRace(), metadata = StageMetadataReadScope(), hold = InitialDirectoryLatch()
+        defer { hold.open(); race.feed.endMetadataReadScope(metadata); race.close() }
+        try await race.start()
+        let seed = try #require(race.baseline)
+        race.feed.changed()
+        let request = try await race.nextRequest(after: seed.revision)
+        race.publicationHolds[request.revision] = hold
+        var acquired = false
+        let acquire = Task {
+            try await race.feed.acquireMetadataReadScope(metadata, current: { race.feed.snapshot?.native?.catalogComplete == true })
+            acquired = true; race.signal()
+        }
+        defer { acquire.cancel() }
+        try await race.until { race.metadataWaits.contains("drain") }
+        let sample = race.answer(request, complete: !incomplete,
+            numbers: incomplete ? [53, 55, 56, 88] : [53, 55, 56, 90, 99])
+        try await race.until { race.publishing.contains(request.revision) }
+        // The producer has really updated lifetime/group state, but the old
+        // event-loop result must also be published before acquisition finishes.
+        #expect(race.feed.lifetime(of: race.key(incomplete ? 88 : 99)) != nil)
+        #expect(!acquired && !race.feed.hasMetadataReadScope(metadata))
+        hold.open()
+        if incomplete {
+            await #expect(throws: StageSwitchError.interrupted) { try await acquire.value }
+        } else { try await acquire.value }
+        #expect(acquired == !incomplete)
+        #expect(race.finishedPublishing.contains(request.revision) && race.feed.snapshot == sample)
+        #expect(race.published.contains(request.revision))
+        #expect(race.feed.snapshot?.native?.catalogComplete == !incomplete)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: ["cancel", "epoch", "current"])
+    func interruptedDrainReopensAdmissionAndCannotGrantTheOldScope(_ change: String) async throws {
+        let race = InitialDirectoryRace(), metadata = StageMetadataReadScope(), hold = InitialDirectoryLatch()
+        defer { hold.open(); race.feed.endMetadataReadScope(metadata); race.close() }
+        try await race.start()
+        let seed = try #require(race.baseline)
+        race.feed.changed()
+        let request = try await race.nextRequest(after: seed.revision)
+        race.publicationHolds[request.revision] = hold
+        var current = true
+        let acquire = Task { try await race.feed.acquireMetadataReadScope(metadata, current: { current }) }
+        defer { acquire.cancel() }
+        try await race.until { race.metadataWaits.contains("drain") }
+        race.answer(request, complete: true)
+        try await race.until { race.publishing.contains(request.revision) }
+        switch change {
+        case "cancel": acquire.cancel()
+        case "epoch": race.feed.invalidate(reason: "test-metadata-epoch")
+        default: current = false; race.feed.endMetadataReadScope(metadata)
+        }
+        hold.open()
+        await #expect(throws: StageSwitchError.interrupted) { try await acquire.value }
+        #expect(!race.feed.hasMetadataReadScope(metadata))
+        #expect(await race.feed.readAfterAction(within: metadata) == nil)
+        // A new independent scope proves the previous gate/waiter was released.
+        let next = StageMetadataReadScope()
+        defer { race.feed.endMetadataReadScope(next) }
+        try await race.acquire(next)
+        #expect(race.feed.hasMetadataReadScope(next))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func endingAScopeCannotReturnItsLateProducerThroughAnUnchangedEpoch() async throws {
+        let race = InitialDirectoryRace(), metadata = StageMetadataReadScope()
+        defer { race.feed.endMetadataReadScope(metadata); race.close() }
+        try await race.start()
+        try await race.acquire(metadata)
+        let original = try #require(race.feed.snapshot)
+        let read = Task { await race.feed.readAfterAction(within: metadata) }
+        defer { read.cancel() }
+        let request = try await race.freshRequest(boundary: 0)
+        race.feed.endMetadataReadScope(metadata)
+        race.answer(request, complete: true, numbers: [53, 55, 56, 90, 99])
+        #expect(await read.value == nil)
+        #expect(race.feed.snapshot == original && race.feed.lifetime(of: race.key(99)) == nil)
+        let next = StageMetadataReadScope()
+        defer { race.feed.endMetadataReadScope(next) }
+        try await race.acquire(next)
+        #expect(race.feed.hasMetadataReadScope(next))
     }
 }
 

@@ -4,7 +4,26 @@ Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github
 Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current source/runtime checkpoint: 987215dc
+## Current source/runtime checkpoint: 7aea52c5
+
+Exact source passes **180 Rust, 263 Swift (one existing skip), and 25 native
+AX decoder checks**; the complete candidate and strict signature pass. All ten
+new deterministic shared-publication cases execute successfully. Both unsampled
+R4 lanes receive one actual input and confirm no complete switch; neither
+exercises the new initial staging branch in this run.
+
+Fast verifies the exact selected focus and two HIDE primitives, then loses the
+transport epoch after a background read observes the second target's membership
+transition. Full stops during initial binding after a different background read
+adds two role-unknown small surfaces. The observed revocations and source path
+identify a wider metadata scheduling problem; they do not justify ignoring
+incomplete snapshots or widening retry rules.
+
+[Exact 7aea source/runtime evidence, event ordering and recovery](cloud-7aea52c5-latency/README.md).
+Both original-owner cleanups and independent two-read home checks pass. Continuous
+R4, exact-target GUI acceptance and release qualification remain incomplete.
+
+## Earlier source/runtime checkpoint: 987215dc
 
 Exact source passes **180 Rust, 258 Swift (one existing skip), and 25 native
 AX decoder checks**; the complete release build/signature pass. Unsampled full

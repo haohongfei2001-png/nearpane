@@ -36,6 +36,7 @@ import NearpaneOrdinaryWindowRuntime
     private var returnedSample: StageWindowSample?
     private var returnedAppearances = [DesktopWindowKey: UUID]()
     private var pendingDeparture: (target: UUID, after: UInt64)?
+    private var metadataScopes = [StageMetadataReadScope: StageEngineOwner]()
     private(set) var departures = [UUID:StageGroupDeparture]()
 
     func preparePictures(leavingFor target: UUID) { pendingDeparture = (target, sequence) }
@@ -135,6 +136,7 @@ import NearpaneOrdinaryWindowRuntime
     func beginRelease() { releaseInput = NativeSelectionPermit.inputCounters() }
 
     func endedOwnership() {
+        cancelMetadataReadScopes()
         cancelArrivals()
         leases.removeAll()
         claims.removeAll()
@@ -468,6 +470,39 @@ import NearpaneOrdinaryWindowRuntime
         try await read(requested, owner: owner, candidate: nil)
     }
 
+    func read(_ requested: StageGroupScope, owner: StageEngineOwner,
+              within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
+        try await read(requested, owner: owner, candidate: nil, within: metadata)
+    }
+
+    func beginMetadataReadScope(owner: StageEngineOwner,
+                                purpose: StageMetadataReadScope.Purpose = .witness) async throws -> StageMetadataReadScope? {
+        guard owner.backend == .spaces else { return nil }
+        guard let feed, !Task.isCancelled, permits(owner, restoring: false) || permits(owner, restoring: true)
+        else { throw StageSwitchError.interrupted }
+        let metadata = StageMetadataReadScope(purpose: purpose)
+        metadataScopes[metadata] = owner
+        do {
+            try await feed.acquireMetadataReadScope(metadata) { [weak self] in
+                guard let self, metadataScopes[metadata] == owner else { return false }
+                return permits(owner, restoring: false) || permits(owner, restoring: true)
+            }
+            return metadata
+        } catch {
+            endMetadataReadScope(metadata)
+            throw error
+        }
+    }
+
+    func endMetadataReadScope(_ metadata: StageMetadataReadScope) {
+        guard metadataScopes.removeValue(forKey: metadata) != nil else { return }
+        feed?.endMetadataReadScope(metadata)
+    }
+
+    func cancelMetadataReadScopes() {
+        for metadata in Array(metadataScopes.keys) { endMetadataReadScope(metadata) }
+    }
+
     func readBystanders(of command: StageWindowCommand, measured: SurfaceRect, owner: StageEngineOwner) async throws -> StageWindowSample {
         guard command.action == .hide, !command.restoring, command.generation == generation,
               let binding = bindings[command.before.window], binding.lifetime == command.before.lifetime,
@@ -476,7 +511,25 @@ import NearpaneOrdinaryWindowRuntime
     }
 
     private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
-                      candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
+                      candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil,
+                      within supplied: StageMetadataReadScope? = nil) async throws -> StageWindowSample {
+        let metadata: StageMetadataReadScope?
+        if let supplied {
+            guard metadataScopes[supplied] == owner, feed?.hasMetadataReadScope(supplied) == true
+            else { throw StageSwitchError.interrupted }
+            metadata = supplied
+        } else { metadata = try await beginMetadataReadScope(owner: owner) }
+        defer { if supplied == nil, let metadata { endMetadataReadScope(metadata) } }
+        return try await withTaskCancellationHandler {
+            try await readObserved(requested, owner: owner, candidate: candidate, measured: measured, within: metadata)
+        } onCancel: { [weak self] in
+            if let metadata { Task { @MainActor in self?.endMetadataReadScope(metadata) } }
+        }
+    }
+
+    private func readObserved(_ requested: StageGroupScope, owner: StageEngineOwner,
+                              candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)?,
+                              within metadata: StageMetadataReadScope?) async throws -> StageWindowSample {
         let readStarted = ProcessInfo.processInfo.systemUptime
         let tracing = ProcessInfo.processInfo.environment["NP_SPACES_LAUNCH_TRACE"] != nil
         let initialAttempt = sequence == 0 && bindings.isEmpty && claims.isEmpty && self.owner == nil
@@ -553,9 +606,9 @@ import NearpaneOrdinaryWindowRuntime
         if let staging {
             let cancellation = staging.cancellation
             openingRead = await withTaskCancellationHandler {
-                await feed.readAfterAction(staging: staging)
+                await feed.readAfterAction(staging: staging, within: metadata)
             } onCancel: { cancellation.cancel() }
-        } else { openingRead = await feed.readAfterAction() }
+        } else { openingRead = await feed.readAfterAction(within: metadata) }
         guard var first = openingRead else { throw StageSwitchError.unavailable }
         var directoryReady = ProcessInfo.processInfo.systemUptime
         step = "host-access"
@@ -571,7 +624,8 @@ import NearpaneOrdinaryWindowRuntime
                 if !value { guardRejection = ["reason": reason] }
                 return value
             }
-            guard checked(!Task.isCancelled, "cancelled"), checked(bindings == expectedBindings, "bindings"),
+            guard checked(!Task.isCancelled, "cancelled"), checked(metadata.map(feed.hasMetadataReadScope) != false, "metadata-scope"),
+                  checked(bindings == expectedBindings, "bindings"),
                   checked(claims == expectedClaims, "claims"), checked(Set(leases.keys) == expectedLeases, "leases"),
                   checked(home == expectedHome, "home"), checked(self.owner == expectedOwner, "owner"),
                   checked(releaseInput == expectedReleaseInput, "release-input") else { return false }
@@ -595,7 +649,7 @@ import NearpaneOrdinaryWindowRuntime
                         feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number)) == lifetime
                     }
                 }, read: {
-                    let fresh = await feed.readAfterAction()
+                    let fresh = await feed.readAfterAction(within: metadata)
                     if let fresh { rejectedRoster = fresh }
                     return fresh
                 }, retrying: {
@@ -706,7 +760,7 @@ import NearpaneOrdinaryWindowRuntime
                 "focusesTruncated": focuses.count > 64, "distinctFocusCount": Set(focuses).count]
         }
         step = "closing-roster"; reading = nil
-        guard let last = await feed.readAfterAction(), unchanged(),
+        guard let last = await feed.readAfterAction(within: metadata), unchanged(),
               let closing = try? await roster(last, access: access, rejected: {
                   rosterRejection = $0; rejectedRoster = last
               }, metrics: tracing ? { closingRosterMetrics = $0 } : nil, current: unchanged), unchanged(), closing.1 == keys,
