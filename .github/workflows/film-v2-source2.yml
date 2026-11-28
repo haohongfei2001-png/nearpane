@@ -1,10 +1,9 @@
 name: Nearpane film v2 second real player
 on:
   push:
-    branches: [creative/nearpane-film-v2-source2-20261128]
+    branches: [creative/nearpane-first-film-v2-20261128]
     paths:
       - Marketing/FirstFilmV2/source2/**
-      - .github/workflows/film-v2-source2.yml
   workflow_dispatch:
 permissions:
   contents: read
