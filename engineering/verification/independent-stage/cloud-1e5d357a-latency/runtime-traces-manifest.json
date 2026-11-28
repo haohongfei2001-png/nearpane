@@ -1,0 +1,213 @@
+{
+  "schema": 1,
+  "commit": "1e5d357a6649fc8afb64b97334769bc00eef9379",
+  "runID": 46109176116,
+  "purpose": "Unmodified selected original source and R4 evidence; excludes candidate binaries and large fixture trees.",
+  "members": [
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "770edd4b30673824a93799ee3cf068c44bcc1d33e60f0a0dc715e692022e62ef"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "41f1644b27b974434cb7829f53d52e57451bdaf9fee2c6c4d6fdd027fd4e0f5e"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "7ce328e8f25099f75f2ea35402e7325a46e77dc674f7ff0e90af97ca3145344c"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 348714,
+      "sha256": "ee4cf3cf4c7d7ea463e5ac19f3a17a2b109fca3637bb220c7a7ca3479e57cded"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 961,
+      "sha256": "9b7a405662bd6094712da51f0afc59831bca555134ff0cdfdde5e56298287a0d"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 94,
+      "sha256": "9e3cf962453383bf8227c0e329d7625d38be05c58633d0c7ca7751479a7acf09"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 1044,
+      "sha256": "7aa8ed6bfee643abc124b348ee6c1ea8da401196fb5634d7ef1d2b81ecb01542"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/host-selection-preparation-main-thread.sample.txt",
+      "bytes": 216790,
+      "sha256": "7aeed4cb6d68ede2b2bbf65168afffec097078091a23749a77a2abf326fd69a5"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 492,
+      "sha256": "72ab448213f774b3250ffb4a9086fc0010b07c609a1a9386a925c35f5b6deb85"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/host-startup-main-thread.sample.txt",
+      "bytes": 204663,
+      "sha256": "4cb3ebc92d2bd8296dcb99c7470f4a14b46ccb1151661f5a1cec1b44fb733163"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-b4900421-1812-4666-80ed-392bd1848a14.jsonl",
+      "bytes": 63900,
+      "sha256": "d6be4417b3aa65602f491d63157b080e14c830d5f94093f25b78affdc723977f"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product/r4-press-de65c0be-b198-436c-800b-c558ceb1bfba.result.json",
+      "bytes": 3682,
+      "sha256": "ba05dffbb8505e8136a8529d003629a64e17a0f38be0661bfdb63f1624edb557"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/product.stderr.log",
+      "bytes": 87820,
+      "sha256": "f143c67175fb5be6c16e3e0e0ba7589bfc417d1ccc01e36fee62c90ad91d7f83"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/runtime/summary.json",
+      "bytes": 29565,
+      "sha256": "2c658bed6dadd105eb67740a1570d13adb35289fe7e94259fe654a6160698332"
+    },
+    {
+      "path": "1e5d/fast/independent-runtime/summary.json",
+      "bytes": 32079,
+      "sha256": "911577d439c28d75bb311cb5e1fa4655b5aff6ce496c924768ad28ab4bf63b85"
+    },
+    {
+      "path": "1e5d/full/Nearpane-independent-candidate.json",
+      "bytes": 187,
+      "sha256": "879417c124ceae5f1e3a428fee6779d46f5858dd007be7a72cae710b0cf0d7ba"
+    },
+    {
+      "path": "1e5d/full/Nearpane-independent-candidate.sha256",
+      "bytes": 126,
+      "sha256": "c404dfd95121d95414b229554abcb61e85aca55285845eb1141c6b177345b649"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/FixtureB/state.json",
+      "bytes": 444,
+      "sha256": "a3b325d3badc503a2b1e9a3320d10ced927788027849971950df617489f563c1"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/config.json",
+      "bytes": 1926,
+      "sha256": "720f0a51daa0649533d916f2ddbf7e1318a4a2faae84a9c72b1224e196527c6f"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/engine-result.json",
+      "bytes": 4453,
+      "sha256": "03b7097889fff84582072c1fd9e125e396570f3763ea77bc247a37c2f7c0ad48"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/engine.stderr.log",
+      "bytes": 344223,
+      "sha256": "cf431955d6a2da23f8bd7d690e54085d64aee0279e3aac9fb36341178271c46a"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/fixture-cleanup.json",
+      "bytes": 117,
+      "sha256": "c977e9cbc47a77047d95134f4c995010c04abe3b5f7a09d8f1e22513cb566198"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/product/host-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/product/host-read-queue-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/product/host-selection-preparation-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/product/host-startup-main-thread-sample.json",
+      "bytes": 87,
+      "sha256": "3bb34de4dbae3dc9eb150f1e5098028ae550883ea38812dbbf79ecd2ca40adda"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/product/profile/Nearpane/spaces-worker-ca06c7dc-52f9-45b5-a809-fe1f38eb8a4b.jsonl",
+      "bytes": 570,
+      "sha256": "f202f8ce37e9e714ae820ae1aa69dfb2c36c6e78a2e5b53f42cca55f2fb4bfc9"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/product/r4-press-939458c2-db36-45a4-80a7-9b3117b68984.result.json",
+      "bytes": 3682,
+      "sha256": "32c4b54213b0c8f00eb1354619ded8e5254e23adac67c5e4532dfc01ecb89fd2"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/product.stderr.log",
+      "bytes": 75316,
+      "sha256": "634a7ae7ded5f49179ccaa44192e2deb1bc1e8363bae460914675a269c973c2d"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/runtime/summary.json",
+      "bytes": 29703,
+      "sha256": "d9120dc8e044124dc3261fb894fefa53a152f84fe0863c8a0df6c357eba87705"
+    },
+    {
+      "path": "1e5d/full/independent-runtime/summary.json",
+      "bytes": 32212,
+      "sha256": "603cfdce2091ac78b8e4d8c1337b4c2509460649a7efbec08cc020c9865d5432"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/binding-attributes-build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/binding-attributes.log",
+      "bytes": 69,
+      "sha256": "7983dd2c5277ed7155618e178ce2924277566cc27d5ac75be9de11b727acd286"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/read-only-context.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/rust.log",
+      "bytes": 17086,
+      "sha256": "316b3dc9a0a9a7acfe96827a8ca79813cda77ed59ab053b2d1196b65d05a46d8"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/summary.json",
+      "bytes": 1921,
+      "sha256": "2b4b9dd85811eaf779ca4ded795b4fe6be57511c6ebc5c6fa8b652ff597cb4bb"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/swift.log",
+      "bytes": 63164,
+      "sha256": "de1ed45153a19b0140203efdab4177d3a08475c4367bdbc2a8cb2dee8493d305"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/swift.stderr.log",
+      "bytes": 238720,
+      "sha256": "0bdfd2dc7bcd41215bae589a16ad9d4bf2057f683516b83b46b96c4a639fe2f1"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/swift.xml",
+      "bytes": 41532,
+      "sha256": "ebd0b5a85ba84e19e49bd4dd6aaa8780e6fd22f29a0f9b7a8932e749a282f8f2"
+    },
+    {
+      "path": "1e5d/full/independent-source/source/windowserver-context.json",
+      "bytes": 1990,
+      "sha256": "b4beeb9c1ca1208a16df210d57f7cc00eee7a6a51a5523a64f13b75a9e68fd32"
+    }
+  ]
+}

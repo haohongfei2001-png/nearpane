@@ -765,6 +765,7 @@ import NearpaneOrdinaryWindowRuntime
                 return unchangedInput
             }
             guard let witness = StageWindowEngineWitness(feed:feed,scope:scope,snapshot:snapshot,authorized:approval.lifetimes,
+                initialSelectionCurrent: permitted,
                 available:environmentCurrent,restoreAvailable:restore,
                 availabilityRejection: { restoring in restoring ? restoreRejection : environmentRejection }) else {
                 SpacesWorkerLifecycle.trace("group-choice-witness-rejected", ["lifetimes": approval.lifetimes.count]); return nil

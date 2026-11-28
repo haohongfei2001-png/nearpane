@@ -284,6 +284,12 @@ candidate archive and original receipts. A source failure or an attempted behavi
 failure fails the job. A missing runtime prerequisite is retained as `BLOCKED`,
 so a green compile cannot be read as foreign-window or product acceptance.
 
+Ordinary full and fast CI runs disable external Host stack sampling; the existing
+native phase traces remain enabled. The manual `sample_fast_host` workflow input
+can explicitly enable bounded stack sampling in the fast lane. Profiling runs
+record that extra observation mode and may perturb queue/callback timing; their
+short-sample latencies are not interchangeable with unsampled release results.
+
 After the independent-window work, CI always collects the read-only native
 Stage Manager inventory. Only positively confirmed cleanup permits the two
 sequential native edge experiments (`AutoHide` and zero strip rows). Each has

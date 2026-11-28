@@ -20,6 +20,7 @@ import NearpaneOrdinaryWindowRuntime
     let scope: StageGroupScope
     let generation = UUID()
     private let available: @MainActor () -> Bool, restoreAvailable: @MainActor () -> Bool
+    private var initialSelectionCurrent: (@MainActor () -> Bool)?
     private let availabilityRejection: @MainActor (Bool) -> [String: Any]?
     private let authorizedLifetimes: [NativeSpaceWindow: UUID]
     private var leases: [NativeSpaceWindow: OrdinaryFileLease]
@@ -85,6 +86,7 @@ import NearpaneOrdinaryWindowRuntime
     private var arrivalWatch: ArrivalWatch?, arrivalAttempt: NativeSpaceWindow?, arrivalEpoch: UInt64 = 0
 
     init?(feed: CurrentDesktopWindows, scope: StageGroupScope, snapshot: DesktopSnapshot, authorized: [NativeSpaceWindow: UUID],
+          initialSelectionCurrent: @escaping @MainActor () -> Bool,
           available: @escaping @MainActor () -> Bool, restoreAvailable: @escaping @MainActor () -> Bool,
           availabilityRejection: @escaping @MainActor (Bool) -> [String: Any]? = { _ in nil }) {
         guard let physical = snapshot.displays.first(where: { UUID(uuidString:$0.id) == scope.display }),
@@ -98,6 +100,7 @@ import NearpaneOrdinaryWindowRuntime
         self.feed = feed; self.scope = scope; self.session = snapshot.sessionID; display = physical.id
         topology = snapshot.topologyFingerprint
         self.available = available; self.restoreAvailable = restoreAvailable
+        self.initialSelectionCurrent = initialSelectionCurrent
         self.availabilityRejection = availabilityRejection
     }
 
@@ -233,6 +236,72 @@ import NearpaneOrdinaryWindowRuntime
         Self.homeCatalog(snapshot, display: display, space: scope.nativeSpace, session: session, topology: topology, rejected: rejected)
     }
 
+    struct InitialReadState {
+        var sequence: UInt64 = 0
+        var bindings = 0, claims = 0
+        var enrolled = false, specialized = false
+        var allowsRetry: Bool { sequence == 0 && bindings == 0 && claims == 0 && !enrolled && !specialized }
+    }
+
+    /// One new directory before the first enrollment only. The failed directory
+    /// supplies negative/context evidence; none of its rows is repaired or bound.
+    static func initialOpeningDirectory(_ first: DesktopSnapshot, display: String, scope: StageGroupScope,
+                                        session: UUID, topology: String, authorized: Set<NativeSpaceWindow>,
+                                        state: @MainActor () -> InitialReadState, current: @MainActor () -> Bool,
+                                        read: @MainActor () async -> DesktopSnapshot?,
+                                        clock: @MainActor () -> (date: Date, uptime: Double) = { (.now, ProcessInfo.processInfo.systemUptime) },
+                                        retrying: @MainActor () -> Void = {}) async throws -> DesktopSnapshot {
+        guard state().allowsRetry, first.native?.catalogComplete == false,
+              let issues = first.native?.catalogIssues, issues.count < 32,
+              issues.filter({ $0 == "windowRosterChanged" }).count == 1 else { return first }
+        let authorizedNumbers = Set(authorized.map(\.number))
+        for issue in issues where issue != "windowRosterChanged" {
+            let prefix = "windowIdentityOrBounds:pid="
+            guard issue.hasPrefix(prefix) else { return first }
+            let parts = String(issue.dropFirst(prefix.count)).components(separatedBy: ",window=")
+            guard parts.count == 2, let pid = Int32(parts[0]), pid > 1, let number = UInt32(parts[1]), number > 0,
+                  issue == "\(prefix)\(pid),window=\(number)", !authorizedNumbers.contains(number) else { return first }
+        }
+        let checked = clock()
+        guard !authorized.isEmpty, authorized.count <= 64, UUID(uuidString: display) == scope.display,
+              first.sessionID == session, first.topologyFingerprint == topology, first.native?.stageManagerEnabled == false,
+              let opening = NativeSpaceCatalog(first, displayID: display, now: checked.date, uptime: checked.uptime),
+              opening.current.ordinaryUUID == scope.nativeSpace else { return first }
+        func identities(_ snapshot: DesktopSnapshot) -> [UInt32: NativeSpaceWindow] {
+            Dictionary(uniqueKeysWithValues: snapshot.windows.compactMap { window in
+                DesktopWindowKey(window).map { ($0.number, NativeSpaceWindow(pid: $0.pid, birth: $0.birth, number: $0.number)) }
+            })
+        }
+        let before = identities(first)
+        let oldRows = Dictionary(uniqueKeysWithValues: first.windows.compactMap { w in w.metadata.map { ($0.number, w) } })
+        guard before.count == first.windows.count, authorized.allSatisfy({ key in
+            before[key.number] == key && oldRows[key.number]?.displayID == display &&
+                oldRows[key.number]?.membership == .known(recordIDs: [opening.current.id])
+        }) else { return first }
+        guard !Task.isCancelled, state().allowsRetry, current() else { throw StageSwitchError.interrupted }
+        retrying()
+        let boundary = clock()
+        guard let fresh = await read(), !Task.isCancelled, state().allowsRetry, current() else { throw StageSwitchError.interrupted }
+        let finished = clock()
+        guard fresh.sessionID == session, fresh.revision > first.revision,
+              fresh.topologyFingerprint == topology, fresh.displays == first.displays, fresh.scopes == first.scopes,
+              fresh.separateSpaces == first.separateSpaces, fresh.native?.stageManagerEnabled == false,
+              let native = fresh.native, native.catalogComplete == true, native.catalogIssues?.isEmpty != false,
+              fresh.sampledFrom > boundary.date, native.beganUptime > boundary.uptime,
+              let closing = NativeSpaceCatalog(fresh, displayID: display, now: finished.date, uptime: finished.uptime),
+              closing.current == opening.current else { throw StageSwitchError.incomplete }
+        let after = identities(fresh)
+        let newRows = Dictionary(uniqueKeysWithValues: fresh.windows.compactMap { w in w.metadata.map { ($0.number, w) } })
+        guard after.count == fresh.windows.count,
+              before.allSatisfy({ number, key in after[number].map { $0 == key } != false }),
+              authorized.allSatisfy({ key in
+                  after[key.number] == key && newRows[key.number]?.displayID == oldRows[key.number]?.displayID &&
+                      newRows[key.number]?.membership == oldRows[key.number]?.membership &&
+                      newRows[key.number]?.metadata?.globalFrame == oldRows[key.number]?.metadata?.globalFrame
+              }) else { throw StageSwitchError.ownership }
+        return fresh
+    }
+
     private func roster(_ snapshot: DesktopSnapshot, access: StageHostAccess,
                         rejected: (([String: Any]) -> Void)? = nil,
                         current: @MainActor () -> Bool) async throws -> (NativeSpaceCatalog,Set<NativeSpaceWindow>) {
@@ -364,10 +433,14 @@ import NearpaneOrdinaryWindowRuntime
     private func read(_ requested: StageGroupScope, owner: StageEngineOwner,
                       candidate: (NativeSpaceWindow, Binding)?, measured: (NativeSpaceWindow, SurfaceRect)? = nil) async throws -> StageWindowSample {
         let readStarted = ProcessInfo.processInfo.systemUptime
+        let initialAttempt = sequence == 0 && bindings.isEmpty && claims.isEmpty && self.owner == nil
         var step = "fresh-directory", reading: NativeSpaceWindow?, completed = false
         var guardRejection: [String: Any]?, observationPhase: String?
         var rosterRejection: [String: Any]?, rejectedRoster: DesktopSnapshot?
         defer {
+            // This predicate belongs to one initial selection, not the lifetime
+            // of the subsequently enrolled owner or any later selection.
+            if initialAttempt { initialSelectionCurrent = nil }
             if !completed {
                 var facts: [String: Any] = ["step": step,
                     "pid": reading?.pid ?? 0, "window": reading?.number ?? 0,
@@ -386,8 +459,8 @@ import NearpaneOrdinaryWindowRuntime
             }
         }
         guard let feed, requested == scope, permits(owner,restoring:false) || permits(owner,restoring:true),
-              let first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
-        let directoryReady = ProcessInfo.processInfo.systemUptime
+              var first = await feed.readAfterAction() else { throw StageSwitchError.unavailable }
+        var directoryReady = ProcessInfo.processInfo.systemUptime
         step = "host-access"
         let access = try hostAccess ?? StageHostAccess(expectedCDHash: owner.environment.hostCDHash)
         hostAccess = access
@@ -413,6 +486,27 @@ import NearpaneOrdinaryWindowRuntime
             if let facts = ordinary.rejection { guardRejection?["ordinary"] = facts }
             if let facts = restoring.rejection { guardRejection?["restoring"] = facts }
             return false
+        }
+        if initialAttempt, candidate == nil, measured == nil, first.native?.catalogComplete == false {
+            first = try await Self.initialOpeningDirectory(first, display: display, scope: scope, session: session,
+                topology: topology, authorized: Set(authorizedLifetimes.keys), state: {
+                    .init(sequence: self.sequence, bindings: self.bindings.count, claims: self.claims.count,
+                          enrolled: self.owner != nil || self.home != nil || self.enrolledTopology != nil,
+                          specialized: self.releaseInput != nil)
+                }, current: {
+                    unchanged() && self.initialSelectionCurrent?() == true && self.authorizedLifetimes.allSatisfy { key, lifetime in
+                        feed.groupLifetime(of: .init(pid: key.pid, birth: key.birth, number: key.number)) == lifetime
+                    }
+                }, read: {
+                    let fresh = await feed.readAfterAction()
+                    if let fresh { rejectedRoster = fresh }
+                    return fresh
+                }, retrying: {
+                    step = "initial-opening-directory-retry"
+                    rejectedRoster = first
+                    IndependentStageTrace.record("witness-initial-directory-retry", ["revision": first.revision, "sequence": self.sequence])
+                })
+            directoryReady = ProcessInfo.processInfo.systemUptime
         }
         step = "opening-roster"
         let (opening,keys) = try await roster(first, access: access, rejected: {

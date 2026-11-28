@@ -4,7 +4,18 @@ Branch: `pro/independent-stage-engine-20261126` · [Draft PR #16](https://github
 Base: PR #15 at `6ac5eb63c97b7597e662770bac485be61f571bb8` (rechecked; unchanged).
 The [single product/technical decision](../../research/NEARPANE-INDEPENDENT-STAGE-DECISION.md) governs this work.
 
-## Current R4 latency checkpoint: 5e3a7ea4
+## Current source/runtime checkpoint: 1e5d357a
+
+Exact-source validation passes **180 Rust, 248 Swift (one existing skip), and
+25 native AX decoder checks**; the complete application and strict signature
+pass. Both R4 lanes receive one real input and confirm zero switches: full
+rejects an inconsistent opening roster before binding, while sampled fast loses
+dispatch after delayed Dock callbacks. Neither reaches managed-window HIDE/SHOW.
+Both cleanups and independent two-home reads pass; release remains unqualified.
+
+[Original 1e5d source/runtime evidence and the distinct initial-read failures](cloud-1e5d357a-latency/README.md).
+
+## Earlier R4 latency checkpoint: 5e3a7ea4
 
 The complete, unsampled release candidate confirms its first actual R4 selection in
 **1906.94 ms**, versus **4798.33 ms** for the corresponding d614f58d step. Its second
