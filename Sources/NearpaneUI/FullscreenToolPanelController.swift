@@ -63,6 +63,7 @@ private struct ToolPresentation: Equatable {
     private let display = SurfaceDisplay()
     private var material: PanelGlassMaterial?
     private var presentedLayout: SurfaceLayout?
+    private var presentedNotesHeight: Double?
 
     public init(host: HostSession, domains: EmbeddedModules?) {
         self.host = host
@@ -130,14 +131,31 @@ private struct ToolPresentation: Equatable {
                     backdrop.topAnchor.constraint(equalTo: container.topAnchor, constant: -FullscreenWorkspaceLayout.headerHeight)
                 ])
                 presentedLayout = workspace.content
-                display.updateMaterial = { [weak self, weak backdrop] layout in
+                display.updateMaterial = { [weak self, weak backdrop] layout, notesHeight in
                     guard let self, let backdrop, binding == generation, state?.expanded != nil else { return }
+                    let extentChanged = presentedLayout?.contentHeight != layout.contentHeight || presentedNotesHeight != notesHeight
                     presentedLayout = layout
+                    presentedNotesHeight = notesHeight
                     backdrop.configure(size: backdrop.bounds.size, layout: layout,
                                        settings: host.panelPresentationSettings(on: next.display))
+                    if extentChanged {
+                        // Refine the existing temporary surface as a note grows or
+                        // collapses, retaining its editor, focus and domain instance.
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self, binding == generation, dragOrigin == nil,
+                                  let screen = self.screen, let domains = self.domains,
+                                  state?.expanded != nil, permitted?() == true else { return }
+                            let settings = host.panelPresentationSettings(on: screen.id)
+                            guard let workspace = self.workspace(on: screen, settings: settings, domains: domains),
+                                  let frame = settings.fullscreenToolFrame(on: screen, expanded: true, count: 1,
+                                      confirmedControls: controls, workspace: workspace),
+                                  window?.frame != frame.nsRect else { return }
+                            window?.setFrame(frame.nsRect, display: true)
+                        }
+                    }
                 }
             } else {
-                material = nil; presentedLayout = nil; display.updateMaterial = nil
+                material = nil; presentedLayout = nil; presentedNotesHeight = nil; display.updateMaterial = nil
             }
             container.addSubview(content)
             NSLayoutConstraint.activate([
@@ -194,7 +212,8 @@ private struct ToolPresentation: Equatable {
         FullscreenWorkspaceLayout(on: screen, settings: settings,
             enabledModuleIDs: host.registry.preferences.filter(\.enabled).map(\.id),
             pinnedCount: host.registry.pinnedModules.count, expandedSample: host.registry.expandedID != nil,
-            voiceCompact: domains.voiceCompact, trayRows: domains.trayRowCount, lyricsHeight: domains.lyricsHeight)
+            voiceCompact: domains.voiceCompact, trayRows: domains.trayRowCount, lyricsHeight: domains.lyricsHeight,
+            notesHeight: domains.notebook.sidebarHeight(width: WorkbenchVisualPolicy.width(in: screen.visibleFrame.width, settings: settings)))
     }
 
     private func isCurrent(_ binding: UUID) -> Bool {
@@ -212,7 +231,7 @@ private struct ToolPresentation: Equatable {
         (window as? ToolPanel)?.withdrawEditing()
         window?.orderOut(nil)
         window?.contentView = nil
-        material = nil; presentedLayout = nil
+        material = nil; presentedLayout = nil; presentedNotesHeight = nil
         state = nil; screen = nil; controls = []; dragOrigin = nil
         requestOpen = nil; requestClose = nil; permitted = nil
     }

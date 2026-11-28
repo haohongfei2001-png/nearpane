@@ -108,6 +108,9 @@ import NearpaneCore
         _ = NSApplication.shared
         let host = HostSession(store: MemoryConfigurationStore(), includeSampleModules: false)
         await host.start()
+        // This roster fixture supplies no notebook domain. Keep its original,
+        // explicitly varied voice/tray/clock combinations independent of presets.
+        host.handle(.setEnabled(BuiltinCatalog.memo, false))
         let controller = EdgeWindowController(host: host)
         defer { controller.close(); host.stop() }
         let frame = SurfaceRect(width: 1800, height: 1440)

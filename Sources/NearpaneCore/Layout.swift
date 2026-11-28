@@ -87,7 +87,7 @@ public enum LayoutComposer {
     public static func compose(width: Double, height: Double, pinnedCount: Int, expanded: Bool,
                                settings: DisplaySettings = .init(), content: PanelContent = .full,
                                voiceEnabled: Bool = true, trayEnabled: Bool = true, referenceHeight: Double? = nil,
-                               voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0,
+                               voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0, notesHeight: Double = 128,
                                toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots]) -> SurfaceLayout {
         let w = width.isFinite ? max(0, width) : 0
         let h = height.isFinite ? max(0, height) : 0
@@ -127,8 +127,8 @@ public enum LayoutComposer {
                 preferred = hasTools && w >= 176 && lyricsHeight.isFinite
                     ? max(0, min(192, lyricsHeight)) : 0
                 minimum = preferred
-            case BuiltinCatalog.memo, BuiltinCatalog.tasks:
-                preferred = hasTools ? 128 : 0
+            case BuiltinCatalog.memo:
+                preferred = hasTools && notesHeight.isFinite ? max(44, min(280, notesHeight)) : 0
                 minimum = min(preferred, 72)
             case BuiltinCatalog.clock:
                 preferred = hasTools ? 40 : 0
@@ -189,7 +189,7 @@ public enum LayoutComposer {
         case BuiltinCatalog.screenshots:
             minimum = max(76, 2 * settings.points(.trayPadding, in: width) +
                           2 * settings.points(.trayButtonSize, in: preferred) + settings.points(.rowGap, in: preferred))
-        case BuiltinCatalog.memo, BuiltinCatalog.tasks: minimum = 72
+        case BuiltinCatalog.memo: minimum = 72
         default: minimum = preferred
         }
         return min(preferred, minimum)

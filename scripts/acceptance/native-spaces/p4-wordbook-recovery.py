@@ -44,8 +44,13 @@ def frozen_seed(kit):
     seed = json.loads(plain(kit / "seed.json"))
     data = plain(kit / "seed-notebook.json")
     row = json.loads(data)
-    require(row.keys() == {"words", "tasks", "calculation", "memo"} and row["tasks"] == [] and
-            row["calculation"] == row["memo"] == "" and isinstance(row["words"], list) and len(row["words"]) == 1,
+    legacy_empty = (row.keys() == {"words", "tasks", "calculation", "memo"} and
+                    row["tasks"] == [] and row["calculation"] == row["memo"] == "")
+    unified_empty = (row.keys() in ({"schemaVersion", "records", "calculation", "words"},
+                                   {"schemaVersion", "records", "activeRecordID", "calculation", "words"}) and
+                     row["schemaVersion"] == 2 and row["records"] == [] and
+                     row.get("activeRecordID") is None and row["calculation"] == "")
+    require((legacy_empty or unified_empty) and isinstance(row["words"], list) and len(row["words"]) == 1,
             "Notebook fixture must contain only the disclosed word")
     word = row["words"][0]
     require(set(word) == {"id","source","translation","language","sourceLanguage","providerVersion","committedAt","requestID","sourceSHA256"}

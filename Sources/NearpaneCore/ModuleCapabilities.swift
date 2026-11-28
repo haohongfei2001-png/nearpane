@@ -19,8 +19,7 @@ extension ModuleManifest {
         switch id {
         case BuiltinCatalog.voice: .init(library: .voice)
         case BuiltinCatalog.screenshots: .init(library: .screenshots)
-        case BuiltinCatalog.memo: .init(library: .notes)
-        case BuiltinCatalog.tasks: .init(library: .tasks)
+        case BuiltinCatalog.memo, BuiltinCatalog.tasks: .init(library: .notes)
         default: .init()
         }
     }
@@ -31,8 +30,7 @@ extension ModuleManifest {
         case BuiltinCatalog.screenshots: "收录截图，点按附加或拖入正在使用的应用。"
         case BuiltinCatalog.desktop: "在侧栏查看、切换和组合当前桌面的窗口。"
         case BuiltinCatalog.lyrics: "跟随音乐显示歌词，暂停后仍可就地继续播放。"
-        case BuiltinCatalog.memo: "随手记下想法，保留工作中的片段。"
-        case BuiltinCatalog.tasks: "记下下一步，在工作现场勾选完成。"
+        case BuiltinCatalog.memo, BuiltinCatalog.tasks: "记下想法与灵感，也把下一步留在手边。"
         case BuiltinCatalog.clock: "查看当地或指定时区的时间。"
         default: name
         }

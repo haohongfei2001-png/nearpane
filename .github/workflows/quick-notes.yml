@@ -1,0 +1,110 @@
+name: Quick Notes native acceptance
+on:
+  push:
+    branches: [feature/quick-notes]
+    paths-ignore: ['**/*.md', 'docs/verification/**', 'website/**']
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/quick-notes.yml'
+      - 'Sources/**'
+      - 'Tests/**'
+      - 'Package.swift'
+      - 'Dependencies/**'
+      - 'scripts/acceptance/quick-notes/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: quick-notes-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  host:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Identify native toolchain
+        id: toolchain
+        run: |
+          python3 - <<'PY'
+          import hashlib, os, subprocess
+          tools = subprocess.check_output(['xcrun', 'swift', '--version']) + subprocess.check_output(['xcode-select', '-p'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('fingerprint=' + hashlib.sha256(tools).hexdigest()[:16] + '\n')
+          PY
+      - name: Restore verified dependency and native build caches
+        id: native-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-${{ github.sha }}
+          restore-keys: |
+            workbench-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.toolchain.outputs.fingerprint }}-${{ hashFiles('Package.swift', '**/Package.resolved', 'Dependencies/**', '**/Cargo.lock') }}-
+      - name: Run complete product test suite
+        env:
+          NEARPANE_ROSTER_SAMPLE_DIR: ${{ github.workspace }}/build/quick-notes-evidence/current-render-samples
+        run: |
+          mkdir -p "$NEARPANE_ROSTER_SAMPLE_DIR"
+          set -o pipefail
+          bash scripts/test.sh --no-parallel 2>&1 | tee build/quick-notes-evidence/swift-tests.log
+      - name: Preserve complete source diagnostics
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() }}
+        with:
+          name: Nearpane-quick-notes-source-diagnostics
+          path: build/quick-notes-evidence
+          if-no-files-found: warn
+      - name: Compile and verify complete packaged Host
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p build/quick-notes-evidence
+          set -o pipefail
+          bash scripts/build-app.sh debug 2>&1 | tee build/quick-notes-evidence/build.log
+          python3 -B scripts/verify-packages.py build/debug/Nearpane.app 2>&1 | tee build/quick-notes-evidence/package-verification.log
+      - name: Exercise existing native workbench regression suite
+        if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
+        run: python3 -B scripts/acceptance/unified-workbench/run.py build/debug/Nearpane.app
+      - name: Exercise Quick Notes native input, screenshots and process recovery
+        if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
+        run: python3 -B scripts/acceptance/quick-notes/run.py build/debug/Nearpane.app
+      - name: Archive build candidate without publishing
+        if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
+        run: |
+          ditto -c -k --keepParent build/debug/Nearpane.app Nearpane-quick-notes-candidate.zip
+          shasum -a 256 Nearpane-quick-notes-candidate.zip > build/quick-notes-evidence/candidate.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() && hashFiles('Nearpane-quick-notes-candidate.zip') != '' }}
+        with:
+          name: Nearpane-quick-notes-candidate
+          path: Nearpane-quick-notes-candidate.zip
+          if-no-files-found: error
+      - name: Preserve incremental compilation
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        if: ${{ !cancelled() && steps.native-cache.outputs.cache-hit != 'true' }}
+        with:
+          path: |
+            .build/native
+            .build/app-native
+            .build/cache
+            .build/domain-cache-v1
+            .build/update-runtime
+            .build/window-engine
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+      - name: Preserve all native evidence including failures
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Nearpane-quick-notes-evidence
+          path: |
+            build/quick-notes-evidence
+            build/unified-workbench-evidence
+          if-no-files-found: warn

@@ -80,7 +80,17 @@ public final class EmbeddedModules {
     }
     public func desktopWindowsChanged() { windowPreviews.currentDesktop?.changed() }
 
+    /// A healthy notebook needs no extra work or confirmation. A failed automatic
+    /// save must succeed before its in-memory draft can be released by the Host.
+    @discardableResult public func prepareNotebookShutdown() -> Bool {
+        NotebookTextEditor.finishMarkedText()
+        return !notebook.hasUnsavedChanges || notebook.retrySave()
+    }
+
     @MainActor public func updateRelaunchBlock() async -> String? {
+        guard prepareNotebookShutdown() else {
+            return "随手记还有未保存的内容。请在仓库中重试保存后，再继续安装。"
+        }
         #if canImport(NearpaneVoice)
         if await tray.updateRequiresTrayToFinish() { return "请等待截图或草稿附加操作结束，再继续安装。" }
         if voice.updateRequiresVoiceToFinish { return "请先暂停收音，并等待语音处理或播放结束，再继续安装。" }
@@ -121,7 +131,7 @@ public final class EmbeddedModules {
 
     public var factories: [String: @MainActor () -> any HostModule] {
         var result: [String: @MainActor () -> any HostModule] = [
-            BuiltinCatalog.memo: { NotebookModule() }, BuiltinCatalog.tasks: { NotebookModule() }
+            BuiltinCatalog.memo: { NotebookModule() }
         ]
         #if canImport(NearpaneVoice)
         result[BuiltinCatalog.screenshots] = { [tray] in tray }

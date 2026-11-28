@@ -107,7 +107,6 @@ public struct SettingsView: View {
                     pageHeader
                     content
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .accessibilityIdentifier("main-content-" + navigation.page.rawValue)
                 }
                 .frame(width: max(0, bounds.size.width - sidebarWidth), height: bounds.size.height)
                 .background(Color(nsColor: .windowBackgroundColor))
@@ -156,7 +155,7 @@ public struct SettingsView: View {
                                 .padding(.horizontal, 10)
                         }
                     case .library:
-                        navigationGroup(pages: [.voiceArchive, .screenshotArchive, .memoArchive, .tasksArchive, .wordArchive])
+                        navigationGroup(pages: [.voiceArchive, .screenshotArchive, .memoArchive, .wordArchive])
                     case .settings:
                         navigationGroup(pages: [.general, .dimensions, .displays, .permissions, .data, .app, .diagnostics])
                     }
@@ -290,7 +289,8 @@ public struct SettingsView: View {
         SettingsPage.allCases.filter { page in
             switch page {
             case .voice, .tray, .voiceArchive, .screenshotArchive: return hasDomains
-            case .memoArchive, .tasksArchive, .wordArchive: return domains != nil
+            case .memoArchive, .wordArchive: return domains != nil
+            case .tasksArchive: return false
             case .lyrics:
                 #if canImport(NearpaneLyricsModule)
                 return domains?.lyrics != nil
@@ -340,7 +340,7 @@ public struct SettingsView: View {
             #endif
         case .memoArchive, .tasksArchive, .wordArchive:
             if let notebook = domains?.notebook {
-                NotebookLibraryView(notebook: notebook, kind: navigation.page == .memoArchive ? .notes : navigation.page == .tasksArchive ? .tasks : .vocabulary)
+                NotebookLibraryView(notebook: notebook, kind: navigation.page == .wordArchive ? .vocabulary : .notes, navigation: navigation)
                     .id(navigation.page)
             }
         case .permissions: permissions
@@ -513,7 +513,7 @@ public struct SettingsView: View {
     private var dataManagement: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                Text("语音、截图、备忘录与待办保存在当前 Nearpane 资料中。停用模块不会清除这些内容。")
+                Text("语音、截图与随手记保存在当前 Nearpane 资料中。停用模块不会清除这些内容。")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Button("打开仓库", action: navigation.showLibrary)
                 if let profileImport {

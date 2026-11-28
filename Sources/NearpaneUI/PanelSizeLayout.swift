@@ -9,7 +9,7 @@ struct PanelSizeLayout {
 
     init?(settings: DisplaySettings, screen: ScreenGeometry, edge: SurfaceEdge,
           content: PanelContent, voice: Bool, tray: Bool, floating: Bool,
-          toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots], voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0,
+          toolOrder: [String] = [BuiltinCatalog.voice, BuiltinCatalog.screenshots], voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0, notesHeight: Double = 128,
           pinnedCount: Int = 0, expanded: Bool = false) {
         guard let full = settings.panel(on: screen, fallbackEdge: edge) else { return nil }
         referenceHeight = full.height
@@ -20,7 +20,7 @@ struct PanelSizeLayout {
         if content == .toolsOnly {
             let layout = LayoutComposer.compose(width: full.width, height: full.height, pinnedCount: pinnedCount,
                 expanded: expanded, settings: settings, content: content, voiceEnabled: voice, trayEnabled: tray,
-                referenceHeight: full.height, voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: toolOrder)
+                referenceHeight: full.height, voiceCompact: voiceCompact, trayRows: trayRows, lyricsHeight: lyricsHeight, notesHeight: notesHeight, toolOrder: toolOrder)
             fittedHeight = min(full.height, layout.contentHeight)
         }
         let alwaysUseFullHeight = content != .toolsOnly &&
@@ -31,6 +31,6 @@ struct PanelSizeLayout {
         frame = rect
         form = settings.sizeForm(width: rect.width, height: rect.height, content: content, voice: voice, tray: tray,
                                  referenceHeight: full.height, voiceCompact: voiceCompact,
-                                 trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: toolOrder, pinnedCount: pinnedCount)
+                                 trayRows: trayRows, lyricsHeight: lyricsHeight, notesHeight: notesHeight, toolOrder: toolOrder, pinnedCount: pinnedCount)
     }
 }

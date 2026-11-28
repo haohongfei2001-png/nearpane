@@ -201,7 +201,7 @@ enum UnifiedWorkbenchAcceptance {
                 sidebar = edge
                 for (name, combination) in [
                     ("11-sidebar-voice-screenshots", Set([BuiltinCatalog.voice, BuiltinCatalog.screenshots])),
-                    ("12-sidebar-screenshots-notes", Set([BuiltinCatalog.screenshots, BuiltinCatalog.memo, BuiltinCatalog.tasks])),
+                    ("12-sidebar-screenshots-notes", Set([BuiltinCatalog.screenshots, BuiltinCatalog.memo])),
                     ("13-sidebar-screenshots", Set([BuiltinCatalog.screenshots]))
                 ] {
                     await enableOnly(combination)
@@ -328,7 +328,7 @@ enum UnifiedWorkbenchAcceptance {
         }
     }
 
-    private static func movePointer(to screenPoint: NSPoint) async -> Bool {
+    static func movePointer(to screenPoint: NSPoint) async -> Bool {
         guard let mainScreen = NSScreen.screens.first else { return false }
         let point = CGPoint(x: screenPoint.x, y: mainScreen.frame.maxY - screenPoint.y)
         guard CGWarpMouseCursorPosition(point) == .success,
@@ -367,15 +367,32 @@ enum UnifiedWorkbenchAcceptance {
                 // receive the query too. No coordinate click is dispatched.
                 var views = [view]
                 var hitTestRoots: [NSView] = []
+                var nativeControlCenters: [NSPoint] = []
                 while let candidate = views.popLast() {
                     guard candidate.window === window else { continue }
                     if candidate === view || candidate.accessibilityRole() == .group {
                         hitTestRoots.append(candidate)
                     }
+                    // A 24pt grid can miss a 20pt switch after a legitimate row
+                    // reorder. Query the measured native control center as well;
+                    // this only discovers its semantic AX node. Press still
+                    // requires the exact identifier and real enabled state.
+                    if candidate is NSControl, !candidate.isHiddenOrHasHiddenAncestor {
+                        let visible = candidate.visibleRect.intersection(candidate.bounds)
+                        if visible.width > 1 && visible.height > 1 {
+                            nativeControlCenters.append(window.convertPoint(toScreen:
+                                candidate.convert(NSPoint(x: visible.midX, y: visible.midY), to: nil)))
+                        }
+                    }
                     views.append(contentsOf: candidate.subviews)
                 }
                 let spacing: CGFloat = 24
                 for root in hitTestRoots {
+                    for point in nativeControlCenters {
+                        if let hit = root.accessibilityHitTest(point) {
+                            queue.append((hit as AnyObject, nil, "nativeControlCenterHitTest"))
+                        }
+                    }
                     let bounds = root.visibleRect.intersection(root.bounds)
                     for y in stride(from: bounds.minY + spacing / 2, to: bounds.maxY, by: spacing) {
                         for x in stride(from: bounds.minX + spacing / 2, to: bounds.maxX, by: spacing) {
@@ -427,7 +444,7 @@ enum UnifiedWorkbenchAcceptance {
                     ?? legacyValue(object, legacy) as? [Any] ?? []
                 queue.append(contentsOf: children.map { ($0 as AnyObject, index, selector) })
             }
-            if relation == "accessibilityHitTest" || relation == "accessibilityParent" {
+            if relation == "accessibilityHitTest" || relation == "nativeControlCenterHitTest" || relation == "accessibilityParent" {
                 if let nativeParent = objectValue(object, "accessibilityParent") {
                     queue.append((nativeParent as AnyObject, nil, "accessibilityParent"))
                 }
@@ -485,7 +502,7 @@ enum UnifiedWorkbenchAcceptance {
         return object.perform(selector, with: attribute)?.takeUnretainedValue()
     }
 
-    private static func press(_ identifier: String, in window: NSWindow, diagnostics output: URL) async throws -> Bool {
+    static func press(_ identifier: String, in window: NSWindow, diagnostics output: URL) async throws -> Bool {
         var rows: [AccessibilityNode] = []
         var actions: [[String: Any]] = []
         var dispatched = false
@@ -564,7 +581,154 @@ enum UnifiedWorkbenchAcceptance {
         try data.write(to: output.appendingPathComponent("ax-" + identifier + ".json"), options: .atomic)
     }
 
-    private static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {
+    /// Native text-system input after an AppKit mouse event reaches the shipping
+    /// NSTextView. A missing editor or unsuccessful focus cannot fall back to a
+    /// model write and still count as an interaction pass.
+    static func replaceText(_ text: String, identifier: String, in window: NSWindow,
+                            diagnostics output: URL) async throws -> Bool {
+        var editor: NSTextView?
+        for _ in 0..<20 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            var pending = window.contentView.map { [$0] } ?? []
+            while let view = pending.popLast() {
+                if let candidate = view as? NSTextView, candidate.isEditable,
+                   candidate.accessibilityIdentifier() == identifier || candidate.identifier?.rawValue == identifier {
+                    editor = candidate
+                    break
+                }
+                pending.append(contentsOf: view.subviews)
+            }
+            if editor != nil { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        var diagnostic: [String: Any] = ["identifier": identifier,
+            "evidenceKind": "AppKit mouse event and NSTextInputClient.insertText",
+            "windowNumber": window.windowNumber, "editorFound": editor != nil,
+            "directModelWrite": false]
+        guard let editor else {
+            let bytes = try JSONSerialization.data(withJSONObject: diagnostic, options: [.prettyPrinted, .sortedKeys])
+            try bytes.write(to: output.appendingPathComponent("input-" + identifier + ".json"), options: .atomic)
+            return false
+        }
+        let visible = editor.visibleRect.intersection(editor.bounds)
+        let point = editor.convert(NSPoint(x: visible.midX, y: visible.midY), to: nil)
+        let shown = window.isVisible && !editor.isHiddenOrHasHiddenAncestor && visible.width > 1 && visible.height > 1
+        diagnostic["nativeEditorVisible"] = shown
+        var receivedMouseDown = false
+        let monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            MainActor.assumeIsolated {
+                if event.window === window, let content = window.contentView,
+                   let hit = content.hitTest(content.convert(event.locationInWindow, from: nil)) {
+                    receivedMouseDown = hit === editor || hit.isDescendant(of: editor)
+                }
+            }
+            return event
+        }
+        defer { if let monitor { NSEvent.removeMonitor(monitor) } }
+        if shown {
+            window.orderFront(nil)
+            for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                if let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                    context: nil, eventNumber: 1, clickCount: 1, pressure: 1) {
+                    NSApp.postEvent(event, atStart: false)
+                }
+            }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        let focused = window.firstResponder === editor
+        diagnostic["editorFocusedAfterMouseDispatch"] = focused
+        diagnostic["nativeMouseDownHitEditor"] = receivedMouseDown
+        if shown && focused && receivedMouseDown {
+            editor.insertText(text, replacementRange: NSRange(location: 0, length: editor.string.utf16.count))
+            try await Task.sleep(for: .milliseconds(180))
+        }
+        let succeeded = shown && focused && receivedMouseDown && editor.string == text
+        diagnostic["nativeTextMatches"] = editor.string == text
+        diagnostic["passed"] = succeeded
+        let bytes = try JSONSerialization.data(withJSONObject: diagnostic, options: [.prettyPrinted, .sortedKeys])
+        try bytes.write(to: output.appendingPathComponent("input-" + identifier + ".json"), options: .atomic)
+        return succeeded
+    }
+
+    /// A native text-input-client composition, not a claim that a real system
+    /// Chinese input method or candidate window was exercised on this runner.
+    static func beginMarkedText(_ text: String, identifier: String, in window: NSWindow,
+                                diagnostics output: URL) throws -> Bool {
+        var pending = window.contentView.map { [$0] } ?? []
+        var editor: NSTextView?
+        while let view = pending.popLast() {
+            if let candidate = view as? NSTextView, candidate.isEditable,
+               candidate.accessibilityIdentifier() == identifier { editor = candidate; break }
+            pending.append(contentsOf: view.subviews)
+        }
+        var diagnostic: [String: Any] = ["identifier": identifier,
+            "evidenceKind": "NSTextInputClient.setMarkedText on the production editor",
+            "realSystemInputMethod": false, "editorFound": editor != nil]
+        let focused = editor.map { window.firstResponder === $0 } ?? false
+        var result = false
+        if let editor, focused {
+            let original = editor.string
+            editor.setMarkedText(text, selectedRange: NSRange(location: text.utf16.count, length: 0),
+                                 replacementRange: NSRange(location: original.utf16.count, length: 0))
+            result = editor.hasMarkedText() && editor.string == original + text
+            diagnostic["hasMarkedText"] = editor.hasMarkedText()
+            diagnostic["visibleTextMatches"] = editor.string == original + text
+        }
+        diagnostic["editorFocused"] = focused
+        diagnostic["passed"] = result
+        let bytes = try JSONSerialization.data(withJSONObject: diagnostic, options: [.prettyPrinted, .sortedKeys])
+        try bytes.write(to: output.appendingPathComponent("composition-" + identifier + ".json"), options: .atomic)
+        return result
+    }
+
+    /// Inspect real text layout and every native ancestor's clipping after the
+    /// normal content-driven resize has had a bounded opportunity to settle.
+    /// This never changes the window frame, scroll offset or record contents.
+    static func fullyVisibleTextEditors(_ identifiers: [String], in window: NSWindow,
+                                        diagnostics output: URL) async throws -> Bool {
+        var observations: [[String: Any]] = []
+        var passed = false
+        for attempt in 0..<25 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            var pending = window.contentView.map { [$0] } ?? []
+            var editors: [String: NSTextView] = [:]
+            while let view = pending.popLast() {
+                if let editor = view as? NSTextView, identifiers.contains(editor.accessibilityIdentifier()) {
+                    editors[editor.accessibilityIdentifier()] = editor
+                }
+                pending.append(contentsOf: view.subviews)
+            }
+            observations = identifiers.map { identifier in
+                guard let editor = editors[identifier], let manager = editor.layoutManager,
+                      let container = editor.textContainer else {
+                    return ["identifier": identifier, "present": false, "passed": false]
+                }
+                manager.ensureLayout(for: container)
+                let used = manager.usedRect(for: container).offsetBy(dx: editor.textContainerInset.width,
+                                                                    dy: editor.textContainerInset.height)
+                let visible = editor.visibleRect.intersection(editor.bounds)
+                let fits = window.isVisible && !editor.isHiddenOrHasHiddenAncestor &&
+                    used.width > 0 && used.height > 0 && visible.insetBy(dx: -1, dy: -1).contains(used)
+                return ["identifier": identifier, "present": true, "passed": fits,
+                        "usedTextRect": NSStringFromRect(used), "visibleRect": NSStringFromRect(visible),
+                        "nativeBounds": NSStringFromRect(editor.bounds), "attempt": attempt]
+            }
+            passed = observations.allSatisfy { $0["passed"] as? Bool == true }
+            if passed { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        let result: [String: Any] = ["passed": passed,
+            "evidenceKind": "Native NSLayoutManager usedRect and NSTextView visibleRect, including ancestor clipping",
+            "windowFrame": NSStringFromRect(window.frame), "editors": observations,
+            "frameOrScrollOverride": false]
+        let bytes = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        try bytes.write(to: output.appendingPathComponent("combined-text-visibility.json"), options: .atomic)
+        return passed
+    }
+
+    static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {
         guard let view = window.contentView else { throw Failure("Missing native content view.") }
         view.layoutSubtreeIfNeeded()
         window.displayIfNeeded()

@@ -71,6 +71,7 @@ public final class EdgeWindowController: NSWindowController {
     private var placement: (screen: ScreenGeometry, primary: String, content: PanelContent)?
     private var placementGeneration: UInt64 = 0
     private var presentedContentHeight: Double?
+    private var presentedNotesHeight: Double?
     private var savedPanelWidth: Measure?, savedPanelHeight: Measure?
     private var folded = false
     private var interactionHidden: Bool?
@@ -123,12 +124,14 @@ public final class EdgeWindowController: NSWindowController {
         ])
         panel.contentView = surface
         super.init(window: panel)
-        display.updateMaterial = { [weak self] layout in
+        display.updateMaterial = { [weak self] layout, notesHeight in
             guard let self, !folded, let placement, let size = window?.frame.size else { return }
-            if placement.content == .toolsOnly, presentedContentHeight != layout.contentHeight {
+            if placement.content == .toolsOnly,
+               presentedContentHeight != layout.contentHeight || presentedNotesHeight != notesHeight {
                 presentedContentHeight = layout.contentHeight
-                // The live voice session and a second tray row can change height without
-                // touching the stored display settings. Refit the same physical panel.
+                presentedNotesHeight = notesHeight
+                // A growing note can be compressed into the old viewport without
+                // changing layout.contentHeight. Refit from the intrinsic request.
                 place(on: placement.screen, primary: placement.primary, content: placement.content)
             }
             var settings = host.panelPresentationSettings(on: placement.screen.id)
@@ -223,6 +226,7 @@ public final class EdgeWindowController: NSWindowController {
                                            content: content, voice: voice, tray: tray, floating: floating,
                                            toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
                                            voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0,
+                                           notesHeight: modules?.notebook.sidebarHeight(width: config.panel(on: screen, fallbackEdge: host.configuration.edge)?.width ?? 240) ?? 44,
                                            pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count,
                                            expanded: host.registry.expandedID != nil) else {
             hasPlacement = false; hide(); return
@@ -248,7 +252,7 @@ public final class EdgeWindowController: NSWindowController {
                     open.sizeForm(width: frame.width, height: max(1, frame.height - PanelSizeMetrics.minimumSide),
                                   content: content, voice: voice, tray: tray, temporarilyExpanded: true,
                                   voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1,
-                                  lyricsHeight: modules?.lyricsHeight ?? 0, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
+                                  lyricsHeight: modules?.lyricsHeight ?? 0, notesHeight: modules?.notebook.sidebarHeight(width: frame.width) ?? 44, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id),
                                   pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count) == .full
                 }
                 while !fits(frame) && frame.width < limit {
@@ -325,7 +329,7 @@ public final class EdgeWindowController: NSWindowController {
             pinnedCount: display.secondary ? 0 : host.registry.pinnedModules.count, expanded: false,
             settings: config, content: content, voiceEnabled: voice, trayEnabled: tray, referenceHeight: referenceHeight,
             voiceCompact: modules?.voiceCompact ?? false, trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0,
-            toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
+            notesHeight: modules?.notebook.sidebarHeight(width: size.width) ?? 44, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
         material.configure(size: size, layout: materialLayout, settings: config)
         hasPlacement = true
     }

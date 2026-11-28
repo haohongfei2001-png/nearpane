@@ -12,7 +12,9 @@ private typealias ViewState<T> = State<T>
     var sizeForm: PanelSizeForm = .full
     var usesDefaultExpandedRim = false
     var interactionVisible = false
-    @ObservationIgnored var updateMaterial: ((SurfaceLayout) -> Void)?
+    // The intrinsic note request can grow while the current viewport compresses
+    // its allocated frame to the same size. Keep that request observable as well.
+    @ObservationIgnored var updateMaterial: ((SurfaceLayout, Double) -> Void)?
     @ObservationIgnored weak var pointer: WorkspacePointerRegistry?
 }
 

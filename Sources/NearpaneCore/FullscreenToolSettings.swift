@@ -38,7 +38,7 @@ public struct FullscreenWorkspaceLayout: Equatable, Sendable {
 
     public init?(on screen: ScreenGeometry, settings: DisplaySettings, enabledModuleIDs: [String],
                  pinnedCount: Int = 0, expandedSample: Bool = false,
-                 voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0) {
+                 voiceCompact: Bool = false, trayRows: Int = 1, lyricsHeight: Double = 0, notesHeight: Double = 128) {
         guard screen.visibleFrame.geometry.isValid else { return nil }
         let width = WorkbenchVisualPolicy.width(in: screen.visibleFrame.width, settings: settings)
         let maximum = min(720, screen.visibleFrame.height - 16)
@@ -49,7 +49,7 @@ public struct FullscreenWorkspaceLayout: Equatable, Sendable {
                 expanded: expandedSample, settings: settings, content: .toolsOnly,
                 voiceEnabled: order.contains(BuiltinCatalog.voice), trayEnabled: order.contains(BuiltinCatalog.screenshots),
                 referenceHeight: screen.visibleFrame.height, voiceCompact: voiceCompact,
-                trayRows: trayRows, lyricsHeight: lyricsHeight, toolOrder: order)
+                trayRows: trayRows, lyricsHeight: lyricsHeight, notesHeight: notesHeight, toolOrder: order)
         }
         let initial = compose(maximum - Self.headerHeight)
         guard initial.voice.height > 0 || initial.screenshots.height > 0 ||

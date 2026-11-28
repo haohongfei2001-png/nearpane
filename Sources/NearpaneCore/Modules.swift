@@ -31,23 +31,24 @@ public enum BuiltinCatalog {
     public static let voice = "com.holdsnow.nearpane.saytile"
     public static let screenshots = "com.holdsnow.nearpane.riftlet"
     public static let desktop = "com.holdsnow.nearpane.desktop"
+    /// The unified Notes module retains the original memo identity so saved placement stays meaningful.
     public static let memo = "com.holdsnow.nearpane.memo"
+    /// Migration and old deep links only; no separate task runtime is registered.
     public static let tasks = "com.holdsnow.nearpane.tasks"
     public static let lyrics = "com.holdsnow.nearpane.lyrictile"
     /// Non-Spaces content that can also participate in the primary tool surface.
-    public static let sidebarTools = [voice, screenshots, lyrics, memo, tasks, clock]
+    public static let sidebarTools = [voice, screenshots, lyrics, memo, clock]
     public static let notes = "com.holdsnow.nearpane.notes-sample"
     public static let clock = "com.holdsnow.nearpane.clock-sample"
     public static let calendar = "com.holdsnow.nearpane.calendar-sample"
     public static let manifests: [ModuleManifest] = [
         .init(id: voice, name: "Saytile", symbol: "mic", kind: .core, actions: [:]),
         .init(id: screenshots, name: "Riftlet", symbol: "photo", kind: .core, actions: [:]),
-        .init(id: desktop, name: "Spaces", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
         .init(id: lyrics, name: "LyricTile", symbol: "music.note", actions: [:]),
-        .init(id: memo, name: "备忘录", symbol: "note.text"),
-        .init(id: tasks, name: "待办", symbol: "checklist"),
-        .init(id: notes, name: "Notes sample", symbol: "note.text"),
+        .init(id: memo, name: "随手记", symbol: "note.text", actions: [:]),
         .init(id: clock, name: "时钟", symbol: "clock"),
+        .init(id: desktop, name: "Spaces", symbol: "rectangle.on.rectangle", kind: .core, actions: [:]),
+        .init(id: notes, name: "Notes sample", symbol: "note.text"),
         .init(id: "com.holdsnow.nearpane.tasks-sample", name: "Tasks sample", symbol: "checklist"),
         .init(id: calendar, name: "Calendar sample", symbol: "calendar", permissions: [.calendarRead], actions: [.refresh: [.calendarRead]]),
         .init(id: "com.holdsnow.nearpane.weather-sample", name: "Weather sample", symbol: "cloud.sun")
@@ -107,15 +108,19 @@ public final class ModuleRegistry {
         }
         manifests.append(manifest)
         factories[manifest.id] = factory
-        preferences.append(ModulePreference(id: manifest.id, enabled: manifest.kind == .core))
+        preferences.append(ModulePreference(id: manifest.id, enabled: manifest.kind == .core || manifest.id == BuiltinCatalog.memo))
         states[manifest.id] = .available
     }
 
     public func restore(_ saved: [ModulePreference]) {
-        let catalog = manifests.map { ModulePreference(id: $0.id, enabled: $0.kind == .core) }
+        // Only a new profile receives the current first-run preset. An upgrade without
+        // either old writing module must not silently acquire another enabled module.
+        let catalog = manifests.map {
+            ModulePreference(id: $0.id, enabled: $0.kind == .core || (saved.isEmpty && $0.id == BuiltinCatalog.memo))
+        }
         let known = Set(catalog.map(\.id))
         var seen: Set<String> = []
-        let restored = saved.filter { known.contains($0.id) && seen.insert($0.id).inserted }
+        let restored = QuickNotesModuleMigration.merge(saved).filter { known.contains($0.id) && seen.insert($0.id).inserted }
         let merged = restored + catalog.filter { !seen.contains($0.id) }
         // Registration kind is an adapter detail, never a product ordering boundary.
         // Upgrades retain the user's entire saved order and append only new modules.

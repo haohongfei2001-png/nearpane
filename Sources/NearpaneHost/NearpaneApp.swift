@@ -443,6 +443,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var passiveShutdownTimer: Timer?
     private var startupTask: Task<Void, Never>?
     private var terminationTask: Task<Void, Never>?
+    private var terminationCommitted = false
     private var updater: ApplicationUpdater?
     private var updateMenuObservation: AnyCancellable?
     // A passive material observation must not create a menu, move the pointer, or fall back to the main display.
@@ -906,6 +907,11 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // The existing termination owns the drain. A second terminate while AppKit is
         // waiting for our reply can bypass the remaining work.
         guard terminationTask == nil else { return .terminateLater }
+        guard modules?.prepareNotebookShutdown() != false else {
+            settingsNavigation.showNotebookLibrary()
+            showSettings()
+            return .terminateCancel
+        }
         terminationTask = Task {
             defer { DesktopOverviewShortcut.shared.refreshOwnership() }
             if let updater, !(await updater.permitsTermination()) {
@@ -928,18 +934,32 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 sender.reply(toApplicationShouldTerminate: false)
                 return
             }
+            #if canImport(SaytileKit)
+            if let profileSwitch { _ = await profileSwitch.result }
+            #endif
+            // Every awaited preparation above can yield back to an editor.
+            // Check after the last one, then retire all editing surfaces in the
+            // same MainActor turn before any remaining asynchronous cleanup.
+            guard modules?.prepareNotebookShutdown() != false else {
+                #if canImport(SaytileKit)
+                await feedback?.resumeAfterDeferredUpdate()
+                #endif
+                settingsNavigation.showNotebookLibrary()
+                showSettings()
+                terminationTask = nil
+                sender.reply(toApplicationShouldTerminate: false)
+                return
+            }
+            terminationCommitted = true
+            settings?.close()
+            settings?.window?.contentView = nil
+            settingsWindowOpen = false
+            panels?.withdrawForTermination()
             wakeReadback?.cancel()
             updater?.stop()
             passiveShutdownTimer?.invalidate()
             passiveShutdownTimer = nil
             settingsPreview.withdraw()
-            #if canImport(SaytileKit)
-            if let profileSwitch {
-                _ = await profileSwitch.result
-                sender.reply(toApplicationShouldTerminate: true)
-                return
-            }
-            #endif
             startupTask?.cancel()
             await modules?.prepareStageWindowShutdown()
             panels?.stop()
@@ -1041,6 +1061,9 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let self else { return }
             if page == "permissions" {
                 settingsNavigation.showPermissions()
+            } else if (id == BuiltinCatalog.memo || id == BuiltinCatalog.tasks),
+                      page == "library" || page?.hasPrefix("record:") == true {
+                settingsNavigation.showNotebookLibrary(page == "library" ? "all" : (page ?? "all"))
             } else if page == "library" {
                 switch id {
                 case BuiltinCatalog.voice: settingsNavigation.showVoiceArchive()
@@ -1203,6 +1226,7 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func showSettings() {
+        guard !terminationCommitted else { return }
         #if canImport(SaytileKit)
         if profileSwitch != nil { settings?.showWindow(nil); return }
         #endif
@@ -1313,23 +1337,70 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let window = settings?.window else { throw CocoaError(.validationMissingMandatoryProperty) }
         window.appearance = NSAppearance(named: .aqua)
         do {
-            try await UnifiedWorkbenchAcceptance.run(session: session, host: host, modules: embedded,
-                navigation: settingsNavigation, window: window, menu: makeStatusMenu().0, openMainWindow: { [self] in
-                    showSettings()
-                    return settings?.window
-                })
+            if let mode = ProcessInfo.processInfo.environment["NEARPANE_QUICK_NOTES_ACCEPTANCE"] {
+                try await QuickNotesAcceptance.run(mode: mode, session: session, host: host, modules: embedded,
+                    navigation: settingsNavigation, window: window, openMainWindow: { [self] in
+                        showSettings()
+                        return settings?.window
+                    })
+            } else {
+                try await UnifiedWorkbenchAcceptance.run(session: session, host: host, modules: embedded,
+                    navigation: settingsNavigation, window: window, menu: makeStatusMenu().0, openMainWindow: { [self] in
+                        showSettings()
+                        return settings?.window
+                    })
+            }
             let (menu, _) = makeStatusMenu()
             let entries = menu.items.filter { !$0.isSeparatorItem }
             guard entries.allSatisfy({ $0.target === self && $0.action.map { self.responds(to: $0) } == true }) else {
                 throw CocoaError(.featureUnsupported)
             }
-            try JSONEncoder().encode(entries.map(\.title)).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .withoutOverwriting)
+            try JSONEncoder().encode(entries.map(\.title)).write(to: session.directory.appendingPathComponent("status-menu.json"), options: .atomic)
         } catch {
             window.close()
             _ = await embedded.prepareStageWindowShutdown()
             host.stop()
             await embedded.finishStopping()
             throw error
+        }
+        if ProcessInfo.processInfo.environment["NEARPANE_QUICK_NOTES_ACCEPTANCE"] == "ui" {
+            // A successful notes trial must exercise the actual asynchronous
+            // application delegate, not the acceptance helper's manual drain.
+            // The retained async call keeps this delegate alive until AppKit
+            // terminates the process or the bounded failure timeout expires.
+            let expected = embedded.quickNotesVerificationState
+            let directory = session.support.appendingPathComponent("Nearpane", isDirectory: true)
+            let target = session.directory.appendingPathComponent("quick-notes/normal-termination.json")
+            let observer = NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
+                object: app, queue: .main) { [self, embedded, host] _ in
+                    MainActor.assumeIsolated {
+                        let unchanged = embedded.quickNotesVerificationState == expected
+                        let persisted = embedded.quickNotesVerificationReload(directory: directory) == expected
+                        let committed = terminationCommitted && !host.isRunning
+                        let result: [String: Any] = ["schema": 1,
+                            "status": unchanged && persisted && committed ? "PASS" : "FAIL",
+                            "willTerminateNotificationObserved": true,
+                            "productionTerminationCommitted": terminationCommitted,
+                            "hostStopped": !host.isRunning, "stateUnchanged": unchanged,
+                            "diskMatches": persisted, "pid": getpid(),
+                            "scope": "Real NSApp.terminate and production applicationShouldTerminate delegate on the isolated native profile"]
+                        if let data = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]) {
+                            try? data.write(to: target, options: .atomic)
+                        }
+                    }
+                }
+            defer { NotificationCenter.default.removeObserver(observer) }
+            app.delegate = self
+            // AppKit's terminateLater flow may enter its own event loop. Start
+            // it from an AppKit run-loop callback, after this async caller has
+            // yielded its MainActor job, so the delegate's asynchronous drain
+            // can run just as it does after the user's Quit menu action.
+            RunLoop.main.perform(inModes: [.default]) {
+                MainActor.assumeIsolated { NSApplication.shared.terminate(nil) }
+            }
+            try await Task.sleep(for: .seconds(30))
+            throw CocoaError(.userCancelled, userInfo: [NSLocalizedDescriptionKey:
+                "The production termination delegate did not finish the isolated notes trial."])
         }
         window.close()
         _ = await embedded.prepareStageWindowShutdown()
@@ -1376,22 +1447,39 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                           userInfo: [NSLocalizedDescriptionKey: "请先完成或取消应用更新，再切换资料。"])
         }
         guard profileSwitch == nil, let root = profileLease?.root, let host, let modules else { throw CancellationError() }
+        guard modules.prepareNotebookShutdown() else {
+            settingsNavigation.showNotebookLibrary()
+            showSettings()
+            throw NSError(domain: "com.holdsnow.nearpane.profile", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "随手记还有未保存的内容。请在仓库中重试保存后，再切换资料。"])
+        }
         let operation = Task { @MainActor () throws -> ProfileReply in
-            // Retire every action surface before releasing the global writer lease.
-            guard await modules.prepareStageWindowShutdown() else { throw StageSwitchError.ownership }
+            // Validate the notebook before entering terminal window restoration.
+            // A failed save must leave the current profile fully usable.
+            guard modules.prepareNotebookShutdown() else {
+                profileSwitch = nil
+                settingsNavigation.showNotebookLibrary()
+                showSettings()
+                throw NSError(domain: "com.holdsnow.nearpane.profile", code: 2,
+                              userInfo: [NSLocalizedDescriptionKey: "随手记还有未保存的内容。请在仓库中重试保存后，再切换资料。"])
+            }
             settingsPreview.withdraw()
-            panels?.stop()
-            surface?.window?.orderOut(nil)
-            host.stop()
             replaceProfileContent(ProgressView("正在保存资料并停止模块…").padding())
-            await modules.finishStopping()
-            await host.waitForDesktopStop()
-            self.host = nil
-            self.modules = nil
-            self.panels = nil
-            self.surface = nil
-            profileLease = nil
+            panels?.withdrawForTermination()
+            surface?.window?.orderOut(nil)
             do {
+                // All editing is now withdrawn. Retain the current writer lease
+                // if restoration cannot finish; report the existing restart path.
+                guard await modules.prepareStageWindowShutdown() else { throw StageSwitchError.ownership }
+                panels?.stop()
+                host.stop()
+                await modules.finishStopping()
+                await host.waitForDesktopStop()
+                self.host = nil
+                self.modules = nil
+                self.panels = nil
+                self.surface = nil
+                profileLease = nil
                 if let source {
                     let name = source.lastPathComponent
                     guard name.hasPrefix("Nearpane Alpha ") else { throw CocoaError(.fileReadInvalidFileName) }

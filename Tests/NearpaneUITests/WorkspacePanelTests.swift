@@ -56,13 +56,15 @@ import Testing
         #expect(committedPreferences.retiredVisualOverrides[.panelHeight] == Measure(850))
     }
 
-    @Test func residentCanRequestTheOnlyDesktopWithBothInputModulesOff() async throws {
+    @Test func residentCanRequestTheOnlyDesktopWithAllInputModulesOff() async throws {
         let host = HostSession(store: MemoryConfigurationStore())
         await host.start()
         let controller = EdgeWindowController(host: host)
         let panels = DisplayPanels(host: host, primary: controller, present: { _ in })
         defer { panels.stop(); controller.close(); host.stop() }
-        for module in [BuiltinCatalog.voice, BuiltinCatalog.screenshots] {
+        // Notes is now part of the first-run preset. This scenario intentionally
+        // exercises a Spaces-only resident with every writing/capture tool off.
+        for module in [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.memo] {
             #expect(host.handle(.setEnabled(module, false)) == .accepted)
         }
         let frame = SurfaceRect(width: 1440, height: 900)

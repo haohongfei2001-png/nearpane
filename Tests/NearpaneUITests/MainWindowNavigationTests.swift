@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import NearpaneCore
 @testable import NearpaneUI
@@ -66,11 +67,47 @@ import NearpaneCore
         navigation.showModule(BuiltinCatalog.memo)
         #expect(navigation.moduleID == BuiltinCatalog.memo)
         navigation.showLibrary()
-        #expect(navigation.page == .tasksArchive && navigation.moduleID == nil)
+        #expect(navigation.page == .memoArchive && navigation.moduleID == nil)
+        #expect(navigation.notebookFilter == "unfinished")
         navigation.showNotebookLibrary("vocabulary")
         #expect(navigation.section == .library)
         navigation.showGeneral()
         navigation.showLibrary()
         #expect(navigation.page == .wordArchive)
+    }
+
+    @Test func noteAndTaskFiltersShareOneRepositoryRoute() {
+        let navigation = SettingsNavigation()
+        for (alias, filter) in [("all", "all"), ("notes", "notes"), ("tasks", "unfinished"),
+                                ("pending", "unfinished"), ("unfinished", "unfinished"), ("completed", "completed")] {
+            navigation.showNotebookLibrary(alias)
+            #expect(navigation.page == .memoArchive)
+            #expect(navigation.notebookFilter == filter)
+            #expect(navigation.selectedNotebookRecordID == nil)
+        }
+        navigation.showModule(BuiltinCatalog.tasks)
+        #expect(navigation.moduleID == BuiltinCatalog.memo)
+    }
+
+    @Test func sidebarRecordDeepLinkSurvivesSectionSwitchesWithoutASecondWindowRoute() {
+        let navigation = SettingsNavigation()
+        let id = UUID()
+        navigation.showNotebookLibrary("record:" + id.uuidString)
+        #expect(navigation.page == .memoArchive)
+        #expect(navigation.selectedNotebookRecordID == id)
+        #expect(navigation.notebookFilter == "all")
+        navigation.showModules()
+        navigation.showLibrary()
+        #expect(navigation.page == .memoArchive && navigation.selectedNotebookRecordID == id)
+        navigation.showNotebookLibrary("completed", recordID: id)
+        #expect(navigation.notebookFilter == "all")
+        navigation.showNotebookLibrary("record:invalid")
+        #expect(navigation.selectedNotebookRecordID == nil)
+        #expect(navigation.notebookFilter == "all")
+        navigation.showNotebookRecord(id)
+        #expect(navigation.selectedNotebookRecordID == id)
+        let revision = navigation.notebookNavigationRevision
+        navigation.showNotebookRecord(id)
+        #expect(navigation.notebookNavigationRevision == revision + 1)
     }
 }

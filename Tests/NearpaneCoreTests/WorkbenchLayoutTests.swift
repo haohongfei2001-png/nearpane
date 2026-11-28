@@ -2,9 +2,9 @@ import Testing
 @testable import NearpaneCore
 
 struct WorkbenchLayoutTests {
-    private let tools = [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.lyrics, BuiltinCatalog.memo, BuiltinCatalog.tasks]
+    private let tools = [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.lyrics, BuiltinCatalog.memo]
 
-    @Test func noteTaskAndClockCombinationsCanOwnPrimaryWithoutVoiceOrSpaces() {
+    @Test func notesAndClockCombinationsCanOwnPrimaryWithoutVoiceOrSpaces() {
         let frame = SurfaceRect(width: 1440, height: 832)
         let screens = [ScreenGeometry(id: "primary", frame: frame, visibleFrame: frame),
                        ScreenGeometry(id: "secondary", frame: frame, visibleFrame: frame)]
@@ -41,7 +41,6 @@ struct WorkbenchLayoutTests {
             #expect(layout.screenshots.height >= 76)
             #expect(layout.additionalTools[BuiltinCatalog.lyrics]?.height == 192)
             #expect((layout.additionalTools[BuiltinCatalog.memo]?.height ?? 0) >= 72)
-            #expect((layout.additionalTools[BuiltinCatalog.tasks]?.height ?? 0) >= 72)
             #expect((layout.moduleRail?.height ?? 0) == 32)
             #expect(layout.windowArea.height >= 95.99)
             #expect(DisplaySettings().sizeForm(width: 240, height: 832, content: .full, voice: true, tray: true,
@@ -56,24 +55,26 @@ struct WorkbenchLayoutTests {
     }
 
     @Test func everyAvailableToolCombinationFitsWithoutGhostRegions() {
-        for mask in 0..<(1 << tools.count) {
-            let selected = tools.enumerated().filter { mask & (1 << $0.offset) != 0 }.map(\.element)
+        let available = tools + [BuiltinCatalog.clock]
+        for mask in 0..<(1 << available.count) {
+            let selected = available.enumerated().filter { mask & (1 << $0.offset) != 0 }.map(\.element)
             let hasVoice = selected.contains(BuiltinCatalog.voice)
             let hasTray = selected.contains(BuiltinCatalog.screenshots)
             let layout = LayoutComposer.compose(width: 240, height: 832, pinnedCount: 1, expanded: false,
                 voiceEnabled: hasVoice, trayEnabled: hasTray, trayRows: 2, lyricsHeight: 192, toolOrder: selected)
             #expect((layout.voice.height > 0) == hasVoice)
             #expect((layout.screenshots.height > 0) == hasTray)
-            for id in [BuiltinCatalog.lyrics, BuiltinCatalog.memo, BuiltinCatalog.tasks] {
+            for id in [BuiltinCatalog.lyrics, BuiltinCatalog.memo, BuiltinCatalog.clock] {
                 #expect(((layout.additionalTools[id]?.height ?? 0) > 0) == selected.contains(id))
             }
+            #expect(layout.additionalTools[BuiltinCatalog.tasks] == nil)
             #expect(layout.windowArea.height >= 95.99)
         }
     }
 
     @Test func shortNotebookPanelScrollsWithoutClippingOrDroppingAnEditor() {
         let settings = DisplaySettings()
-        let order = [BuiltinCatalog.memo, BuiltinCatalog.tasks]
+        let order = [BuiltinCatalog.memo, BuiltinCatalog.clock]
         #expect(settings.sizeForm(width: 240, height: 120, content: .toolsOnly, voice: false, tray: false,
                                   toolOrder: order) == .full)
         #expect(settings.sizeForm(width: 240, height: 220, content: .toolsOnly, voice: false, tray: false,
@@ -84,7 +85,7 @@ struct WorkbenchLayoutTests {
             content: .toolsOnly, voiceEnabled: false, trayEnabled: false, toolOrder: order)
         #expect(layout.contentHeight > 120)
         #expect(layout.additionalTools[BuiltinCatalog.memo]?.height == 72)
-        #expect(layout.additionalTools[BuiltinCatalog.tasks]?.height == 72)
+        #expect(layout.additionalTools[BuiltinCatalog.clock]?.height == 40)
     }
 
     @Test func spacesAndClockFollowEveryPositionWithoutOverlapOrMissingModules() throws {
@@ -98,7 +99,7 @@ struct WorkbenchLayoutTests {
                     let layout = LayoutComposer.compose(width: 240, height: viewport, pinnedCount: 0, expanded: false,
                         trayRows: 2, lyricsHeight: 192, toolOrder: order)
                     let regions = try order.map { try #require(layout.frame(for: $0)) }
-                    #expect(regions.count == 7)
+                    #expect(regions.count == 6)
                     #expect(regions.allSatisfy { $0.width == 240 && $0.height > 0 })
                     for (a, b) in zip(regions, regions.dropFirst()) { #expect(a.y + a.height < b.y) }
                     #expect(layout.windowArea.height >= 95.99)
@@ -120,23 +121,23 @@ struct WorkbenchLayoutTests {
     }
 
     @Test func toolSurfaceRetainsTheSameOrderWhileExcludingSpacesAndIdleLyrics() throws {
-        let order = [BuiltinCatalog.clock, BuiltinCatalog.desktop, BuiltinCatalog.tasks, BuiltinCatalog.lyrics, BuiltinCatalog.voice]
+        let order = [BuiltinCatalog.clock, BuiltinCatalog.desktop, BuiltinCatalog.memo, BuiltinCatalog.lyrics, BuiltinCatalog.voice]
         let layout = LayoutComposer.compose(width: 240, height: 220, pinnedCount: 0, expanded: false,
             content: .toolsOnly, voiceEnabled: true, trayEnabled: false, lyricsHeight: 0, toolOrder: order)
         #expect(layout.windowArea.height == 0)
         #expect(layout.additionalTools[BuiltinCatalog.lyrics] == nil)
         let clock = try #require(layout.frame(for: BuiltinCatalog.clock))
-        let tasks = try #require(layout.frame(for: BuiltinCatalog.tasks))
-        #expect(clock.y + clock.height < tasks.y && tasks.y + tasks.height < layout.voice.y)
+        let notes = try #require(layout.frame(for: BuiltinCatalog.memo))
+        #expect(clock.y + clock.height < notes.y && notes.y + notes.height < layout.voice.y)
     }
 
     @Test func pressureDoesNotChangeSavedMetricsOrDuplicateRepeatedTools() {
         var settings = DisplaySettings()
         settings.measures[.voiceHeight] = Measure(200)
         let saved = settings
-        let layout = LayoutComposer.compose(width: 240, height: 832, pinnedCount: 1, expanded: false,
+        let layout = LayoutComposer.compose(width: 240, height: 640, pinnedCount: 1, expanded: false,
             settings: settings, trayRows: 2, lyricsHeight: 192, toolOrder: tools)
-        let repeated = LayoutComposer.compose(width: 240, height: 832, pinnedCount: 1, expanded: false,
+        let repeated = LayoutComposer.compose(width: 240, height: 640, pinnedCount: 1, expanded: false,
             settings: settings, trayRows: 2, lyricsHeight: 192, toolOrder: tools + tools)
         #expect(layout == repeated)
         #expect(settings == saved)
