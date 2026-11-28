@@ -164,7 +164,10 @@ struct Reader {
                 isOnscreen: reportedOnscreen,
                 frontToBackIndex: result.windows.count))
         }
-        result.census?.acceptedWindows = result.windows.count
+        // Optional-chain mutation holds exclusive access to result; finish its
+        // independent window count read before opening that mutable access.
+        let acceptedWindowCount = result.windows.count
+        result.census?.acceptedWindows = acceptedWindowCount
         return result
     }
 
