@@ -57,7 +57,7 @@ final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked 
 @main struct FilmAVCapture {
     static func main() async throws {
         let args=CommandLine.arguments
-        guard args.count==4,let displayID=UInt32(args[1]),let seconds=Double(args[2]),seconds>0,seconds<=45 else { exit(2) }
+        guard args.count==4,let displayID=UInt32(args[1]),let seconds=Double(args[2]),seconds>0,seconds<=300 else { exit(2) }
         let output=URL(fileURLWithPath:args[3])
         let content=try await SCShareableContent.excludingDesktopWindows(false,onScreenWindowsOnly:false)
         guard let display=content.displays.first(where:{$0.displayID == displayID}) else { exit(3) }
@@ -77,7 +77,11 @@ final class CaptureSink: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked 
         sink.save(["startUptime":ProcessInfo.processInfo.systemUptime,"unixTime":Date().timeIntervalSince1970,
             "displayID":displayID,"width":mode.pixelWidth,"height":mode.pixelHeight,"requestedFPS":30,
             "cursorIncluded":true,"systemAudioRequested":true,"durationRequested":seconds],name:"capture-started.json")
-        try await Task.sleep(nanoseconds:UInt64(seconds*1_000_000_000))
+        let deadline=ProcessInfo.processInfo.systemUptime+seconds
+        while ProcessInfo.processInfo.systemUptime<deadline {
+            if let stop=ProcessInfo.processInfo.environment["FILM_CAPTURE_STOP_FILE"],FileManager.default.fileExists(atPath:stop) { break }
+            try await Task.sleep(nanoseconds:100_000_000)
+        }
         try await stream.stopCapture()
         await withCheckedContinuation { continuation in
             sink.queue.async {
