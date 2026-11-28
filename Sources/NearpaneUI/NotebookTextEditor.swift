@@ -34,7 +34,7 @@ struct NotebookTextEditor: NSViewRepresentable {
         editor.isVerticallyResizable = true
         editor.isHorizontallyResizable = false
         editor.minSize = .zero
-        editor.maxSize = NSSize(width: .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
+        editor.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         editor.autoresizingMask = [.width]
         editor.setAccessibilityIdentifier(identifier)
         editor.setAccessibilityLabel(identifier == "notebook-editor" ? "记录正文" : "随手记录正文")

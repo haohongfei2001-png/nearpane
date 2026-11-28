@@ -56,13 +56,6 @@ jobs:
           mkdir -p "$NEARPANE_ROSTER_SAMPLE_DIR"
           set -o pipefail
           bash scripts/test.sh --no-parallel 2>&1 | tee build/quick-notes-evidence/swift-tests.log
-      - name: Compile and verify complete packaged Host
-        if: ${{ !cancelled() }}
-        run: |
-          mkdir -p build/quick-notes-evidence
-          set -o pipefail
-          bash scripts/build-app.sh debug 2>&1 | tee build/quick-notes-evidence/build.log
-          python3 -B scripts/verify-packages.py build/debug/Nearpane.app 2>&1 | tee build/quick-notes-evidence/package-verification.log
       - name: Preserve complete source diagnostics
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ !cancelled() }}
@@ -70,6 +63,13 @@ jobs:
           name: Nearpane-quick-notes-source-diagnostics
           path: build/quick-notes-evidence
           if-no-files-found: warn
+      - name: Compile and verify complete packaged Host
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p build/quick-notes-evidence
+          set -o pipefail
+          bash scripts/build-app.sh debug 2>&1 | tee build/quick-notes-evidence/build.log
+          python3 -B scripts/verify-packages.py build/debug/Nearpane.app 2>&1 | tee build/quick-notes-evidence/package-verification.log
       - name: Exercise existing native workbench regression suite
         if: ${{ !cancelled() && hashFiles('build/debug/Nearpane.app/Contents/MacOS/NearpaneHost') != '' }}
         run: python3 -B scripts/acceptance/unified-workbench/run.py build/debug/Nearpane.app
