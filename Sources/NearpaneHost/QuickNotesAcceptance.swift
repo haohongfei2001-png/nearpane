@@ -153,6 +153,9 @@ import NearpaneUI
 
             try check("fresh-profile-empty", state().records.isEmpty && state().activeRecordID == nil,
                       "Fresh Nearpane profile has no note or task and requires no additional setup.")
+            _ = await UnifiedWorkbenchAcceptance.movePointer(to: NSPoint(
+                x: screen.frame.x + screen.frame.width / 2,
+                y: screen.frame.y + screen.frame.height / 2))
             try await capture(sidebar, "01-idle")
             try await press("quick-notes-start", in: sidebar, name: "idle-entry-starts-editing")
             var firstBody = "把沿途想到的句子留在这里。\n明天继续整理 Nearpane 的交互。"
@@ -191,6 +194,14 @@ import NearpaneUI
             try await type("给家里打个电话", id: "quick-notes-task-editor-" + directTask.uuidString,
                            in: sidebar, name: "direct-task-native-input")
             try saved("combined-content-autosaved")
+            let combinedVisible = try await UnifiedWorkbenchAcceptance.fullyVisibleTextEditors([
+                "quick-notes-editor", "quick-notes-task-editor-" + converted.uuidString,
+                "quick-notes-task-editor-" + directTask.uuidString
+            ], in: sidebar, diagnostics: output)
+            if !combinedVisible { try await capture(sidebar, "03-note-and-tasks-failed") }
+            try check("combined-native-text-visible", combinedVisible,
+                      "The actual laid-out current note and both short task bodies fit their native visible rectangles after natural reflow; no resize or scrolling workaround.",
+                      kind: "native-layout-geometry")
             try await capture(sidebar, "03-note-and-tasks")
 
             try await press("quick-notes-toggle-" + converted.uuidString, in: sidebar, name: "complete-task-native-action")
@@ -269,6 +280,7 @@ import NearpaneUI
                       "Fresh controlled geometry-only observations keep the same production cards visible in dark mode.",
                       kind: "labelled-fixture-setup")
             try await capture(full, "full-sidebar-dark", dark: true)
+            host.bus.resetDesktopSession()
             try check("one-management-window", NSApp.windows.filter {
                 $0.isVisible && $0.styleMask.contains(.titled)
             }.count == 1, "All module and record routes retained the single management window.")

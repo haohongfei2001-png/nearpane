@@ -183,7 +183,9 @@ struct QuickNotesCard: View {
                 } label: { Text(result).font(.caption).lineLimit(1) }
                     .buttonStyle(.plain).help("复制计算结果")
             }
-            smallButton("打开记录仓库", symbol: "tray", id: "quick-notes-open-library") { openLibrary(notebook.activeRecord?.id) }
+            smallButton("打开记录仓库", symbol: "tray", id: "quick-notes-open-library") {
+                openLibrary(notebook.activeRecord?.id ?? visibleTasks.first?.id)
+            }
         }.opacity(controlsVisible ? 1 : 0.38)
     }
 

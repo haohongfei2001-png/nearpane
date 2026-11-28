@@ -33,12 +33,14 @@ public struct EdgeSurfaceView: View {
     }
     public var body: some View {
         GeometryReader { geometry in
+            let notesHeight = enabled(BuiltinCatalog.memo)
+                ? (modules?.notebook.sidebarHeight(width: geometry.size.width) ?? 44) : 44
             let layout = LayoutComposer.compose(width: geometry.size.width, height: geometry.size.height,
                                                 pinnedCount: display?.secondary == true ? 0 : host.registry.pinnedModules.count,
                                                 expanded: host.registry.expandedID != nil, settings:settings, content:display?.content ?? .full,
                                                 voiceEnabled:enabled(BuiltinCatalog.voice),trayEnabled:enabled(BuiltinCatalog.screenshots),
                                                 referenceHeight: display?.referenceHeight, voiceCompact: modules?.voiceCompact ?? false,
-                                                trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0, notesHeight: modules?.notebook.sidebarHeight(width: geometry.size.width) ?? 44, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
+                                                trayRows: modules?.trayRowCount ?? 1, lyricsHeight: modules?.lyricsHeight ?? 0, notesHeight: notesHeight, toolOrder: host.registry.preferences.filter(\.enabled).map(\.id))
             let overflows = layout.contentHeight > geometry.size.height + 0.5
             let visibleLayout = layout.translated(y: overflows ? scrollOffset : 0)
             ZStack(alignment: .topLeading) {
@@ -63,7 +65,8 @@ public struct EdgeSurfaceView: View {
             .foregroundStyle(Color(nsColor: SidebarTextColor.primary))
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
             .clipped()
-            .onChange(of: visibleLayout, initial: true) { _, next in display?.updateMaterial?(next) }
+            .onChange(of: visibleLayout, initial: true) { _, next in display?.updateMaterial?(next, notesHeight) }
+            .onChange(of: notesHeight) { _, next in display?.updateMaterial?(visibleLayout, next) }
             #if canImport(NearpaneTray)
             .contentShape(Rectangle())
             .simultaneousGesture(SpatialTapGesture().onEnded { event in

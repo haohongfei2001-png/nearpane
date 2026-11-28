@@ -326,8 +326,14 @@ struct TrayDomainTests {
         #expect(await adapter.appends == 2)
         #expect(try await store.asset(id: image.id)?.visibilityReason == .uploadStarted)
         #expect(module.swallowing == [image.id])
-        try await Task.sleep(for: .milliseconds(180))
+        // The swallow animation settles in a separately scheduled MainActor task.
+        // Await its terminal presentation state, not an assumed scheduler latency.
+        let settledBy = ContinuousClock.now.advanced(by: .seconds(2))
+        while (!module.rows.isEmpty || !module.swallowing.isEmpty), ContinuousClock.now < settledBy {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         #expect(module.rows.isEmpty)
+        #expect(module.swallowing.isEmpty)
         #expect(try await store.history().count == 1)
         #expect(try await store.asset(id: image.id)?.status != .used)
         module.disconnect()

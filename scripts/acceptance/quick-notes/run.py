@@ -126,6 +126,15 @@ def main() -> int:
 
         identifier, session = prepare("native")
         passed = launch("ui", identifier, "native-ui")
+        termination_file = session / "quick-notes/normal-termination.json"
+        termination = json.loads(termination_file.read_text()) if termination_file.exists() else {}
+        terminated = (termination.get("status") == "PASS" and termination.get("willTerminateNotificationObserved") is True
+                      and termination.get("productionTerminationCommitted") is True and termination.get("hostStopped") is True
+                      and termination.get("stateUnchanged") is True and termination.get("diskMatches") is True)
+        receipt["checks"].append({"check": "real-application-termination", "passed": terminated,
+                                   "detail": "Requires NSApplication.willTerminateNotification and the production delegate's committed shutdown, with unchanged records on disk.",
+                                   "receipt": "native/normal-termination.json"})
+        passed = passed and terminated
         if passed:
             passed = launch("readback", identifier, "normal-restart") and passed
             killed = launch("crash-write", identifier, "crash-write", kill_when_ready=session / "quick-notes/crash-ready")

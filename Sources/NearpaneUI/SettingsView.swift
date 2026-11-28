@@ -107,7 +107,6 @@ public struct SettingsView: View {
                     pageHeader
                     content
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .accessibilityIdentifier("main-content-" + navigation.page.rawValue)
                 }
                 .frame(width: max(0, bounds.size.width - sidebarWidth), height: bounds.size.height)
                 .background(Color(nsColor: .windowBackgroundColor))

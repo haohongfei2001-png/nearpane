@@ -1363,6 +1363,39 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             await embedded.finishStopping()
             throw error
         }
+        if ProcessInfo.processInfo.environment["NEARPANE_QUICK_NOTES_ACCEPTANCE"] == "ui" {
+            // A successful notes trial must exercise the actual asynchronous
+            // application delegate, not the acceptance helper's manual drain.
+            // The retained async call keeps this delegate alive until AppKit
+            // terminates the process or the bounded failure timeout expires.
+            let expected = embedded.quickNotesVerificationState
+            let directory = session.support.appendingPathComponent("Nearpane", isDirectory: true)
+            let target = session.directory.appendingPathComponent("quick-notes/normal-termination.json")
+            let observer = NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification,
+                object: app, queue: .main) { [self, embedded, host] _ in
+                    MainActor.assumeIsolated {
+                        let unchanged = embedded.quickNotesVerificationState == expected
+                        let persisted = embedded.quickNotesVerificationReload(directory: directory) == expected
+                        let committed = terminationCommitted && !host.isRunning
+                        let result: [String: Any] = ["schema": 1,
+                            "status": unchanged && persisted && committed ? "PASS" : "FAIL",
+                            "willTerminateNotificationObserved": true,
+                            "productionTerminationCommitted": terminationCommitted,
+                            "hostStopped": !host.isRunning, "stateUnchanged": unchanged,
+                            "diskMatches": persisted, "pid": getpid(),
+                            "scope": "Real NSApp.terminate and production applicationShouldTerminate delegate on the isolated native profile"]
+                        if let data = try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]) {
+                            try? data.write(to: target, options: .atomic)
+                        }
+                    }
+                }
+            defer { NotificationCenter.default.removeObserver(observer) }
+            app.delegate = self
+            app.terminate(nil)
+            try await Task.sleep(for: .seconds(30))
+            throw CocoaError(.userCancelled, userInfo: [NSLocalizedDescriptionKey:
+                "The production termination delegate did not finish the isolated notes trial."])
+        }
         window.close()
         _ = await embedded.prepareStageWindowShutdown()
         host.stop()
@@ -1415,8 +1448,8 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                           userInfo: [NSLocalizedDescriptionKey: "随手记还有未保存的内容。请在仓库中重试保存后，再切换资料。"])
         }
         let operation = Task { @MainActor () throws -> ProfileReply in
-            // Retire every action surface before releasing the global writer lease.
-            guard await modules.prepareStageWindowShutdown() else { throw StageSwitchError.ownership }
+            // Validate the notebook before entering terminal window restoration.
+            // A failed save must leave the current profile fully usable.
             guard modules.prepareNotebookShutdown() else {
                 profileSwitch = nil
                 settingsNavigation.showNotebookLibrary()
@@ -1425,18 +1458,22 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                               userInfo: [NSLocalizedDescriptionKey: "随手记还有未保存的内容。请在仓库中重试保存后，再切换资料。"])
             }
             settingsPreview.withdraw()
-            panels?.stop()
-            surface?.window?.orderOut(nil)
-            host.stop()
             replaceProfileContent(ProgressView("正在保存资料并停止模块…").padding())
-            await modules.finishStopping()
-            await host.waitForDesktopStop()
-            self.host = nil
-            self.modules = nil
-            self.panels = nil
-            self.surface = nil
-            profileLease = nil
+            panels?.withdrawForTermination()
+            surface?.window?.orderOut(nil)
             do {
+                // All editing is now withdrawn. Retain the current writer lease
+                // if restoration cannot finish; report the existing restart path.
+                guard await modules.prepareStageWindowShutdown() else { throw StageSwitchError.ownership }
+                panels?.stop()
+                host.stop()
+                await modules.finishStopping()
+                await host.waitForDesktopStop()
+                self.host = nil
+                self.modules = nil
+                self.panels = nil
+                self.surface = nil
+                profileLease = nil
                 if let source {
                     let name = source.lastPathComponent
                     guard name.hasPrefix("Nearpane Alpha ") else { throw CocoaError(.fileReadInvalidFileName) }

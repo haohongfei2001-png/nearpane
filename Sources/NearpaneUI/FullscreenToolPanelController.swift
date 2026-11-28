@@ -63,6 +63,7 @@ private struct ToolPresentation: Equatable {
     private let display = SurfaceDisplay()
     private var material: PanelGlassMaterial?
     private var presentedLayout: SurfaceLayout?
+    private var presentedNotesHeight: Double?
 
     public init(host: HostSession, domains: EmbeddedModules?) {
         self.host = host
@@ -130,10 +131,11 @@ private struct ToolPresentation: Equatable {
                     backdrop.topAnchor.constraint(equalTo: container.topAnchor, constant: -FullscreenWorkspaceLayout.headerHeight)
                 ])
                 presentedLayout = workspace.content
-                display.updateMaterial = { [weak self, weak backdrop] layout in
+                display.updateMaterial = { [weak self, weak backdrop] layout, notesHeight in
                     guard let self, let backdrop, binding == generation, state?.expanded != nil else { return }
-                    let extentChanged = presentedLayout?.contentHeight != layout.contentHeight
+                    let extentChanged = presentedLayout?.contentHeight != layout.contentHeight || presentedNotesHeight != notesHeight
                     presentedLayout = layout
+                    presentedNotesHeight = notesHeight
                     backdrop.configure(size: backdrop.bounds.size, layout: layout,
                                        settings: host.panelPresentationSettings(on: next.display))
                     if extentChanged {
@@ -153,7 +155,7 @@ private struct ToolPresentation: Equatable {
                     }
                 }
             } else {
-                material = nil; presentedLayout = nil; display.updateMaterial = nil
+                material = nil; presentedLayout = nil; presentedNotesHeight = nil; display.updateMaterial = nil
             }
             container.addSubview(content)
             NSLayoutConstraint.activate([
@@ -229,7 +231,7 @@ private struct ToolPresentation: Equatable {
         (window as? ToolPanel)?.withdrawEditing()
         window?.orderOut(nil)
         window?.contentView = nil
-        material = nil; presentedLayout = nil
+        material = nil; presentedLayout = nil; presentedNotesHeight = nil
         state = nil; screen = nil; controls = []; dragOrigin = nil
         requestOpen = nil; requestClose = nil; permitted = nil
     }

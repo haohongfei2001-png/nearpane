@@ -682,6 +682,52 @@ enum UnifiedWorkbenchAcceptance {
         return result
     }
 
+    /// Inspect real text layout and every native ancestor's clipping after the
+    /// normal content-driven resize has had a bounded opportunity to settle.
+    /// This never changes the window frame, scroll offset or record contents.
+    static func fullyVisibleTextEditors(_ identifiers: [String], in window: NSWindow,
+                                        diagnostics output: URL) async throws -> Bool {
+        var observations: [[String: Any]] = []
+        var passed = false
+        for attempt in 0..<25 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            var pending = window.contentView.map { [$0] } ?? []
+            var editors: [String: NSTextView] = [:]
+            while let view = pending.popLast() {
+                if let editor = view as? NSTextView, let id = editor.accessibilityIdentifier(), identifiers.contains(id) {
+                    editors[id] = editor
+                }
+                pending.append(contentsOf: view.subviews)
+            }
+            observations = identifiers.map { identifier in
+                guard let editor = editors[identifier], let manager = editor.layoutManager,
+                      let container = editor.textContainer else {
+                    return ["identifier": identifier, "present": false, "passed": false]
+                }
+                manager.ensureLayout(for: container)
+                let used = manager.usedRect(for: container).offsetBy(dx: editor.textContainerInset.width,
+                                                                    dy: editor.textContainerInset.height)
+                let visible = editor.visibleRect.intersection(editor.bounds)
+                let fits = window.isVisible && !editor.isHiddenOrHasHiddenAncestor &&
+                    used.width > 0 && used.height > 0 && visible.insetBy(dx: -1, dy: -1).contains(used)
+                return ["identifier": identifier, "present": true, "passed": fits,
+                        "usedTextRect": NSStringFromRect(used), "visibleRect": NSStringFromRect(visible),
+                        "nativeBounds": NSStringFromRect(editor.bounds), "attempt": attempt]
+            }
+            passed = observations.allSatisfy { $0["passed"] as? Bool == true }
+            if passed { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        let result: [String: Any] = ["passed": passed,
+            "evidenceKind": "Native NSLayoutManager usedRect and NSTextView visibleRect, including ancestor clipping",
+            "windowFrame": NSStringFromRect(window.frame), "editors": observations,
+            "frameOrScrollOverride": false]
+        let bytes = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
+        try bytes.write(to: output.appendingPathComponent("combined-text-visibility.json"), options: .atomic)
+        return passed
+    }
+
     static func capture(_ window: NSWindow, name: String, to output: URL) async throws -> [String: Any] {
         guard let view = window.contentView else { throw Failure("Missing native content view.") }
         view.layoutSubtreeIfNeeded()

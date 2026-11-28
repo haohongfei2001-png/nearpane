@@ -71,6 +71,7 @@ public final class EdgeWindowController: NSWindowController {
     private var placement: (screen: ScreenGeometry, primary: String, content: PanelContent)?
     private var placementGeneration: UInt64 = 0
     private var presentedContentHeight: Double?
+    private var presentedNotesHeight: Double?
     private var savedPanelWidth: Measure?, savedPanelHeight: Measure?
     private var folded = false
     private var interactionHidden: Bool?
@@ -123,12 +124,14 @@ public final class EdgeWindowController: NSWindowController {
         ])
         panel.contentView = surface
         super.init(window: panel)
-        display.updateMaterial = { [weak self] layout in
+        display.updateMaterial = { [weak self] layout, notesHeight in
             guard let self, !folded, let placement, let size = window?.frame.size else { return }
-            if placement.content == .toolsOnly, presentedContentHeight != layout.contentHeight {
+            if placement.content == .toolsOnly,
+               presentedContentHeight != layout.contentHeight || presentedNotesHeight != notesHeight {
                 presentedContentHeight = layout.contentHeight
-                // The live voice session and a second tray row can change height without
-                // touching the stored display settings. Refit the same physical panel.
+                presentedNotesHeight = notesHeight
+                // A growing note can be compressed into the old viewport without
+                // changing layout.contentHeight. Refit from the intrinsic request.
                 place(on: placement.screen, primary: placement.primary, content: placement.content)
             }
             var settings = host.panelPresentationSettings(on: placement.screen.id)
