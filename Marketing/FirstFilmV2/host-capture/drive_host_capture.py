@@ -105,15 +105,26 @@ try:
     # The selected rectangle is strictly inside the original water photograph
     # on the real PDF page, with generous margins from text/toolbars/cards.
     input_action('select-region',x+350,y+320,660,300)
-    wait_offset(start,11.6);input_action('leave');snap('dual-actual-capture-result-4k.png')
+    # Wait for the real intake to publish its actual asset, then let the native
+    # thumbnail decode and render. No synthetic image is injected.
+    shot_deadline=time.monotonic()+5
+    while time.monotonic()<shot_deadline:
+        shot_state=json.loads((out/'dual-state.json').read_text())
+        if shot_state.get('trayVisibleIDs'):break
+        time.sleep(.1)
+    event('actual-screenshot-first-readback',state=shot_state)
+    input_action('leave');time.sleep(.8);snap('dual-actual-capture-result-4k.png')
     shot_state=json.loads((out/'dual-state.json').read_text());event('actual-screenshot-readback',state=shot_state)
-    recorder.wait(timeout=20)
+    recorder.wait(timeout=35)
     final=json.loads((out/'dual-state.json').read_text())
     actual_reordered=final.get('hostOrder',[])[:2]==['com.holdsnow.nearpane.riftlet','com.holdsnow.nearpane.lyrictile']
     actual_shot=bool(final.get('trayVisibleIDs'))
-    capture=json.loads((out/'capture-completed.json').read_text())
+    capture=wait_json('capture-completed.json',5)
+    probe=subprocess.run(['ffprobe','-v','error','-show_streams','-show_format','-of','json',str(out/'host-fullscreen.mov')],capture_output=True,text=True,timeout=15)
+    (out/'media-probe.json').write_text(probe.stdout)
+    if probe.returncode:event('container-validation-failed',stderr=probe.stderr)
     shot_in_movie=bool(shot_state.get('trayVisibleIDs')) and capture['firstPTS']<=shot_state['uptime']<=capture['lastPTS']
-    save('host-result.json',{'status':'CAPTURED' if recorder.returncode==0 else 'RECORDER_FAILED','actualReordered':actual_reordered,'actualScreenshotAppeared':actual_shot,'actualScreenshotReadbackInsideRecordedPTS':shot_in_movie,'actualState':final,'requestedSeconds':24,'systemAudioRequested':True,'fixturePlayback':False,'seededImages':False,'sourceView':'Complete production Host SettingsView/HostLyrics/TraySurface in isolated photographic composition','photographicAdjustment':'Riftlet outer card size/material matched to LyricTile, both280pt at verified2x; no content opacity reduction','limitations':['Unreleased two-line actual artwork bridge fix on creative branch','No release qualification or public-download assertion','Desktop card dragging is not implemented; actual management-window drag/drop is filmed']})
+    save('host-result.json',{'status':'CAPTURED' if recorder.returncode==0 and probe.returncode==0 else 'RECORDER_FAILED','actualReordered':actual_reordered,'actualScreenshotAppeared':actual_shot,'actualScreenshotReadbackInsideRecordedPTS':shot_in_movie,'actualState':final,'requestedSeconds':24,'systemAudioRequested':True,'fixturePlayback':False,'seededImages':False,'sourceView':'Complete production Host SettingsView/HostLyrics/TraySurface in isolated photographic composition','photographicAdjustment':'Riftlet outer card size/material matched to LyricTile, both280pt at verified2x; no content opacity reduction','limitations':['Unreleased two-line actual artwork bridge fix on creative branch','No release qualification or public-download assertion','Desktop card dragging is not implemented; actual management-window drag/drop is filmed']})
     if not actual_reordered or not actual_shot:event('take-preserved-with-incomplete-action',reordered=actual_reordered,screenshot=actual_shot)
 except Exception as error:
     save('host-result.json',{'status':'BLOCKED','error':str(error),'events':events})

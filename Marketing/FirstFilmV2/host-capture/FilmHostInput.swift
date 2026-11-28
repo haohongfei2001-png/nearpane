@@ -27,15 +27,29 @@ func info(_ e:AXUIElement)->[String:Any]{
 let root=AXUIElementCreateApplication(pid);AXUIElementSetMessagingTimeout(root,0.3)
 var nodes:[AXUIElement]=[]
 func visit(_ e:AXUIElement,_ depth:Int){guard depth<18,nodes.count<3000 else{return};nodes.append(e);for child in (attr(e,kAXChildrenAttribute) as? [AXUIElement] ?? []).prefix(120){visit(child,depth+1)}}
-visit(root,0)
-report["observedControls"]=nodes.filter{!str($0,kAXIdentifierAttribute).isEmpty || str($0,kAXRoleAttribute)==kAXButtonRole}.map(info)
+// Only visible native windows are relevant. A full application traversal also
+// walks Music/File/Help menus and costs seconds per pointer action. Region
+// selection already has the verified owned-PDF rectangle and needs no AX walk.
+if action != "select-region" {
+    for window in (attr(root,kAXWindowsAttribute) as? [AXUIElement] ?? []) { visit(window,0) }
+}
+if action == "inspect" {
+    report["observedControls"]=nodes.filter{!str($0,kAXIdentifierAttribute).isEmpty || str($0,kAXRoleAttribute)==kAXButtonRole}.map(info)
+}
 func named(_ name:String)->AXUIElement?{nodes.first{str($0,kAXIdentifierAttribute)==name || str($0,kAXTitleAttribute)==name || str($0,kAXDescriptionAttribute)==name}}
 func point(_ e:AXUIElement)->CGPoint?{rect(e).map{CGPoint(x:$0.midX,y:$0.midY)}}
 // This is a separate input process, not the UI process. Thread.sleep keeps the
 // intended event cadence; RunLoop's minimum wake interval stretched each 25 ms
 // sample toward 100 ms on this CI image and made a nominal 1 s drag take 4 s.
 func pump(_ seconds:Double){Thread.sleep(forTimeInterval:seconds)}
-func post(_ type:CGEventType,_ p:CGPoint){CGEvent(mouseEventSource:nil,mouseType:type,mouseCursorPosition:p,mouseButton:.left)?.post(tap:.cghidEventTap)}
+func post(_ type:CGEventType,_ p:CGPoint){
+    if type == .leftMouseDown || type == .leftMouseUp {
+        var clicks=report["actualPointerEvents"] as? [[String:Any]] ?? []
+        clicks.append(["type":type.rawValue,"uptime":ProcessInfo.processInfo.systemUptime,"point":[p.x,p.y]])
+        report["actualPointerEvents"]=clicks
+    }
+    CGEvent(mouseEventSource:nil,mouseType:type,mouseCursorPosition:p,mouseButton:.left)?.post(tap:.cghidEventTap)
+}
 func move(_ target:CGPoint,_ seconds:Double=0.45){
     let initial=CGEvent(source:nil)?.location ?? target
     for i in 1...24 {let t=Double(i)/24;let eased=t*t*(3-2*t);post(.mouseMoved,CGPoint(x:initial.x+(target.x-initial.x)*eased,y:initial.y+(target.y-initial.y)*eased));pump(seconds/24)}
