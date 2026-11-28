@@ -1,0 +1,204 @@
+{
+  "createdAtUTC": "2026-11-28T05:13:02.185979+00:00",
+  "status": "REAL_NATIVE_SOURCE2_CAPTURE_READY_FOR_DIRECTOR_EDIT",
+  "source2Capture": {
+    "file": "Nearpane-QQMusic-Source2-Native-4K.mov",
+    "bytes": 10077131,
+    "sha256": "b157956f42d21e1db3a8cd246a253dad81bfaa0945632ed212f9c42d804a273b",
+    "width": 3840,
+    "height": 2160,
+    "actualDurationSeconds": 13.616667,
+    "requestedCaptureSeconds": 12,
+    "actualVideoFrames": 360,
+    "timing": "Original variable native presentation timestamps; short pre-seek preroll retained",
+    "systemAudio": {
+      "codec": "AAC",
+      "sampleRate": 48000,
+      "channels": 2,
+      "startTimeSeconds": 0.765312,
+      "durationSeconds": 12.842667
+    },
+    "uiRecreated": false,
+    "systemAudioReplaced": false
+  },
+  "player": {
+    "name": "QQ Music",
+    "bundleID": "com.tencent.QQMusicMac",
+    "version": "11.11.1",
+    "build": "73285",
+    "officialMetadataEndpoint": "https://y.qq.com/download/download.js",
+    "officialDMGSHA256": "cd77d79a27bc93d5b068f838d69997635f21c412052ebd57e27cc618f4053c0f",
+    "signatureVerified": true,
+    "gatekeeperAccepted": true,
+    "accountUsed": false,
+    "ordinaryOpenFilePlayback": true,
+    "observedLocalLibrary": true,
+    "optionalMediaLibraryPrompt": "Declined with observed native AXPress; no TCC database modification"
+  },
+  "productView": {
+    "module": "NearpaneLyricsModule",
+    "productionSourceCommit": "d5767d87bc45245b31d0980e91e43778c5f424ed",
+    "scope": "Current embedded production lyric view in isolated photography host, not a complete shipping Nearpane Host qualification",
+    "supportedPlayerEnumChanged": false,
+    "nativeViewRecreated": false,
+    "logicalPanelApprox": [
+      1612,
+      52,
+      280,
+      258.461538
+    ],
+    "actualClientWindowOnCaptureDisplay": [
+      120,
+      112,
+      1352,
+      838
+    ]
+  },
+  "song": {
+    "title": "Good To Go",
+    "artist": "Josh Woodward",
+    "album": "The Simple Life",
+    "recordingOriginalSHA256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64",
+    "recordingOriginalSource": "https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_2_-_07_-_Good_To_Go.ogg",
+    "license": "CC BY 3.0 US",
+    "licenseURL": "https://creativecommons.org/licenses/by/3.0/us/",
+    "sourceRightsLedger": "v2-song-research/licenses/RIGHTS_LEDGER.json",
+    "playbackFile": {
+      "format": "MP3 320kbps, ID3v2.3/APIC",
+      "sha256": "1b96d3bdb603f7b22af5e8628cbf4a00a9e8ab6ff72d0a228b80e86cf219fd84",
+      "alacInputSHA256": "ed3387ff13c93d9e827074b70a7318afe4f78144968c085e5980b84753c6545e",
+      "treatment": "Same original performance converted for QQ compatibility; no speed or pitch change. It is an additional lossy playback derivative, not the original recording or a lossless master. MP3/AAC delay is handled by recorded waveform alignment."
+    }
+  },
+  "artwork": {
+    "original": {
+      "file": "artwork/simple-life-original-1425.jpg",
+      "width": 1425,
+      "height": 1424,
+      "bytes": 486932,
+      "sha256": "1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682",
+      "source": "https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg",
+      "creator": "Josh Woodward",
+      "license": "CC BY 3.0 US",
+      "VRTConfirmationTicket": "2013022010009149"
+    },
+    "embeddedAPIC": {
+      "file": "artwork/simple-life-apic-600.jpg",
+      "width": 600,
+      "height": 600,
+      "bytes": 92605,
+      "sha256": "f336ae854d232439d62fe7376223e0da66843fbb46d0fc7d8d85b0a19252e2e2",
+      "changes": "Near-square original1425x1424 reduced to a600x600 JPEG thumbnail with integer-dimension rounding/adaptation. Complete image content is retained without cropping or a generated replacement. This does not claim mathematically identical pixel-grid aspect ratio."
+    },
+    "QQMediaRemoteObserved": {
+      "bytes": 86421,
+      "decodedByProduct": true,
+      "rawPayloadSHA256": null,
+      "rawPayloadSeparatelySaved": false,
+      "evidence": "native-state-timeline.json and native encoded frame; input APIC is92605bytes and original is486932bytes. These three byte counts are distinct. Do not claim byte/hash equality."
+    }
+  },
+  "lyrics": {
+    "sourceClock": "Absolute original-song seconds",
+    "LRC_SHA256": "5a3476b4e917b567ec57ab6533ffa8eca384ed1ec13af89c5dc865239802c96d",
+    "route": "Actual product local import; no fabricated player metadata or verification snapshots",
+    "timingScope": "Selected real lyric source-clock timing inherited from v2-song-research; this capture review did not perform subjective listening."
+  },
+  "recommendedEditorialRange": {
+    "originalSongSeconds": [
+      165.6,
+      170.6
+    ],
+    "captureVideoTimelineSeconds": [
+      5.055,
+      10.055
+    ],
+    "audioCorrelation": 0.9813719420780586,
+    "equation": "Original source seconds = capture video timeline seconds + 160.545",
+    "measurement": "Actual system audio, normalized waveform correlation at8kHz, post-seek window5.25–10.25s",
+    "audioPTSNote": "Audio stream begins atvideo0.765312s; an extracted WAV that resets its own time tozero must not be confused with MOV video time. Final conformation belongs to the director."
+  },
+  "verification": {
+    "actualEncodedFrameViewedAtSeconds": 7.5,
+    "nativeFirstFrameViewed": true,
+    "nativeLocalLibraryAndCoverVisible": true,
+    "realTimePlaybackReview": false,
+    "subjectiveAudioListeningReview": false,
+    "thirdPartyRecommendationWallIncluded": false,
+    "noFurtherClientCapturePlanned": true
+  },
+  "captureProvenance": {
+    "workflowRun": 46110403041,
+    "workflowURL": "https://github.com/haohongfei2001-png/nearpane/actions/runs/46110403041",
+    "captureCommit": "50a4c93c814a78edf28eff50c43828b540a6e800",
+    "branch": "creative/nearpane-film-v2-source2-20261128",
+    "artifactID": 15248884916,
+    "artifactZipSHA256": "063f4b3ee74bb13ef958961fcfbbc7451662a3a8cfa55b40d3d36cd17da2e552",
+    "firstTake": "run46109764554 retained only as historical diagnostic evidence; recommendation-wall frames excluded from this deliverable"
+  },
+  "evidenceInventory": {
+    "evidence/actual-media-capture-end.json": {
+      "bytes": 1002,
+      "sha256": "4400ab496471815344651cb2059bef7764c62c2b6eedac69e4d036ea61444e28"
+    },
+    "evidence/actual-media-capture-start.json": {
+      "bytes": 1002,
+      "sha256": "9bce662c0c5d623c4c48d02955718bf31200555656bc2d3d4c0c8be220043263"
+    },
+    "evidence/audio-alignment.json": {
+      "bytes": 937,
+      "sha256": "49ac834a0428a55f0407ba82ca0f002a9c7ab2e9996b7d0178f936be76e9ce3c"
+    },
+    "evidence/capture-completed.json": {
+      "bytes": 290,
+      "sha256": "ee8051eb239b4f8e4156158c2b45f5198ac940957ff897d40ec8d9d0de8e81fe"
+    },
+    "evidence/capture-display.json": {
+      "bytes": 468,
+      "sha256": "673942517a29c9388b0ae7e68784a2257f8a61260f1818e5893019a8b5b253c8"
+    },
+    "evidence/capture-first-frame.json": {
+      "bytes": 117,
+      "sha256": "6d7f38105433b5a6524366d7ee4fb3655edf919716c61e4cc31f91b90573feb8"
+    },
+    "evidence/capture-started.json": {
+      "bytes": 241,
+      "sha256": "70e5c3b0b656ba74eed82fc2dfb9bff7452f002947311a687c9d13371924b350"
+    },
+    "evidence/client-window-placement.json": {
+      "bytes": 676,
+      "sha256": "160a66cdfe6758713bae2402e48cc64f16ada8b4a33b0dc24e6b879f2a29bcf8"
+    },
+    "evidence/driver-events.json": {
+      "bytes": 4668,
+      "sha256": "239d9bf37e6af83ebb26896e1552b7faa4de4376e4005a1b54f93f6794b70ddd"
+    },
+    "evidence/media-probe.json": {
+      "bytes": 4658,
+      "sha256": "166835067216fb2a0b59459c74487cb71ae7147ef7079b93993637026f5b9bca"
+    },
+    "evidence/mp3-compatibility.json": {
+      "bytes": 5517,
+      "sha256": "ca5ed44f06d8d135e10b3ddc280cdeafc2e1b01b9089d41a97864db33f3930a3"
+    },
+    "evidence/native-state-timeline.json": {
+      "bytes": 231471,
+      "sha256": "09d92a0be832e366d50a44fab34eca06490b3124a5360ed0e43d08beca5ce6ff"
+    },
+    "evidence/permission-action.json": {
+      "bytes": 779,
+      "sha256": "aa80c03ce0ac8df6f9f3ebf4ae425729c142397b23521af8978323343de111b1"
+    },
+    "evidence/source2-staging.json": {
+      "bytes": 693,
+      "sha256": "0e6c53184dbcf1972d1604b207e2e7a120021e3ec2866cd3a6bd53c2094683bf"
+    }
+  },
+  "factCorrection": {
+    "correctedAtUTC": "2026-11-28T05:19:12.029107+00:00",
+    "scope": "Documentation only; original/master cover bytes, APIC bytes, native recording and audio alignment unchanged.",
+    "verifiedUsing": "Pillow read of source original, delivery original and ZIP member; all three same486932-byte SHA1f309a4f... image, dimensions1425x1424.",
+    "previousIncorrectValue": "Original height1425; it is1424.",
+    "historicalConversionWording": "The captured mp3-compatibility.json uniform-scaling description is retained as historical capture evidence; the600x600 raster has integer rounding/adaptation and does not assert exact pixel-grid aspect preservation."
+  }
+}

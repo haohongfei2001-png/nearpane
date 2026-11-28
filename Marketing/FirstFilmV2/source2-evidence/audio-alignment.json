@@ -1,0 +1,22 @@
+{
+  "captureBytes": 10077131,
+  "captureSHA256": "b157956f42d21e1db3a8cd246a253dad81bfaa0945632ed212f9c42d804a273b",
+  "referenceSHA256": "b11ff878042e2da9788590bbf71f73e4ed748e67456a393b7d9f5f9e8143cc64",
+  "method": "Actual captured system audio, mono 8000 Hz normalized cross correlation of file seconds5.25–10.25 against original source seconds145–185, wholly after the seek. Numerical matching; not a listening review.",
+  "captureMatchWindow": [
+    5.25,
+    10.25
+  ],
+  "audioCorrelation": 0.9813719420780586,
+  "matchedSourceSecondsAtWindowStart": 165.79500000000002,
+  "sourceSecondsEqualsCaptureSecondsPlus": 160.54500000000002,
+  "desiredSourceRange": [
+    165.6,
+    170.6
+  ],
+  "correspondingCaptureRange": [
+    5.054999999999978,
+    10.054999999999978
+  ],
+  "scope": "Offset is valid for the uninterrupted post-seek segment, not initial pre-seek preroll. Root must choose the final cut and audio integration."
+}
