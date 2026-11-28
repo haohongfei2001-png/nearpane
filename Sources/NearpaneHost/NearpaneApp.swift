@@ -1391,7 +1391,13 @@ final class HostAppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             defer { NotificationCenter.default.removeObserver(observer) }
             app.delegate = self
-            app.terminate(nil)
+            // AppKit's terminateLater flow may enter its own event loop. Start
+            // it from an AppKit run-loop callback, after this async caller has
+            // yielded its MainActor job, so the delegate's asynchronous drain
+            // can run just as it does after the user's Quit menu action.
+            RunLoop.main.perform(inModes: [.default]) {
+                MainActor.assumeIsolated { NSApplication.shared.terminate(nil) }
+            }
             try await Task.sleep(for: .seconds(30))
             throw CocoaError(.userCancelled, userInfo: [NSLocalizedDescriptionKey:
                 "The production termination delegate did not finish the isolated notes trial."])
