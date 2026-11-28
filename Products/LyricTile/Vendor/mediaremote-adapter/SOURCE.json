@@ -1,8 +1,0 @@
-{
-  "repository": "https://github.com/ungive/mediaremote-adapter",
-  "commit": "2ef957c736256cee7905c9f3f1c7e279087bf195",
-  "release": "v0.9.0",
-  "license": "BSD-3-Clause",
-  "vendoredAt": "2026-11-26",
-  "modifications": "None to upstream code; SOURCE.json added by HOLDSNOW. The package excludes the fake-media test executable."
-}

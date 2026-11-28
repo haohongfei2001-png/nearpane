@@ -1,9 +1,0 @@
-{
-  "hasMenuContext": false,
-  "installedProviders": 1,
-  "phase": "serviceRegistration",
-  "portMatchesBundleName": false,
-  "reason": "The service directory did not identify a unique installed provider",
-  "registeredProviders": 2,
-  "status": "BLOCKED"
-}

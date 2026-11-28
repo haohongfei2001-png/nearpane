@@ -1,9 +1,0 @@
-{
-  "status": "PASS",
-  "counts": 14,
-  "equalAcrossBothAPIs": true,
-  "physicalActions": 0,
-  "startUptime": 424299.21471275,
-  "endUptime": 424300.830873208,
-  "passiveReceiptSHA256": "1b15eb6f6503f3faa4a59c0525e7761c7d17afbf8937a8b86437632320644858"
-}

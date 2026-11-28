@@ -1,7 +1,0 @@
-# Independent replication on the unchanged original desktop
-
-The diagnostics lane of [run 45695479739](https://github.com/haohongfei2001-png/nearpane/actions/runs/45695479739) did not launch Mission Control or create an ordinary desktop. Its explicit preparation record is `NOT_RUN`, with zero native desktop inputs. Fresh signed fixtures stayed on original numeric home 1; the ordinary UUID prerequisite continued to block the unchanged product engine.
-
-The separate production platform atoms nevertheless completed two actual foreign-window hide/return cycles through internal hidden Space 12, with four bridge writes, independent physical readbacks, unchanged bystanders and confirmed final cleanup. This reproduces the earlier mechanism result without depending on successful desktop initialization. Source checks, complete candidate packaging and R4 remain `NOT_RUN` in this short lane. Both native-rendering negative controls were also repeated and restored successfully.
-
-[Artifact 15059388951](https://github.com/haohongfei2001-png/nearpane/actions/runs/45695479739/artifacts/15059388951) holds the full original platform events. The receipt path and SHA-256 are recorded in summary.json rather than duplicating those events here. The first complete physical record remains in cloud-bdedf131-platform. All platform results still apply to hosted build 26A434 with SIP disabled and grant no target or product qualification.

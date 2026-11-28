@@ -1,2 +1,0 @@
-{"event": "W01-system-document-launch", "monotonic": 252755.184809708, "pid": 72818, "launch": 1795179363.6775832, "hash": "07f33932b9952fa33fb86a8231f5436dbeb20e1c"}
-{"event": "W01-system-document-intent", "monotonic": 252755.650134, "scenario": "W01", "application": "com.apple.TextEdit", "trial": 1, "target": 50564, "status": "UNKNOWN", "inputAcknowledged": null}

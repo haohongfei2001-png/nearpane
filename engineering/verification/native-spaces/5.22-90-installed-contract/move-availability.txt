@@ -1,2 +1,0 @@
-sky=1 operation=0 class=1 selector=1
-wm=1 class=1 selector=1

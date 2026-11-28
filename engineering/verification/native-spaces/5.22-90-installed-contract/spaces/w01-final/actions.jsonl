@@ -1,2 +1,0 @@
-{"event":"W01-system-document-launch","monotonic":236083.099232208,"hash":"07f33932b9952fa33fb86a8231f5436dbeb20e1c","pid":68218,"launch":1795162691.5341868}
-{"event":"W01-system-document-intent","monotonic":236083.681666416,"scenario":"W01","application":"com.apple.TextEdit","trial":1,"target":46613,"status":"UNKNOWN","inputAcknowledged":null}

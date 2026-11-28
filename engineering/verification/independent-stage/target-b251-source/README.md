@@ -1,7 +1,0 @@
-# b251 target: native Rust and full release pass; desktop prerequisite remains
-
-The existing isolated checkout was verified clean and fast-forwarded from exacta37 to `b2513db0585db8e08c0e0ea0019000035a969dda` before these commands. The target remains macOS27.0 /26A428 /arm64 /SIP enabled. The original native Cargo log records **180 tests passed, zero failed**, plus0 doc tests. The complete source/test command took11.4495s; the test execution itself took0.11s. Full release build succeeded in24.5642s. These are source/build results, not an R4 result.
-
-A separate reversible desktop preparation attempt verified the original current fullscreen Space7015/type4 and the adjacent ordinary desktop4, with console unlocked and event-posting permission available. One native Control-Left was posted; repeated physical context reads still showed7015 current. A later request to activate the already-running Finder also left the current Space unchanged. No R4 runtime was started, no R4 input was issued, and no window hide/restore was performed. The original fullscreen Space and original front-process identity were confirmed preserved. No retry of either issued setup action was made.
-
-The6 originals in [provenance.json](provenance.json) have exact byte counts and SHA-256 hashes. Native event files containing unrelated front-app metadata are not published. No screenshots or user-window contents are included. Ordinary-desktop availability remains an external prerequisite for a target R4 run.

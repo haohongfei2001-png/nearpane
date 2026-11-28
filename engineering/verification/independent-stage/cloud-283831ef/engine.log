@@ -1,3 +1,0 @@
-{"accessibility":true,"controllerPID":32260,"event":"environment","exactTarget":false,"kernelBuild":"26A434","sipEnabled":false,"uptime":886.92975216666673}
-{"event":"check","name":"cleanup","scope":"all enrolled foreign windows on their original desktop; no owned Space remains","status":"PASS","uptime":887.09232362500006}
-{"cleanup":true,"event":"terminal","reason":"ordinaryDesktopUnavailable","status":"BLOCKED","uptime":887.09680483333341}

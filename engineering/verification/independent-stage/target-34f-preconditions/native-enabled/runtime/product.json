@@ -1,6 +1,0 @@
-{
-  "exit": 2,
-  "log": "product.log",
-  "status": "FAIL",
-  "stderr": "product.stderr.log"
-}

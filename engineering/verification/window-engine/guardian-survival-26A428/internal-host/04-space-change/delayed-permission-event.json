@@ -1,7 +1,0 @@
-{
-  "timestamp": "2026-11-23 20:13:42.525349+0800",
-  "processID": 19081,
-  "subsystem": "com.holdsnow.nearpane.alpha",
-  "category": "PermissionCheck",
-  "eventMessage": "Permission check 3213F39F-D9A9-43DA-93EC-BDD607A6C253 screen=true accessibility=true postEvent=true listenEvent=true"
-}

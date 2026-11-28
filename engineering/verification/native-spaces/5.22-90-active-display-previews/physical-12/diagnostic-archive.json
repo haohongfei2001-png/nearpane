@@ -1,9 +1,0 @@
-{
-  "origin": "Nearpane-5.22-90-3be13f6-diagnostic-arm64.zip",
-  "originSHA256": "bfc3e898abc820549d56220a7fef691f497d9f5584cfaf30e595a4f0aa566e2c",
-  "archive": "Nearpane-5.22-90-3be13f6-diagnostic-lease-arm64.zip",
-  "sha256": "5b02a6b392cb816f520305ae75806f7befe23a774782cd07d7aed5242c0d86f3",
-  "verifiedPathsContentsTypesAndModes": 248,
-  "excludedAppleDoubleMetadataEntries": 21,
-  "reason": "The recorded temporary diagnostic archive stored AppleDouble metadata outside the application. A bundle-only copy preserves every signed entry for the lease verifier."
-}

@@ -1,5 +1,0 @@
-{
-  "phase": "capture",
-  "reason": "The production selector and the fixture did not own the full requested region",
-  "status": "BLOCKED"
-}

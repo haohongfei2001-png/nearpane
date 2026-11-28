@@ -1,2 +1,0 @@
-{"event": "W01-system-document-operation", "monotonic": 256238.037018875, "status": "BLOCKED", "stage": "launch", "reason": "test Space, user input or installed Host identity changed", "pressCounts": {"ISSUED": 0, "REFUSED": 0, "UNKNOWN": 0}}
-{"event": "W01-system-document-cleanup", "monotonic": 256238.037325541, "status": "NOT_RUN", "terminated": null, "reason": "no enrolled generation to close"}

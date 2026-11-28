@@ -1,5 +1,0 @@
-{
-  "status": "UNKNOWN",
-  "reason": "no live exact admitted reference for this foreground",
-  "originalReason": "no durable user window in the actual foreground"
-}

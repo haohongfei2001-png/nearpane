@@ -1,6 +1,0 @@
-{
-  "stage": "buildLinkAndVerifySignedFixture",
-  "exit": 0,
-  "stderr": "<fixture-build-path>/fixture/Spaces Gate Fixture.app: replacing existing signature",
-  "truncated": false
-}

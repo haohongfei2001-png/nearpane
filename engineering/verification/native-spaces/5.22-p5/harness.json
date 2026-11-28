@@ -1,9 +1,0 @@
-{
-  "phase": "P5",
-  "baseline": "90808bd37123cc281e5ec6239c5d22e1c342ff7f",
-  "scope": "isolated planner and benchmark accounting, before integration",
-  "physical": {"benchmark":"NOT_RUN","reason":"awaits confirmed installed ordinary-space navigation and controlled production window cards","warmProductBatches":0,"nativeReferenceCount":0,"p95ms":null,"frameDrops":null,"wakeRecoveryMs":null},
-  "offline": {"distributionAssertions":"PASS","tests":2,"counts":{"warmup":20,"measured":100,"native":20},"reader":{"compiledWith":"xcrun clang -Wall -Werror","osBuild":"26A428","hardware":"Mac17,3","cpuUserPlusSystemSeconds":0.395023166,"independentProcessClockSeconds":0.393696}},
-  "layout":{"owner":"NearpaneCore.ManagedWindowTiler","existingTests":"WorkspaceLayoutTests.everyAdmissionCoversWorkRectIncludingNinthThroughSeventeenth and systemFramesPartitionOnlyTheIntegralInteriorAndRecheckMinimums","actualWindowFrames":"NOT_RUN"},
-  "rollback":"Revert this isolated harness commit. It changes no application binaries, system preferences or user profiles."
-}

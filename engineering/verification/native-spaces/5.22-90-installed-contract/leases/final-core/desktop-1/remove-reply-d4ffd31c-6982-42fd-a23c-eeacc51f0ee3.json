@@ -1,5 +1,0 @@
-{
-  "acknowledged": false,
-  "issued": false,
-  "reason": "before-system-action: current Space changed (current=4, expected=2000)"
-}

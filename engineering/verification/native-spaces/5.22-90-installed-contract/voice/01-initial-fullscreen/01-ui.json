@@ -1,9 +1,0 @@
-{
-  "events": [],
-  "issue": "Timed out waiting for the installed voice control",
-  "physicalInputTransport": "bltn",
-  "physicalOutputTransport": "bltn",
-  "pid": 50449,
-  "playbackVolume": 0.6499999761581421,
-  "stimulusSeconds": 1.677
-}

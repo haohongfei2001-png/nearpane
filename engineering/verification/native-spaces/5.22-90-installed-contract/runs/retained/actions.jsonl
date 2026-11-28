@@ -1,3 +1,0 @@
-{"event":"intent","index":0,"source":4,"target":4867,"t0":235269.775364791,"mode":"setup","status":"UNKNOWN"}
-{"event":"dispatch","index":0,"reply":{"issued":true,"axError":0}}
-{"event":"readback","index":0,"source":4,"target":4867,"t0":235269.775364791,"mode":"setup","status":"FAIL","issued":true,"axError":0,"actual":4,"highlight":true,"seconds":3.376}

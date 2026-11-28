@@ -1,9 +1,0 @@
-{"event":"scenario-result","monotonic":235867.020148291,"scenario":"D01","status":"BLOCKED","reason":"Installed Host move capability is false or unknown; zero drag inputs dispatched."}
-{"event":"scenario-result","monotonic":235867.1220835,"scenario":"S02","status":"BLOCKED","reason":"unrelated desktop became current"}
-{"event":"scenario-result","monotonic":235867.122198416,"scenario":"S03","status":"BLOCKED","reason":"unrelated desktop became current"}
-{"event":"scenario-result","monotonic":235867.122252583,"scenario":"R01","status":"BLOCKED","reason":"unrelated desktop became current"}
-{"event":"scenario-result","monotonic":235867.122289916,"scenario":"N01","status":"BLOCKED","reason":"unrelated desktop became current"}
-{"event":"scenario-result","monotonic":235867.12232125,"scenario":"S01","status":"BLOCKED","reason":"unrelated desktop became current"}
-{"event":"scenario-result","monotonic":235867.122354958,"scenario":"W02","status":"BLOCKED","reason":"unrelated desktop became current"}
-{"event":"scenario-result","monotonic":235867.122395541,"scenario":"W01","status":"BLOCKED","reason":"unrelated desktop became current"}
-{"event":"suite-stopped","monotonic":235867.122463208,"reason":"unrelated desktop became current"}

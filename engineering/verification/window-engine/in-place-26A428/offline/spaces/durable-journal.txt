@@ -1,9 +1,0 @@
-test_clean_archive_is_durable_and_same_nonce_cannot_run_again (__main__.InstalledJournalTests.test_clean_archive_is_durable_and_same_nonce_cannot_run_again) ... ok
-test_crash_blocks_an_independent_process_and_a_fresh_nonce (__main__.InstalledJournalTests.test_crash_blocks_an_independent_process_and_a_fresh_nonce) ... ok
-test_existing_symlink_is_never_followed_or_removed (__main__.InstalledJournalTests.test_existing_symlink_is_never_followed_or_removed) ... ok
-test_unresolved_record_is_retained_and_never_permits_a_second_nonce (__main__.InstalledJournalTests.test_unresolved_record_is_retained_and_never_permits_a_second_nonce) ... ok
-
-----------------------------------------------------------------------
-Ran 4 tests in 0.856s
-
-OK

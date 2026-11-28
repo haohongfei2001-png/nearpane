@@ -1,9 +1,0 @@
-{
-  "physicalRawSHA256": "04930a388b39710ac922e8cbbf150ebac813991cbfb2fd9290de803aeb814ad8",
-  "previousPublicSHA256": "ee9821db5bbb7a8e3fc48c73afb9b33add971e08f9426a8d865150a85cf34732",
-  "correctedSHA256": "d22fe80022656c87ce1477f699daa34831755d0055c88aa5c72c55c7dc5aefb6",
-  "previousPublicTokensCrossedBetweenSections": true,
-  "originalHostDisplayAndSpaceMatchedAcrossSections": true,
-  "correctedPublicDisplayAndSpaceMatchAcrossSections": true,
-  "replayedSavedResponseWithoutWindowOrSpaceOperations": true
-}

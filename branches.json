@@ -1,0 +1,167 @@
+{
+  "date": "2026-11-28",
+  "purpose": "Historical recovery only; not an active product branch or release; no old code merged to main.",
+  "main": "ff33373b16abfa98acc3c01844b5ee0e8cfb5a5f",
+  "retained": [
+    {
+      "branch": "main",
+      "reason": "sole permanent product branch"
+    },
+    {
+      "branch": "pro/independent-stage-engine-20261126",
+      "reason": "active PR16, target main"
+    },
+    {
+      "branch": "creative/nearpane-first-film-v2-20261128",
+      "reason": "consolidated film production source",
+      "head": "f92cb8fb6baff311e600e22558c0af80ebc9b89d"
+    },
+    {
+      "branch": "codex/lyrictile-standalone-20261126",
+      "reason": "public build49 Sparkle feed compatibility; do not delete before migration",
+      "head": "d57878e51137f9dbf238a61ac97ea4b0da8b81f6"
+    }
+  ],
+  "retired": [
+    {
+      "branch": "codex/integrate-saytile-mandarin",
+      "sha": "50f9a80c7c1c4da4b837fa70c08db93a472cd90f",
+      "reason": "old speech integration; retain as a reference for mature upstream sync"
+    },
+    {
+      "branch": "codex/native-spaces-delivery-20261118",
+      "sha": "629524b77bee6ddaf32281eeb53522e65200394f",
+      "reason": "ancestor of main"
+    },
+    {
+      "branch": "codex/p5-performance-5-22",
+      "sha": "30595b287e66c7fb79ab0bb5999509745f0eaaaa",
+      "reason": "historical performance harness"
+    },
+    {
+      "branch": "codex/pr15-p1-bridge-preparation-20261120",
+      "sha": "5217dbf4847ef7737cf23d4e6ff3d15b8ea475e6",
+      "reason": "historical bridge experiment"
+    },
+    {
+      "branch": "codex/pr15-p3-capture-attachment-20261120",
+      "sha": "c886b3c1baad2e72099ace80ba5b718afe450699",
+      "reason": "historical attachment candidate; reference only, not merged as qualification"
+    },
+    {
+      "branch": "codex/pr15-p4-apple-file-ci-20261120",
+      "sha": "d6df4bf1e55949ca97b8a2a712a8020a25130366",
+      "reason": "historical file/voice CI experiment"
+    },
+    {
+      "branch": "codex/pr15-p4-local-tools-20261120",
+      "sha": "baa28fe4b40205e1014b4f702ba1bdd80c6fce46",
+      "reason": "historical local-tools candidate"
+    },
+    {
+      "branch": "codex/pr15-preview-diagnostics-20261121",
+      "sha": "e1dcfcaf81fee1c62d7198322fb0b244b4df2259",
+      "reason": "historical preview diagnostics"
+    },
+    {
+      "branch": "codex/r4-native-candidate-20261120",
+      "sha": "12496a84b87d2fd3e9e9c2d5868f94e2abe01867",
+      "reason": "superseded R4 base; main carries current constitution and PR16 retargeted"
+    },
+    {
+      "branch": "codex/reference-glass-rail",
+      "sha": "d79055588539b96cfaad7943caa4a978c530f791",
+      "reason": "superseded visual implementation"
+    },
+    {
+      "branch": "codex/shared-internal-zero",
+      "sha": "bcfeb9544c15f3f6183e59b4bd819597699c68f8",
+      "reason": "superseded voice integration"
+    },
+    {
+      "branch": "codex/shared-voice-surface",
+      "sha": "f9671d15b9779f0f90713f741c30c69d17c86e59",
+      "reason": "superseded voice integration"
+    },
+    {
+      "branch": "creative/nearpane-film-v2-source2-20261128",
+      "sha": "15fe968b13c19a9453366825ea851dba521400d7",
+      "reason": "all 15 disjoint files integrated into V2 at f92cb8fb"
+    },
+    {
+      "branch": "creative/nearpane-first-film-20261128",
+      "sha": "6f073ff13006b90686b6f9b75864e9bcb2a2492a",
+      "reason": "superseded by film V2; old edit and provenance retained"
+    },
+    {
+      "branch": "design/dual-space-modes-20261109",
+      "sha": "bbe693b3cb32911793254664fb7193fb2e2966c8",
+      "reason": "old dual-mode rules superseded by constitution"
+    },
+    {
+      "branch": "design/icon-proposals-20261113-cove",
+      "sha": "91af857f5d397246d5108a2248d7de061efb0913",
+      "reason": "historical unselected proposals"
+    },
+    {
+      "branch": "design/integrated-architecture-20261108",
+      "sha": "6151eb0209491e23ae550798aa521b7f731fb330",
+      "reason": "ancestor of main"
+    },
+    {
+      "branch": "design/next-generation-20261117",
+      "sha": "c295a4dd49cd9edce6fa97d591987604ef84e6aa",
+      "reason": "historical proposal, current constitution and workbench replace its authority"
+    },
+    {
+      "branch": "design/visual-reference-20261118-r3",
+      "sha": "fa7a0bf34e292db8d1e017056af795c1598725eb",
+      "reason": "historical R4 source and visual reference, not active branch"
+    },
+    {
+      "branch": "implementation/host-foundation-20261109",
+      "sha": "c5e05334bd45784aa4d1ecf5329028ad6e9d66ff",
+      "reason": "ancestor of main"
+    },
+    {
+      "branch": "pro/r4-integrated-lyrics-20261128",
+      "sha": "d5767d87bc45245b31d0980e91e43778c5f424ed",
+      "reason": "PR18 merged into main"
+    },
+    {
+      "branch": "research/nearpane-5.22-final-technical-decision",
+      "sha": "3151827799a646d4a41af7f15bae6fa8c520d00b",
+      "reason": "historical technical decision; independent stage route remains active"
+    },
+    {
+      "branch": "spike/macos-spaces-20261109",
+      "sha": "beb6471fe360004425760a024636e5a63dbe87d1",
+      "reason": "ancestor of main"
+    },
+    {
+      "branch": "spike/p1-abi-20261109",
+      "sha": "0a704fd7aef3155152e4ac793165780ca17048df",
+      "reason": "historical ABI spike"
+    },
+    {
+      "branch": "spike/p1-spaces-behavior-20261109",
+      "sha": "545c1185b06a5b7f76d43a0d0d576d4b673725b4",
+      "reason": "historical behavior spike"
+    },
+    {
+      "branch": "spike/p1-window-geometry-20261109",
+      "sha": "89073c3095e304dd0c219d72668225f0112b3712",
+      "reason": "historical geometry spike"
+    },
+    {
+      "branch": "website/github-pages",
+      "sha": "68db8248ff461aad423396a5f94ef84773df5c1f",
+      "reason": "official Pages deploys main; website preserved"
+    },
+    {
+      "branch": "website/r2-official",
+      "sha": "0e03ab0162923f348f2fdd4c374e762b58867954",
+      "reason": "website R2 source superseded by main"
+    }
+  ]
+}

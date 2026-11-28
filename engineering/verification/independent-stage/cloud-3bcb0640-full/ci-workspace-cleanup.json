@@ -1,6 +1,0 @@
-{
-  "exit": 0,
-  "log": "ci-workspace-cleanup.log",
-  "status": "PASS",
-  "stderr": "ci-workspace-cleanup.stderr.log"
-}

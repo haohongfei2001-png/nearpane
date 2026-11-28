@@ -1,6 +1,0 @@
-{
-  "status": "UNKNOWN",
-  "reason": "TimeoutExpired",
-  "message": "Command '['xcrun', 'swiftc', '-module-cache-path', '/private/tmp/nearpane-host-permission-qxbmqd__/module-cache', '/Users/hhf/Documents/GitHub/nearpane/scripts/acceptance/native-spaces/metrics.swift', '-o', '/private/tmp/nearpane-host-permission-qxbmqd__/metrics']' timed out after 60 seconds",
-  "windowActions": 0
-}

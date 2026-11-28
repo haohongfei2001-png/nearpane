@@ -1,7 +1,0 @@
-{
-  "schema": 1,
-  "events": [],
-  "status": "UNKNOWN",
-  "scope": "corner-readback",
-  "error": "Signed source/version/build differs from admitted 5.22 (90)"
-}

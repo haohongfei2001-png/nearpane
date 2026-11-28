@@ -1,4 +1,0 @@
-{"disposition":"system","eligible":false,"event":"independentStageProduct","evidence":"waitingForDock","missionControl":"unknown","phase":"system-window-ownership","previousEligible":false,"readEnd":null,"readStart":null,"stopped":false,"suspended":false,"systemManagesWindows":true,"uptime":793283.5513696667,"wallpaperAwaitingOrdinary":false,"wallpaperHeld":false}
-{"event":"independentStageProduct","phase":"shutdown-enter","targets":3,"uptime":793293.83323070838}
-{"end":793293.83581537509,"event":"independentStageProduct","milliseconds":2.6533333584666252,"phase":"shutdown-exit","released":true,"start":793293.83316204173,"uptime":793293.83591941674}
-{"confirmed":true,"event":"independentStageProduct","observations":2,"phase":"shutdown-return-readback","uptime":793293.95486941666}

@@ -1,4 +1,0 @@
-{
-  "status": "UNKNOWN",
-  "reason": "the foreground daily Host was replaced, so the original PID and window reference no longer exist"
-}

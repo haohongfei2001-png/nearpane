@@ -1,5 +1,0 @@
-{"appearancePresent":true,"canNavigate":true,"event":"independentStageProduct","feedPresent":true,"memberCount":1,"memberPresent":true,"phase":"current-card-press","pid":9579,"routesGroupChoice":true,"uptime":433.6549150416667,"visibleGroup":"C07CB050-7B03-4E22-8B10-615486991831","window":53}
-{"canNavigate":true,"event":"independentStageProduct","group":"C07CB050-7B03-4E22-8B10-615486991831","lifetimePresent":true,"phase":"choose-group","pid":9579,"routesGroupChoice":true,"stillGrouped":true,"uptime":433.65647154166669,"window":53}
-{"dispatchAvailable":true,"event":"independentStageProduct","pending":0,"phase":"navigation-submit","running":false,"selection":true,"stage":true,"stageOwnsDispatch":false,"uptime":433.66081279166667}
-{"currentSelection":true,"dispatchAvailable":true,"event":"independentStageProduct","phase":"navigation-dequeue","sameEpoch":true,"stage":true,"stageOwnsDispatch":false,"uptime":434.03161545833336}
-{"confirmed":false,"currentSelection":false,"dispatchAvailable":false,"event":"independentStageProduct","phase":"navigation-system-confirmation","sameEpoch":false,"uptime":435.29623816666668}
