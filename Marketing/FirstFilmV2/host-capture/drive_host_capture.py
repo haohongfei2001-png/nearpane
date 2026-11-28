@@ -18,12 +18,12 @@ exec(compile(defs,str(a.native/'drive_core_capture.py'),'exec'),globals())
 save('shared-music-driver.json',{'source':'Marketing/FirstFilmV2/native/drive_core_capture.py','sha256':hashlib.sha256(core_source.encode()).hexdigest(),'functionsOnly':True})
 
 permission=None;host=None;recorder=None;session=None
-def input_action(name,*arguments):
-    report=out/('input-'+name+'.json')
+def input_action(name,*arguments,report_label=None):
+    report=out/('input-'+(report_label or name)+'.json')
     r=subprocess.run([str(Path(os.environ['RUNNER_TEMP'])/'film-host-input'),str(host.pid),name,str(report),*[str(x) for x in arguments]],capture_output=True,text=True,timeout=12)
     try:observed=json.loads(report.read_text())
     except (OSError,ValueError):observed={'stderr':r.stderr,'exitCode':r.returncode}
-    event('actual-input-'+name,report=observed)
+    event('actual-input-'+name,report=observed,reportFile=report.name)
     return r.returncode==0
 def wait_offset(start,offset):
     while time.monotonic()<start+offset:time.sleep(.025)
@@ -116,6 +116,7 @@ try:
     input_action('leave');time.sleep(.8);snap('dual-actual-capture-result-4k.png')
     shot_state=json.loads((out/'dual-state.json').read_text());event('actual-screenshot-readback',state=shot_state)
     recorder.wait(timeout=35)
+    input_action('inspect',report_label='after-shot')
     final=json.loads((out/'dual-state.json').read_text())
     actual_reordered=final.get('hostOrder',[])[:2]==['com.holdsnow.nearpane.riftlet','com.holdsnow.nearpane.lyrictile']
     actual_shot=bool(final.get('trayVisibleIDs'))
@@ -124,7 +125,7 @@ try:
     (out/'media-probe.json').write_text(probe.stdout)
     if probe.returncode:event('container-validation-failed',stderr=probe.stderr)
     shot_in_movie=bool(shot_state.get('trayVisibleIDs')) and capture['firstPTS']<=shot_state['uptime']<=capture['lastPTS']
-    save('host-result.json',{'status':'CAPTURED' if recorder.returncode==0 and probe.returncode==0 else 'RECORDER_FAILED','actualReordered':actual_reordered,'actualScreenshotAppeared':actual_shot,'actualScreenshotReadbackInsideRecordedPTS':shot_in_movie,'actualState':final,'requestedSeconds':24,'systemAudioRequested':True,'fixturePlayback':False,'seededImages':False,'sourceView':'Complete production Host SettingsView/HostLyrics/TraySurface in isolated photographic composition','photographicAdjustment':'Riftlet outer card size/material matched to LyricTile, both280pt at verified2x; no content opacity reduction','limitations':['Unreleased two-line actual artwork bridge fix on creative branch','No release qualification or public-download assertion','Desktop card dragging is not implemented; actual management-window drag/drop is filmed']})
+    save('host-result.json',{'status':'CAPTURED' if recorder.returncode==0 and probe.returncode==0 else 'RECORDER_FAILED','actualReordered':actual_reordered,'actualScreenshotAppeared':actual_shot,'actualScreenshotReadbackInsideRecordedPTS':shot_in_movie,'actualState':final,'requestedSeconds':24,'systemAudioRequested':True,'fixturePlayback':False,'seededImages':False,'sourceView':'Complete production Host SettingsView/HostLyrics/TraySurface in isolated photographic composition','photographicAdjustment':'Equal280pt width and matched outer native material; Riftlet height follows actual production LayoutComposer and TrayModule.rowCount,76pt empty/144pt with screenshot before uniform280/208 scaling; no cell/icon distortion or content opacity reduction','emptyTrayAXReport':'input-inspect.json','fullTrayAXReport':'input-after-shot.json','limitations':['Unreleased two-line actual artwork bridge fix on creative branch','No release qualification or public-download assertion','Desktop card dragging is not implemented; actual management-window drag/drop is filmed']})
     if not actual_reordered or not actual_shot:event('take-preserved-with-incomplete-action',reordered=actual_reordered,screenshot=actual_shot)
 except Exception as error:
     save('host-result.json',{'status':'BLOCKED','error':str(error),'events':events})

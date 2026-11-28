@@ -43,12 +43,11 @@
         guard let management=settings?.window else { throw CocoaError(.validationMissingMandatoryProperty) }
         management.setFrame(NSRect(x:screen.frame.minX+120,y:screen.frame.maxY-112-740,width:1180,height:740),display:true)
         management.appearance=NSAppearance(named:.aqua)
-        let cardHeight:CGFloat=192.0*280.0/208.0
-        let size=NSSize(width:280,height:cardHeight*2+16)
+        let size=FilmDualCards.photographySize(lyricsHeight:embedded.filmActualLyricsHeight,trayRows:embedded.tray.rowCount)
         let camera=NSPanel(contentRect:NSRect(origin:.zero,size:size),styleMask:[.borderless,.nonactivatingPanel],backing:.buffered,defer:false)
         camera.isOpaque=false;camera.backgroundColor = .clear;camera.hasShadow=true
         camera.level = .floating;camera.hidesOnDeactivate=false;camera.acceptsMouseMovedEvents=true
-        camera.contentView=NSHostingView(rootView:FilmDualCards(host:host,modules:embedded).frame(width:size.width,height:size.height))
+        camera.contentView=NSHostingView(rootView:FilmDualCards(host:host,modules:embedded))
         camera.setFrame(NSRect(x:screen.frame.maxX-size.width-28,y:screen.frame.maxY-size.height-52,width:size.width,height:size.height),display:true)
         camera.orderFrontRegardless()
         save("dual-camera-geometry.json",[
@@ -59,17 +58,34 @@
             "backingScale":screen.backingScaleFactor,"systemReduceMotion":NSWorkspace.shared.accessibilityDisplayShouldReduceMotion,
             "panelFrame":[camera.frame.minX,camera.frame.minY,camera.frame.width,camera.frame.height],
             "managementFrame":[management.frame.minX,management.frame.minY,management.frame.width,management.frame.height],
+            "trayHeightAuthority":"LayoutComposer.compose(... trayRows: TrayModule.rowCount).screenshots.height",
+            "canonicalEmptyAndFullTrayHeights":[FilmDualCards.canonicalTrayHeight(rows:1),FilmDualCards.canonicalTrayHeight(rows:2)],
+            "photographyScale":280.0/208.0,"topAnchorPoints":52,"rightAnchorPoints":28,
             "pid":ProcessInfo.processInfo.processIdentifier,"emptyOwnedProfile":session.support.path
         ])
         var imported=false;var ready=false;var records:[[String:Any]]=[]
         for sample in 0..<6000 {
             if !imported,model.snapshot.selection != nil { imported=model.filmImportLocalLyrics(URL(fileURLWithPath:lrcPath)) }
+            // One retained native hosting view, following the real row count.
+            // Re-anchor only this photography window; no product UI animation,
+            // screenshot state, or cell geometry is replaced or synthesized.
+            let desired=FilmDualCards.photographySize(lyricsHeight:embedded.filmActualLyricsHeight,trayRows:embedded.tray.rowCount)
+            let target=NSRect(x:screen.frame.maxX-desired.width-28,
+                y:screen.frame.maxY-desired.height-52,width:desired.width,height:desired.height)
+            if abs(camera.frame.height-target.height)>0.01 || abs(camera.frame.minY-target.minY)>0.01 || abs(camera.frame.minX-target.minX)>0.01 {
+                camera.setFrame(target,display:true)
+                camera.contentView?.layoutSubtreeIfNeeded()
+            }
             let record:[String:Any]=[
                 "sample":sample,"uptime":ProcessInfo.processInfo.systemUptime,"unixTime":Date().timeIntervalSince1970,
                 "title":model.title,"player":model.snapshot.player?.rawValue ?? "none","state":String(describing:model.snapshot.state),
                 "positionMS":model.playbackPositionMS as Any? ?? NSNull(),"currentCueIndex":model.currentCueIndex as Any? ?? NSNull(),
                 "controlsVisible":model.controlsVisible,"artworkBytes":model.snapshot.artwork?.count ?? 0,
                 "lyricsHeight":embedded.filmActualLyricsHeight,"trayConnected":embedded.tray.connected,
+                "trayRowCount":embedded.tray.rowCount,
+                "trayCanonicalHeight":FilmDualCards.canonicalTrayHeight(rows:embedded.tray.rowCount),
+                "trayPhotographicHeight":FilmDualCards.canonicalTrayHeight(rows:embedded.tray.rowCount)*280.0/208.0,
+                "photographyPanelFrame":[camera.frame.minX,camera.frame.minY,camera.frame.width,camera.frame.height],
                 "trayVisibleIDs":embedded.tray.visibleIDs.map(\.uuidString),"trayIssue":embedded.tray.issue as Any? ?? NSNull(),
                 "hostOrder":host.registry.preferences.filter(\.enabled).map(\.id),
                 "frontmostBundleID":NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "none",
@@ -88,7 +104,7 @@
         save("dual-camera-scope.json",[
             "actualManagementWindow":true,"actualHostRegistry":true,"actualPlayback":true,"fixturePlayback":false,
             "actualTraySurface":true,"syntheticScreenshotAssets":false,
-            "photographyOnly":"Riftlet outer frame 208x192 and matched native popover glass; both real views enlarged 280/208 on 2x screen. UI interior opacity unchanged.",
+            "photographyOnly":"Equal 280pt photographic width and matched native popover glass. Riftlet height follows the production LayoutComposer/TrayModule rowCount (76pt empty,144pt with real screenshot) before uniform280/208 scaling. UI cells/icons/images are not vertically stretched. UI interior opacity unchanged.",
             "moduleOrderSource":"Production management-window dropDestination calls actual HostSession.moveModule; no desktop-card dragging is invented."
         ])
         camera.close();management.close();host.stop();await embedded.finishStopping()
