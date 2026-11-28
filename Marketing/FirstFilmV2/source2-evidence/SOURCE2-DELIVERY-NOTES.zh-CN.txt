@@ -7,7 +7,7 @@ Nearpane v2 — QQ音乐真实第二源素材
 
 实际QQ音乐11.11.1 build73285，本地列表仅本片歌曲。原生曲目、播放、seek与推进时钟已回读；真实原封面可见于列表与底栏，Nearpane歌词模块已成功解码QQ回传封面。无需登录；已通过真实系统控件拒绝可选媒体库访问。
 
-封面三个层次必须区分：授权1425px原件486932字节；本轮Mac制成的600px APIC JPEG92605字节；QQ MediaRemote回传封面86421字节。第三项未单独保存原字节文件，不能宣称其SHA与任何前两项一致。第一轮ALAC输入在QQ未读取封面；本交付使用同录音的320kbps MP3/ID3v2.3/APIC兼容副本，包含额外有损编码，未变速或移调。
+封面三个层次必须区分：授权1425×1424原件486932字节；本轮Mac制成的600×600 APIC JPEG92605字节；QQ MediaRemote回传封面86421字节。第三项未单独保存原字节文件，不能宣称其SHA与任何前两项一致。第一轮ALAC输入在QQ未读取封面；本交付使用同录音的320kbps MP3/ID3v2.3/APIC兼容副本，包含额外有损编码，未变速或移调。
 
 版权与变更说明
 音乐及歌词：Good To Go — Josh Woodward，选自The Simple Life(2008)，CC BY3.0 US。
@@ -16,8 +16,10 @@ Nearpane v2 — QQ音乐真实第二源素材
 录音来源：https://commons.wikimedia.org/wiki/File:Josh_Woodward_-_The_Simple_Life,_Part_2_-_07_-_Good_To_Go.ogg
 专辑封面：Josh Woodward，CC BY3.0 US；Commons VRT确认票号2013022010009149。
 封面来源：https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg
-处理：录音经ALAC播放中间件转换为320kbps MP3，嵌入等比缩至600px的原封面JPEG，保留完整画面与比例；系统播放由ScreenCaptureKit实际录制。后期影片若用原录音master替换系统声，应按波形校准，并在发布说明记录最终剪辑与响度/淡变处理。
+处理：录音经ALAC播放中间件转换为320kbps MP3，嵌入由1425×1424近正方形原图缩略适配/尺寸取整得到的600×600 JPEG，保留完整画面；不声称像素宽高比在数学上完全不变；系统播放由ScreenCaptureKit实际录制。后期影片若用原录音master替换系统声，应按波形校准，并在发布说明记录最终剪辑与响度/淡变处理。
 发布时附完整曲目、艺人、授权、来源和变更署名；艺人不为产品代言，不将第三方录音登记为自有独占Content ID。
 
 生产范围
 使用当前NearpaneLyricsModule真实生产视图的隔离摄影宿主，不是完整Host发行验收；没有修改支持播放器枚举。第一轮推荐首页实录只保留历史证据，不在本交付包中。代码与工作流位于GitHub独立creative/nearpane-film-v2-source2-20261128分支；大视频不进入源码提交。
+
+记录更正（不重拍、不修改任何素材像素或音频）：原件经Pillow实读为1425×1424，旧记录的1425×1425已纠正。来源目录、交付目录和ZIP内原件均为同一486932字节/SHA1f309a4f...文件。历史捕获回执中uniform scaling措辞仅表示当时转换过程，具体尺寸与取整范围以本更正为准。

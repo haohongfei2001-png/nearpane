@@ -74,7 +74,7 @@
     "original": {
       "file": "artwork/simple-life-original-1425.jpg",
       "width": 1425,
-      "height": 1425,
+      "height": 1424,
       "bytes": 486932,
       "sha256": "1f309a4fb2127300b32495720f9a83cf44484dd12e3d6fc1826e08d0885e7682",
       "source": "https://commons.wikimedia.org/wiki/File:Josh_Wooward_-_The_Simple_Life.jpg",
@@ -88,7 +88,7 @@
       "height": 600,
       "bytes": 92605,
       "sha256": "f336ae854d232439d62fe7376223e0da66843fbb46d0fc7d8d85b0a19252e2e2",
-      "changes": "Uniform reduction from original1425px to600px, high-quality JPEG encoding; complete image content and aspect ratio retained, no generated cover."
+      "changes": "Near-square original1425x1424 reduced to a600x600 JPEG thumbnail with integer-dimension rounding/adaptation. Complete image content is retained without cropping or a generated replacement. This does not claim mathematically identical pixel-grid aspect ratio."
     },
     "QQMediaRemoteObserved": {
       "bytes": 86421,
@@ -193,5 +193,12 @@
       "bytes": 693,
       "sha256": "0e6c53184dbcf1972d1604b207e2e7a120021e3ec2866cd3a6bd53c2094683bf"
     }
+  },
+  "factCorrection": {
+    "correctedAtUTC": "2026-11-28T05:19:12.029107+00:00",
+    "scope": "Documentation only; original/master cover bytes, APIC bytes, native recording and audio alignment unchanged.",
+    "verifiedUsing": "Pillow read of source original, delivery original and ZIP member; all three same486932-byte SHA1f309a4f... image, dimensions1425x1424.",
+    "previousIncorrectValue": "Original height1425; it is1424.",
+    "historicalConversionWording": "The captured mp3-compatibility.json uniform-scaling description is retained as historical capture evidence; the600x600 raster has integer rounding/adaptation and does not assert exact pixel-grid aspect preservation."
   }
 }
