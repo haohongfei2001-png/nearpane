@@ -514,7 +514,7 @@ public struct SettingsView: View {
     private var dataManagement: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                Text("语音、截图、备忘录与待办保存在当前 Nearpane 资料中。停用模块不会清除这些内容。")
+                Text("语音、截图与随手记保存在当前 Nearpane 资料中。停用模块不会清除这些内容。")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Button("打开仓库", action: navigation.showLibrary)
                 if let profileImport {

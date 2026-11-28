@@ -355,11 +355,10 @@ extension DisplaySettings {
         let width = max(0, width - cardPadding)
         if content == .full || content == .toolsOnly {
             if toolOrder.contains(BuiltinCatalog.clock), width < 144 { return .compact }
-            for id in [BuiltinCatalog.memo, BuiltinCatalog.tasks] where toolOrder.contains(id) {
-                // Their editor/list, footer/input, and padding must remain usable.
-                // Short viewports scroll the complete stack; its editors still have
-                // usable individual heights rather than being clipped or omitted.
-                if width < 96 || (layout.additionalTools[id]?.height ?? 0) < (id == BuiltinCatalog.memo ? min(72, max(44, notesHeight)) : 72) { return .compact }
+            if toolOrder.contains(BuiltinCatalog.memo) {
+                // Notes keeps a compact entry or a usable editor/list. Short
+                // viewports scroll the stack instead of clipping that surface.
+                if width < 96 || (layout.additionalTools[BuiltinCatalog.memo]?.height ?? 0) < min(72, max(44, notesHeight)) { return .compact }
             }
             if pinnedCount > 0 && (layout.moduleRail?.height ?? 0) < min(points(.railHeight, in: referenceHeight ?? height), 24) {
                 return .compact

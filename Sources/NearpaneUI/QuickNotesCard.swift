@@ -77,8 +77,8 @@ struct QuickNotesCard: View {
                                 }
                             }
                         }.scrollIndicators(.automatic)
-                            .onChange(of: focusedTask) { _, id in
-                                if let id { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) { proxy.scrollTo(id, anchor: .bottom) } }
+                            .onChange(of: taskFocus) { _, _ in
+                                if let id = focusedTask { withAnimation(reduceMotion ? nil : .easeOut(duration: 0.16)) { proxy.scrollTo(id, anchor: .bottom) } }
                             }
                             .onChange(of: noteFocus) { _, _ in
                                 if let id = notebook.activeRecordID { proxy.scrollTo(id, anchor: .top) }
@@ -196,6 +196,7 @@ struct QuickNotesCard: View {
     }
 
     private func newNote() {
+        NotebookTextEditor.finishMarkedText()
         if notebook.beginNote() != nil { noteFocus += 1; editing = true; focusedTask = nil; calculationResult = nil }
     }
 

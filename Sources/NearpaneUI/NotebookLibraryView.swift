@@ -206,6 +206,7 @@ struct NotebookLibraryView: View {
     }
 
     private func create(_ kind: SidebarNotebook.RecordKind) {
+        NotebookTextEditor.finishMarkedText()
         query = ""; filter = .all; showsCalculation = false
         selectedID = kind == .note ? notebook.beginNote() : notebook.createTask(body: "")
         editorFocus += 1

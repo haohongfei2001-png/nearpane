@@ -141,7 +141,7 @@ private struct ToolPresentation: Equatable {
                         // collapses, retaining its editor, focus and domain instance.
                         DispatchQueue.main.async { [weak self] in
                             guard let self, binding == generation, dragOrigin == nil,
-                                  let screen = self.screen, let domains,
+                                  let screen = self.screen, let domains = self.domains,
                                   state?.expanded != nil, permitted?() == true else { return }
                             let settings = host.panelPresentationSettings(on: screen.id)
                             guard let workspace = self.workspace(on: screen, settings: settings, domains: domains),

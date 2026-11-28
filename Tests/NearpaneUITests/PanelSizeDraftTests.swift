@@ -12,7 +12,7 @@ import Testing
     @Test func allWorkbenchModulesUseTheSameFittedGeometryAndPausedVoiceState() throws {
         let frame = SurfaceRect(width: 1440, height: 832)
         let screen = ScreenGeometry(id: "workbench", frame: frame, visibleFrame: frame)
-        let order = [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.lyrics, BuiltinCatalog.memo, BuiltinCatalog.tasks]
+        let order = [BuiltinCatalog.voice, BuiltinCatalog.screenshots, BuiltinCatalog.lyrics, BuiltinCatalog.memo]
         for paused in [false, true] {
             let sizing = try #require(PanelSizeLayout(settings: .init(), screen: screen, edge: .right,
                 content: .full, voice: true, tray: true, floating: false, toolOrder: order,
@@ -30,7 +30,7 @@ import Testing
         short.measures[.panelHeight] = Measure(120)
         let compact = try #require(PanelSizeLayout(settings: short, screen: screen, edge: .right,
             content: .toolsOnly, voice: false, tray: false, floating: false,
-            toolOrder: [BuiltinCatalog.memo, BuiltinCatalog.tasks]))
+            toolOrder: [BuiltinCatalog.memo, BuiltinCatalog.clock]))
         #expect(compact.form == .full)
     }
 

@@ -83,7 +83,8 @@ public final class EmbeddedModules {
     /// A healthy notebook needs no extra work or confirmation. A failed automatic
     /// save must succeed before its in-memory draft can be released by the Host.
     @discardableResult public func prepareNotebookShutdown() -> Bool {
-        !notebook.hasUnsavedChanges || notebook.retrySave()
+        NotebookTextEditor.finishMarkedText()
+        return !notebook.hasUnsavedChanges || notebook.retrySave()
     }
 
     @MainActor public func updateRelaunchBlock() async -> String? {

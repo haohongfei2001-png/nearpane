@@ -1,5 +1,6 @@
 # Nearpane unified workbench — 2026-11-28
 
+> Notes update (2026-11-28): the former memo and tasks surfaces and library entries are now one Notes module. [Quick Notes](../../design/QUICK-NOTES.md) governs its data migration, shared record history and interaction; the original unified-window responsibilities below remain in force.
 > Implementation checkpoint: the owner-approved [product constitution](../../PRODUCT_CONSTITUTION.md), introduced in `d73d1549` and extended with four-edge requirements in `b2112280`, is authoritative. This revision replaces the intermediate candidate's protected resident order with one freely ordered stack and retires its detailed visual controls. The current implementation still has left/right desktop edges; it does not claim the new top/bottom or horizontal-layout qualification. Native downloadable module packages are not implemented by the current statically linked integration and must never be presented as if they were. Implementation remains distinct from native acceptance.
 
 ## Product decision

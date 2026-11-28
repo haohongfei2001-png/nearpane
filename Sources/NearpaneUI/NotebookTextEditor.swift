@@ -10,6 +10,14 @@ struct NotebookTextEditor: NSViewRepresentable {
     var focusRequest: Int = 0
     var onFocusChanged: (Bool) -> Void = { _ in }
 
+    @MainActor static func finishMarkedText() {
+        guard let editor = NSApp?.keyWindow?.firstResponder as? NSTextView,
+              let coordinator = editor.delegate as? Coordinator, editor.hasMarkedText() else { return }
+        let composed = editor.string
+        editor.unmarkText()
+        coordinator.parent.text = composed
+    }
+
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> NSScrollView {

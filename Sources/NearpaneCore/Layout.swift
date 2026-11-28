@@ -130,11 +130,6 @@ public enum LayoutComposer {
             case BuiltinCatalog.memo:
                 preferred = hasTools && notesHeight.isFinite ? max(44, min(280, notesHeight)) : 0
                 minimum = min(preferred, 72)
-            case BuiltinCatalog.tasks:
-                // Kept only for old, explicit layout receipts. Product configurations
-                // migrate this identity before they reach the compositor.
-                preferred = hasTools ? 128 : 0
-                minimum = min(preferred, 72)
             case BuiltinCatalog.clock:
                 preferred = hasTools ? 40 : 0
                 minimum = preferred
@@ -194,7 +189,7 @@ public enum LayoutComposer {
         case BuiltinCatalog.screenshots:
             minimum = max(76, 2 * settings.points(.trayPadding, in: width) +
                           2 * settings.points(.trayButtonSize, in: preferred) + settings.points(.rowGap, in: preferred))
-        case BuiltinCatalog.memo, BuiltinCatalog.tasks: minimum = 72
+        case BuiltinCatalog.memo: minimum = 72
         default: minimum = preferred
         }
         return min(preferred, minimum)
